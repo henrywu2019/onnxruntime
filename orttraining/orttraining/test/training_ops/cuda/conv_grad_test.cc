@@ -24,8 +24,9 @@ struct ConvGradOpAttributes {
 
 void TestConvGradOp(const ConvGradOpAttributes& attributes, const vector<vector<float>>& inputs,
                     const vector<vector<int64_t>>& input_shapes, const vector<vector<float>>& outputs,
-                    const vector<vector<int64_t>>& output_shapes, bool is_half = false) {
+                    const vector<vector<int64_t>>& output_shapes, bool is_half, bool use_more_mem) {
   OpTester test("ConvGrad", 1, kMSDomain);
+  test.SetUseMoreMemForConv(use_more_mem);
   test.AddAttribute("group", attributes.group);
   test.AddAttribute("kernel_shape", attributes.kernel_shape);
   test.AddAttribute("pads", attributes.pads);
@@ -80,6 +81,18 @@ void TestConvGradOp(const ConvGradOpAttributes& attributes, const vector<vector<
   test.Run(OpTester::ExpectResult::kExpectSuccess, "", {kTensorrtExecutionProvider, kOpenVINOExecutionProvider});
 }
 
+void RunConvGradOpTests(const ConvGradOpAttributes& attributes, const vector<vector<float>>& inputs,
+                        const vector<vector<int64_t>>& input_shapes, const vector<vector<float>>& outputs,
+                        const vector<vector<int64_t>>& output_shapes) {
+  // The algo cache is global.For given shape and dtype, the second run will hit cache
+  // so that use_more_mem will take no effect. So use random bool value here.
+  bool use_more_mem = (rand() % 2 == 0);
+  TestConvGradOp(attributes, inputs, input_shapes, outputs, output_shapes, false, use_more_mem);
+  TestConvGradOp(attributes, inputs, input_shapes, outputs, output_shapes, false, !use_more_mem);
+  TestConvGradOp(attributes, inputs, input_shapes, outputs, output_shapes, true, !use_more_mem);
+  TestConvGradOp(attributes, inputs, input_shapes, outputs, output_shapes, true, use_more_mem);
+}
+
 }  // namespace
 
 TEST(ConvGradTest, Conv1D_1) {
@@ -102,8 +115,7 @@ TEST(ConvGradTest, Conv1D_1) {
   vector<float> dW = {-2.6865f};
   vector<int64_t> dW_shape = {1, 1, 1};
 
-  TestConvGradOp(attrs, {dY, X, W}, {dY_shape, X_shape, W_shape}, {dX, dW}, {dX_shape, dW_shape});
-  TestConvGradOp(attrs, {dY, X, W}, {dY_shape, X_shape, W_shape}, {dX, dW}, {dX_shape, dW_shape}, true);
+  RunConvGradOpTests(attrs, {dY, X, W}, {dY_shape, X_shape, W_shape}, {dX, dW}, {dX_shape, dW_shape});
 }
 
 TEST(ConvGradTest, Conv1D_2) {
@@ -130,8 +142,7 @@ TEST(ConvGradTest, Conv1D_2) {
   vector<float> dW = {-2.9440f, -2.9440f, -2.9440f, -2.9440f};
   vector<int64_t> dW_shape = {2, 1, 2};
 
-  TestConvGradOp(attrs, {dY, X, W}, {dY_shape, X_shape, W_shape}, {dX, dW}, {dX_shape, dW_shape});
-  TestConvGradOp(attrs, {dY, X, W}, {dY_shape, X_shape, W_shape}, {dX, dW}, {dX_shape, dW_shape}, true);
+  RunConvGradOpTests(attrs, {dY, X, W}, {dY_shape, X_shape, W_shape}, {dX, dW}, {dX_shape, dW_shape});
 }
 
 TEST(ConvGradTest, Conv1D_Bias) {
@@ -162,8 +173,7 @@ TEST(ConvGradTest, Conv1D_Bias) {
   vector<float> dB = {8.f};
   vector<int64_t> dB_shape = {1};
 
-  TestConvGradOp(attrs, {dY, X, W}, {dY_shape, X_shape, W_shape}, {dX, dW, dB}, {dX_shape, dW_shape, dB_shape});
-  TestConvGradOp(attrs, {dY, X, W}, {dY_shape, X_shape, W_shape}, {dX, dW, dB}, {dX_shape, dW_shape, dB_shape}, true);
+  RunConvGradOpTests(attrs, {dY, X, W}, {dY_shape, X_shape, W_shape}, {dX, dW, dB}, {dX_shape, dW_shape, dB_shape});
 }
 
 TEST(ConvGradTest, Conv2D) {
@@ -195,8 +205,7 @@ TEST(ConvGradTest, Conv2D) {
   vector<float> dW = {-0.7758f};
   vector<int64_t> dW_shape = {1, 1, 1, 1};
 
-  TestConvGradOp(attrs, {dY, X, W}, {dY_shape, X_shape, W_shape}, {dX, dW}, {dX_shape, dW_shape});
-  TestConvGradOp(attrs, {dY, X, W}, {dY_shape, X_shape, W_shape}, {dX, dW}, {dX_shape, dW_shape}, true);
+  RunConvGradOpTests(attrs, {dY, X, W}, {dY_shape, X_shape, W_shape}, {dX, dW}, {dX_shape, dW_shape});
 }
 
 TEST(ConvGradTest, Conv2D_Bias) {
@@ -221,8 +230,7 @@ TEST(ConvGradTest, Conv2D_Bias) {
   vector<float> dB = {4.f, 4.f};
   vector<int64_t> dB_shape = {2};
 
-  TestConvGradOp(attrs, {dY, X, W}, {dY_shape, X_shape, W_shape}, {dX, dW, dB}, {dX_shape, dW_shape, dB_shape});
-  TestConvGradOp(attrs, {dY, X, W}, {dY_shape, X_shape, W_shape}, {dX, dW, dB}, {dX_shape, dW_shape, dB_shape}, true);
+  RunConvGradOpTests(attrs, {dY, X, W}, {dY_shape, X_shape, W_shape}, {dX, dW, dB}, {dX_shape, dW_shape, dB_shape});
 }
 
 TEST(ConvGradTest, Conv3D) {
@@ -257,8 +265,7 @@ TEST(ConvGradTest, Conv3D) {
   vector<float> dW = {4.1702f};
   vector<int64_t> dW_shape = {1, 1, 1, 1, 1};
 
-  TestConvGradOp(attrs, {dY, X, W}, {dY_shape, X_shape, W_shape}, {dX, dW}, {dX_shape, dW_shape});
-  TestConvGradOp(attrs, {dY, X, W}, {dY_shape, X_shape, W_shape}, {dX, dW}, {dX_shape, dW_shape}, true);
+  RunConvGradOpTests(attrs, {dY, X, W}, {dY_shape, X_shape, W_shape}, {dX, dW}, {dX_shape, dW_shape});
 }
 
 TEST(ConvTest, Conv3D_Bias) {
@@ -308,8 +315,7 @@ TEST(ConvTest, Conv3D_Bias) {
   vector<float> dB = {54.f, 54.f};
   vector<int64_t> dB_shape = {2};
 
-  TestConvGradOp(attrs, {dY, X, W}, {dY_shape, X_shape, W_shape}, {dX, dW, dB}, {dX_shape, dW_shape, dB_shape});
-  TestConvGradOp(attrs, {dY, X, W}, {dY_shape, X_shape, W_shape}, {dX, dW, dB}, {dX_shape, dW_shape, dB_shape}, true);
+  RunConvGradOpTests(attrs, {dY, X, W}, {dY_shape, X_shape, W_shape}, {dX, dW, dB}, {dX_shape, dW_shape, dB_shape});
 }
 #endif  // USE_CUDA
 

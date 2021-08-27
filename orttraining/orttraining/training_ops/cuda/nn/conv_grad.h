@@ -66,8 +66,8 @@ class ConvGrad final : public CudaKernel {
   ConvAttributes conv_attrs_;
 
  private:
-  Status ComputeWeightGradient() const;
-  Status ComputeInputGradient() const;
+  Status ComputeWeightGradient(bool use_more_mem) const;
+  Status ComputeInputGradient(bool use_more_mem) const;
   Status ComputeBiasGradient() const;
 };
 

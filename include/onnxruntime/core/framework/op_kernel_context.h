@@ -168,6 +168,13 @@ class OpKernelContext {
     return true;
   }
 
+  /**
+  Returns whether use more memory for Conv algo search.
+  */
+ virtual bool GetUseMoreMemForConv() const {
+   return false;
+ }
+
  protected:
   onnxruntime::NodeIndex GetNodeIndex() const;
 

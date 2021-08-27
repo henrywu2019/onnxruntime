@@ -249,7 +249,7 @@ Status Conv<T>::UpdateState(OpKernelContext* context, bool bias_expected) const 
       switch (cudnn_conv_algo) {
         case 0: {
           static constexpr int num_algos = CUDNN_CONVOLUTION_FWD_ALGO_COUNT;
-          size_t max_ws_size = GetMaxWorkspaceSize(s_, kAllAlgos, num_algos);
+          size_t max_ws_size = context->GetUseMoreMemForConv() ? GetMaxWorkspaceSize(s_, kAllAlgos, num_algos) : AlgoSearchWorkspaceSize;
           // Use IAllocator's Reserve so the workspace can be freed instead of cached. Because the benchmarking uses a
           // huge amount of memory, e.g. a few GBs.
           IAllocatorUniquePtr<void> algo_search_workspace = GetScratchBuffer<void>(max_ws_size, true);
