@@ -2,7 +2,9 @@
 # Licensed under the MIT License.
 
 import concurrent.futures
+import functools
 import os
+import shutil
 import subprocess
 from logger import get_logger
 
@@ -18,7 +20,9 @@ contrib_ops_excluded_files = [
                     'bert/attention_impl.cu',
                     'bert/attention_impl.h',
                     'bert/attention_transpose.cu',
-                    'bert/attention_past.cu',
+                    'bert/attention_concat.cu',
+                    'bert/decoder_attention.h',
+                    'bert/decoder_attention.cc',
                     'bert/embed_layer_norm.cc',
                     'bert/embed_layer_norm.h',
                     'bert/embed_layer_norm_impl.cu',
@@ -33,6 +37,7 @@ contrib_ops_excluded_files = [
                     'bert/longformer_attention_impl.h',
                     'bert/longformer_global_impl.cu',
                     'bert/longformer_global_impl.h',
+                    'bert/transformer_cuda_common.h',
                     'math/bias_softmax.cc',
                     'math/bias_softmax.h',
                     'math/bias_softmax_impl.cu',
@@ -89,11 +94,8 @@ provider_excluded_files = [
                 'math/matmul_integer.cuh',
                 'math/matmul_integer.h',
                 'math/softmax_impl.cu',
+                'math/softmax_warpwise_impl.cuh',
                 'math/softmax.cc',
-                'math/topk.cc',
-                'math/topk.h',
-                'math/topk_impl.cu',
-                'math/topk_impl.h',
                 'nn/batch_norm.cc',
                 'nn/batch_norm.h',
                 'nn/conv.cc',
@@ -110,14 +112,6 @@ provider_excluded_files = [
                 'nn/max_pool_with_index.h',
                 'nn/pool.cc',
                 'nn/pool.h',
-                'object_detection/non_max_suppression.cc',
-                'object_detection/non_max_suppression.h',
-                'object_detection/non_max_suppression_impl.cu',
-                'object_detection/non_max_suppression_impl.h',
-                'object_detection/roialign.cc',
-                'object_detection/roialign.h',
-                'object_detection/roialign_impl.cu',
-                'object_detection/roialign_impl.h',
                 'reduction/reduction_ops.cc',
                 'reduction/reduction_ops.h',
                 'rnn/cudnn_rnn_base.cc',
@@ -131,24 +125,8 @@ provider_excluded_files = [
                 'rnn/rnn_impl.cu',
                 'rnn/rnn_impl.h',
                 'shared_inc/cuda_call.h',
-                'shared_inc/fast_divmod.h',
                 'shared_inc/fpgeneric.h',
                 'shared_inc/integer_gemm.h',
-                'tensor/gather_nd_impl.cu',
-                'tensor/quantize_linear.cc',
-                'tensor/quantize_linear.cu',
-                'tensor/quantize_linear.cuh',
-                'tensor/quantize_linear.h',
-                'tensor/resize.cc',
-                'tensor/resize.h',
-                'tensor/resize_impl.cu',
-                'tensor/resize_impl.h',
-                'tensor/transpose.cc',
-                'tensor/transpose.h',
-                'tensor/upsample.cc',
-                'tensor/upsample.h',
-                'tensor/upsample_impl.cu',
-                'tensor/upsample_impl.h',
                 'cuda_allocator.cc',
                 'cuda_allocator.h',
                 'cuda_call.cc',
@@ -179,33 +157,43 @@ provider_excluded_files = [
 ]
 
 training_ops_excluded_files = [
-                    'activation/gelu_grad_impl_common.cuh',
+                    'activation/gelu_grad_impl_common.cuh',  # uses custom tanh
                     'collective/adasum_kernels.cc',
                     'collective/adasum_kernels.h',
-                    'collective/nccl_common.cc',
-                    'collective/ready_event.cc',
-                    'collective/ready_event.h',
-                    'controlflow/record.cc',
-                    'controlflow/record.h',
-                    'controlflow/wait.cc',
-                    'controlflow/wait.h',
-                    'math/div_grad.cc',
-                    'math/softmax_grad_impl.cu',
-                    'math/softmax_grad.cc',
-                    'nn/batch_norm_grad.cc',
-                    'nn/batch_norm_grad.h',
-                    'nn/batch_norm_internal.cc',
-                    'nn/batch_norm_internal.h',
+                    'math/div_grad.cc',  # miopen API differs from cudnn, no double type support
+                    'math/softmax_grad_impl.cu',  # warp size differences
+                    'math/softmax_grad.cc',  # miopen API differs from cudnn, no double type support
+                    'nn/batch_norm_grad.cc',  # no double type support
+                    'nn/batch_norm_grad.h',  # miopen API differs from cudnn
+                    'nn/batch_norm_internal.cc',  # miopen API differs from cudnn, no double type support
+                    'nn/batch_norm_internal.h',  # miopen API differs from cudnn, no double type support
                     'nn/conv_grad.cc',
                     'nn/conv_grad.h',
-                    'reduction/reduction_all.cc',
-                    'reduction/reduction_ops.cc',
-                    'tensor/gather_nd_grad_impl.cu',
+                    'reduction/reduction_all.cc',  # deterministic = true, ignore ctx setting
+                    'reduction/reduction_ops.cc',  # no double type support
                     'cuda_training_kernels.cc',
                     'cuda_training_kernels.h',
 ]
 
-HIPIFY_PERL = '/opt/rocm/bin/hipify-perl'
+
+@functools.lru_cache(maxsize=1)
+def get_hipify_path():
+    # prefer the hipify-perl in PATH
+    HIPIFY_PERL = shutil.which('hipify-perl')
+    # if not found, attempt hard-coded location 1
+    if HIPIFY_PERL is None:
+        print('hipify-perl not found, trying default location 1')
+        hipify_path = '/opt/rocm/hip/bin/hipify-perl'
+        HIPIFY_PERL = hipify_path if os.access(hipify_path, os.X_OK) else None
+    # if not found, attempt hard-coded location 2
+    if HIPIFY_PERL is None:
+        print('hipify-perl not found, trying default location 2')
+        hipify_path = '/opt/rocm/bin/hipify-perl'
+        HIPIFY_PERL = hipify_path if os.access(hipify_path, os.X_OK) else None
+    # fail
+    if HIPIFY_PERL is None:
+        raise RuntimeError('Could not locate hipify-perl script')
+    return HIPIFY_PERL
 
 
 def hipify(src_file_path, dst_file_path):
@@ -214,7 +202,7 @@ def hipify(src_file_path, dst_file_path):
     if not os.path.exists(dir_name):
         os.makedirs(dir_name, exist_ok=True)
     # Run hipify-perl first, capture output
-    s = subprocess.run([HIPIFY_PERL, src_file_path], stdout=subprocess.PIPE, universal_newlines=True).stdout
+    s = subprocess.run([get_hipify_path(), src_file_path], stdout=subprocess.PIPE, universal_newlines=True).stdout
 
     # Additional exact-match replacements.
     # Order matters for all of the following replacements, reglardless of appearing in logical sections.
@@ -235,6 +223,7 @@ def hipify(src_file_path, dst_file_path):
     s = s.replace('hipblasCreate', 'rocblas_create_handle')
     s = s.replace('hipblasDestroy', 'rocblas_destroy_handle')
     s = s.replace('hipblasSetStream', 'rocblas_set_stream')
+    s = s.replace('HIPBLAS_OP_T', 'rocblas_operation_transpose')
 
     s = s.replace('RegisterCudaContribKernels', 'RegisterRocmContribKernels')
     s = s.replace('cudaEvent', 'hipEvent')
@@ -259,6 +248,8 @@ def hipify(src_file_path, dst_file_path):
     s = s.replace('std::log', 'logf')
     s = s.replace('#include <cub/device/device_radix_sort.cuh>',
                   '#include <hipcub/hipcub.hpp>\n#include <hipcub/backend/rocprim/device/device_radix_sort.hpp>')
+    s = s.replace('#include "cub/device/device_radix_sort.cuh"',
+                  '#include <hipcub/hipcub.hpp>\n#include <hipcub/backend/rocprim/device/device_radix_sort.hpp>')
     s = s.replace('#include <cub/device/device_reduce.cuh>',
                   '#include <hipcub/backend/rocprim/device/device_reduce.hpp>')
     s = s.replace('#include <cub/device/device_run_length_encode.cuh>',
@@ -269,6 +260,14 @@ def hipify(src_file_path, dst_file_path):
                   '#include <hipcub/backend/rocprim/iterator/counting_input_iterator.hpp>')
     s = s.replace('#include <cub/iterator/discard_output_iterator.cuh>',
                   '#include <hipcub/backend/rocprim/iterator/discard_output_iterator.hpp>')
+    s = s.replace('#include <cub/util_allocator.cuh>',
+                  '#include <hipcub/util_allocator.hpp>')
+    s = s.replace('#include "cub/util_allocator.cuh"',
+                  '#include <hipcub/util_allocator.hpp>')
+    s = s.replace('#include <cub/util_type.cuh>',
+                  '#include <hipcub/backend/rocprim/util_type.hpp>')
+    s = s.replace('#include "cub/util_type.cuh"',
+                  '#include <hipcub/backend/rocprim/util_type.hpp>')
     s = s.replace('typedef half MappedType', 'typedef __half MappedType')
 
     # CUBLAS -> HIPBLAS
@@ -315,6 +314,11 @@ def hipify(src_file_path, dst_file_path):
     s = s.replace('RegisterHipTrainingKernels', 'RegisterRocmTrainingKernels')
     s = s.replace('ROCM_VERSION', 'CUDA_VERSION')  # semantically different meanings, cannot hipify
     s = s.replace('__ROCM_ARCH__', '__CUDA_ARCH__')  # semantically different meanings, cannot hipify
+    # "std::log" above incorrectly changed "std::logic_error" to "logfic_error"
+    s = s.replace('logfic_error', 'std::logic_error')
+
+    # Deletions
+    s = s.replace('#include "device_atomic_functions.h"', '')  # HIP atomics in main hip header already
 
     do_write = True
     if os.path.exists(dst_file_path):
@@ -339,6 +343,8 @@ def list_files(prefix, path):
 
 
 def amd_hipify(config_build_dir):
+    # determine hipify script path now to avoid doing so concurrently in the thread pool
+    print('Using %s' % get_hipify_path())
     with concurrent.futures.ThreadPoolExecutor() as executor:
         cuda_path = os.path.join(contrib_ops_path, 'cuda')
         rocm_path = os.path.join(config_build_dir, 'amdgpu', contrib_ops_path, 'rocm')
@@ -367,3 +373,8 @@ def amd_hipify(config_build_dir):
             log.debug(result.result())
         for result in training_results:
             log.debug(result.result())
+
+
+if __name__ == '__main__':
+    import sys
+    amd_hipify(sys.argv[1])

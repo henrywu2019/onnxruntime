@@ -463,8 +463,8 @@ OpSchema& RegisterLambOpSchema(OpSchema&& op_schema) {
           "Constrain update count to 64-bit integer")
       .TypeAndShapeInferenceFunction([](ONNX_NAMESPACE::InferenceContext& ctx) {
         // Handle update count, the first output.
-        const size_t step_input_index = 4;
-        const size_t step_output_index = 0;
+        constexpr size_t step_input_index = 4;
+        constexpr size_t step_output_index = 0;
         auto input_type = ctx.getInputType(step_input_index);
         if (input_type != nullptr) {
           propagateElemTypeFromInputToOutput(ctx, step_input_index, step_output_index);
@@ -623,7 +623,7 @@ void RegisterTrainingOpSchemas() {
                 .AddOpset("", 13)
                 .Const("one", int64_t(1))
                 .Const("k", axis)
-                .Const("axis_zero", std::vector<int64_t>({0})) // a 1D tensor constant
+                .Const("axis_zero", std::vector<int64_t>({0}))  // a 1D tensor constant
                 .Add(R"(
                     shape = Shape (dY)
                     n_as_vector = Shape (shape)
@@ -650,6 +650,24 @@ void RegisterTrainingOpSchemas() {
             return true;
           });
 
+  ONNX_CONTRIB_OPERATOR_SCHEMA(SoftmaxGrad_13)
+      .SetDomain(kMSDomain)
+      .SinceVersion(1)
+      .Input(0, "dY", "Gradient of output Y", "T")
+      .Input(1, "Y", "Input tensor", "T")
+      .Output(0, "dX", "Gradient of input X", "T")
+      .Attr(
+          "axis",
+          "Describes the dimension Softmax will be performed on."
+          "Defaults to -1. Negative value means counting dimensions from the back.",
+          AttributeProto::INT,
+          static_cast<int64_t>(-1))
+      .TypeConstraint(
+          "T",
+          {"tensor(float16)", "tensor(float)", "tensor(double)", "tensor(bfloat16)"},
+          "Constrain input and output types to float tensors.")
+      .TypeAndShapeInferenceFunction(propagateShapeAndTypeFromFirstInput);
+
   ONNX_CONTRIB_OPERATOR_SCHEMA(LogSoftmaxGrad)
       .SetDomain(kMSDomain)
       .SinceVersion(1)
@@ -663,6 +681,24 @@ void RegisterTrainingOpSchemas() {
           "the batch_size",
           AttributeProto::INT,
           static_cast<int64_t>(1))
+      .TypeConstraint(
+          "T",
+          {"tensor(float16)", "tensor(float)", "tensor(double)"},
+          "Constrain input and output types to float tensors.")
+      .TypeAndShapeInferenceFunction(propagateShapeAndTypeFromFirstInput);
+
+  ONNX_CONTRIB_OPERATOR_SCHEMA(LogSoftmaxGrad_13)
+      .SetDomain(kMSDomain)
+      .SinceVersion(1)
+      .Input(0, "dY", "Gradient of output Y", "T")
+      .Input(1, "X", "Input tensor", "T")
+      .Output(0, "dX", "Gradient of input X", "T")
+      .Attr(
+          "axis",
+          "Describes the dimension LogSoftmax will be performed on."
+          "Defaults to -1. Negative value means counting dimensions from the back.",
+          AttributeProto::INT,
+          static_cast<int64_t>(-1))
       .TypeConstraint(
           "T",
           {"tensor(float16)", "tensor(float)", "tensor(double)"},
@@ -835,8 +871,8 @@ void RegisterTrainingOpSchemas() {
         }
       });
 
-  //TODO: Move this to the right location. Its only here for quick experimentation.
-  //TODO: Use the mutli weight / grad version.
+  // TODO: Move this to the right location. Its only here for quick experimentation.
+  // TODO: Use the mutli weight / grad version.
   ONNX_CONTRIB_OPERATOR_SCHEMA(SGDOptimizer)
       .SetDomain(kMSDomain)
       .SinceVersion(1)
@@ -2081,7 +2117,6 @@ Example 4:
             return true;
           });
 
-
   ONNX_CONTRIB_OPERATOR_SCHEMA(SigmoidGrad)
       .SetDomain(kMSDomain)
       .SinceVersion(1)
@@ -2112,7 +2147,35 @@ Example 4:
             onnx_opset_13.set_version(13);
 
             return ONNX_NAMESPACE::FunctionBodyHelper::BuildFunctionProto(functionProto, schema, body, {onnx_opset_13});
+          });
 
+  ONNX_CONTRIB_OPERATOR_SCHEMA(TanhGrad)
+      .SetDomain(kMSDomain)
+      .SinceVersion(1)
+      .SetSupportLevel(OpSchema::SupportType::EXPERIMENTAL)
+      .SetDoc("TanhGrad")
+      .AllowUncheckedAttributes()
+      .Input(0, "dY", "The gradient tensor from output.", "T")
+      .Input(1, "Y", "The input tensor. ", "T")
+      .Output(0, "dX", "Gradient of the input.", "T")
+      .TypeConstraint(
+          "T",
+          {"tensor(float16)", "tensor(float)", "tensor(double)", "tensor(bfloat16)"},
+          "Constrain input and output types to float tensors.")
+      .TypeAndShapeInferenceFunction(ONNX_NAMESPACE::propagateShapeAndTypeFromFirstInput)
+      .SetContextDependentFunctionBodyBuilder(
+          [](const FunctionBodyBuildContext& ctx, const OpSchema& schema, FunctionProto& functionProto) {
+            auto* tp = ctx.getInputType(0);
+            if ((tp == nullptr) || (!tp->has_tensor_type()))
+              return false;
+            auto elem_type = (ONNX_NAMESPACE::TensorProto_DataType)tp->tensor_type().elem_type();
+            std::vector<FunctionBodyHelper::NodeDef> body{
+                ONNX_NAMESPACE::Const("C_One", 1.0f, elem_type),
+                {{"YSquare"}, "Mul", {"Y", "Y"}},
+                {{"dTanhX"}, "Sub", {"C_One", "YSquare"}},
+                {{"dX"}, "Mul", {"dY", "dTanhX"}}};
+
+            return ONNX_NAMESPACE::FunctionBodyHelper::BuildFunctionProto(functionProto, schema, body, {});
           });
 
   ONNX_CONTRIB_OPERATOR_SCHEMA(LayerNormalizationGrad)
@@ -2751,7 +2814,7 @@ Return true if all elements are true and false otherwise.
       .Output(0, "dX", "Gradient of the input.", "T")
       .TypeConstraint(
           "T",
-          {"tensor(float16)", "tensor(float)", "tensor(double)"},
+          {"tensor(float16)", "tensor(float)", "tensor(double)", "tensor(bfloat16)"},
           "Constrain input and output types to float tensors.")
       .TypeAndShapeInferenceFunction(ONNX_NAMESPACE::propagateShapeAndTypeFromFirstInput);
 
@@ -2892,7 +2955,7 @@ Return true if all elements are true and false otherwise.
               /*min_arity*/ 0)
       .Attr("non_differentiable_outputs", "The indices of the module outputs that doesn't have a gradient.", AttributeProto::INTS, OPTIONAL_VALUE)
       .Attr("full_shape_outputs", "The indices of the module outputs that must have full shape.", AttributeProto::INTS)
-      .TypeConstraint("T", OpSchema::all_tensor_types(), "Allow inputs and outputs to be any kind of tensor.")
+      .TypeConstraint("T", OpSchema::all_tensor_types_with_bfloat(), "Allow inputs and outputs to be any kind of tensor.")
       .TypeAndShapeInferenceFunction([](ONNX_NAMESPACE::InferenceContext& ctx) {
         auto non_differentiable_outputs = ctx.getAttribute("non_differentiable_outputs");
         std::unordered_set<size_t> non_differentiable_outputs_indices{};
@@ -3381,10 +3444,13 @@ Return true if all elements are true and false otherwise.
 }  // namespace training
 
 void RegisterOrtOpSchemas() {
-  ONNX_NAMESPACE::OpSchemaRegistry::DomainToVersionRange::Instance().AddDomainToVersion(onnxruntime::kMSDomain, 1, 1);
-  ONNX_NAMESPACE::OpSchemaRegistry::DomainToVersionRange::Instance().AddDomainToVersion(onnxruntime::kMSExperimentalDomain, 1, 1);
-  ONNX_NAMESPACE::OpSchemaRegistry::DomainToVersionRange::Instance().AddDomainToVersion(onnxruntime::kMSNchwcDomain, 1, 1);
-  ONNX_NAMESPACE::OpSchemaRegistry::DomainToVersionRange::Instance().AddDomainToVersion(onnxruntime::kMSFeaturizersDomain, 1, 1);
+  auto& domainToVersionRangeInstance = ONNX_NAMESPACE::OpSchemaRegistry::DomainToVersionRange::Instance();
+  if (domainToVersionRangeInstance.Map().find(onnxruntime::kMSDomain) == domainToVersionRangeInstance.Map().end()) {
+    // External shared providers may have already added kMSDomain
+    domainToVersionRangeInstance.AddDomainToVersion(onnxruntime::kMSDomain, 1, 1);
+  }
+  domainToVersionRangeInstance.AddDomainToVersion(onnxruntime::kMSExperimentalDomain, 1, 1);
+  domainToVersionRangeInstance.AddDomainToVersion(onnxruntime::kMSNchwcDomain, 1, 1);
 
   onnxruntime::contrib::RegisterContribSchemas();
   onnxruntime::training::RegisterTrainingOpSchemas();

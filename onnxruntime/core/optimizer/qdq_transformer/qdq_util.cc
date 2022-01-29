@@ -13,7 +13,10 @@
 namespace onnxruntime {
 namespace QDQ {
 
-bool IsQDQPairSupported(const Graph& graph, const Node& q_node, const Node& dq_node) {
+bool IsQDQPairSupported(
+    const Node& q_node, const Node& dq_node,
+    const std::function<const ONNX_NAMESPACE::TensorProto*(const std::string&)>& get_const_initializer,
+    const Path& model_path) {
   ConstPointerContainer<std::vector<NodeArg*>> dq_input_defs = dq_node.InputDefs();
   ConstPointerContainer<std::vector<NodeArg*>> q_input_defs = q_node.InputDefs();
 
@@ -30,13 +33,13 @@ bool IsQDQPairSupported(const Graph& graph, const Node& q_node, const Node& dq_n
 
   // if Q/DQ scale and zero point are not constant, return false
   const ONNX_NAMESPACE::TensorProto* dq_scale_tensor_proto =
-      graph_utils::GetConstantInitializer(graph, dq_input_defs[InputIndex::SCALE_ID]->Name());
+      get_const_initializer(dq_input_defs[InputIndex::SCALE_ID]->Name());
   const ONNX_NAMESPACE::TensorProto* q_scale_tensor_proto =
-      graph_utils::GetConstantInitializer(graph, q_input_defs[InputIndex::SCALE_ID]->Name());
+      get_const_initializer(q_input_defs[InputIndex::SCALE_ID]->Name());
   const ONNX_NAMESPACE::TensorProto* dq_zp_tensor_proto =
-      graph_utils::GetConstantInitializer(graph, dq_input_defs[InputIndex::ZERO_POINT_ID]->Name());
+      get_const_initializer(dq_input_defs[InputIndex::ZERO_POINT_ID]->Name());
   const ONNX_NAMESPACE::TensorProto* q_zp_tensor_proto =
-      graph_utils::GetConstantInitializer(graph, q_input_defs[InputIndex::ZERO_POINT_ID]->Name());
+      get_const_initializer(q_input_defs[InputIndex::ZERO_POINT_ID]->Name());
   if (nullptr == q_zp_tensor_proto ||
       nullptr == dq_zp_tensor_proto ||
       nullptr == q_scale_tensor_proto ||
@@ -45,14 +48,40 @@ bool IsQDQPairSupported(const Graph& graph, const Node& q_node, const Node& dq_n
   }
 
   // check Q/DQ have same scale and zero point
-  Initializer q_zp(*q_zp_tensor_proto, graph.ModelPath());
-  Initializer q_scale(*q_scale_tensor_proto, graph.ModelPath());
-  Initializer dq_zp(*dq_zp_tensor_proto, graph.ModelPath());
-  Initializer dq_scale(*dq_scale_tensor_proto, graph.ModelPath());
+  Initializer q_zp(*q_zp_tensor_proto, model_path);
+  Initializer q_scale(*q_scale_tensor_proto, model_path);
+  Initializer dq_zp(*dq_zp_tensor_proto, model_path);
+  Initializer dq_scale(*dq_scale_tensor_proto, model_path);
 
   return q_zp.data_type() == dq_zp.data_type() &&
          *q_zp.data<int8_t>() == *dq_zp.data<int8_t>() &&
          *q_scale.data<float>() == *dq_scale.data<float>();
+}
+
+bool IsDQSupported(
+    const Node& dq_node,
+    const std::function<const ONNX_NAMESPACE::TensorProto*(const std::string&)>& get_const_initializer) {
+  ConstPointerContainer<std::vector<NodeArg*>> dq_input_defs = dq_node.InputDefs();
+
+  // DQ contains optional input is not supported
+  // non-scalar DQ scale and zero point needs are not supported
+  if (dq_input_defs.size() != InputIndex::TOTAL_COUNT ||
+      !optimizer_utils::IsScalar(*dq_input_defs[InputIndex::SCALE_ID]) ||
+      !optimizer_utils::IsScalar(*dq_input_defs[InputIndex::ZERO_POINT_ID])) {
+    return false;
+  }
+
+  // if DQ scale and zero point are not constant, return false
+  const ONNX_NAMESPACE::TensorProto* dq_scale_tensor_proto =
+      get_const_initializer(dq_input_defs[InputIndex::SCALE_ID]->Name());
+  const ONNX_NAMESPACE::TensorProto* dq_zp_tensor_proto =
+      get_const_initializer(dq_input_defs[InputIndex::ZERO_POINT_ID]->Name());
+  if (nullptr == dq_zp_tensor_proto ||
+      nullptr == dq_scale_tensor_proto) {
+    return false;
+  }
+
+  return true;
 }
 
 }  // namespace QDQ

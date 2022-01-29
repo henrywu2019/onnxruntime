@@ -25,8 +25,7 @@ void CreateMLValue(onnxruntime::AllocatorPtr alloc,
                   onnxruntime::DataTypeImpl::GetType<onnxruntime::Tensor>()->GetDeleteFunc());
 }
 
-void CreateMLValue(void* data_ptr, onnxruntime::MLDataType element_type, const std::vector<int64_t>& dims, OrtValue* p_mlvalue) {
-  onnxruntime::TensorShape shape(dims);
+void CreateMLValue(void* data_ptr, onnxruntime::MLDataType element_type, onnxruntime::TensorShape& shape, OrtValue* p_mlvalue){
   OrtMemoryInfo *cpu_info;
   Ort::ThrowOnError(Ort::GetApi().CreateCpuMemoryInfo(OrtArenaAllocator, OrtMemTypeDefault, &cpu_info));
   std::unique_ptr<onnxruntime::Tensor> p_tensor = std::make_unique<onnxruntime::Tensor>(element_type,
@@ -39,7 +38,12 @@ void CreateMLValue(void* data_ptr, onnxruntime::MLDataType element_type, const s
                   onnxruntime::DataTypeImpl::GetType<onnxruntime::Tensor>()->GetDeleteFunc());
 }
 
-std::vector<int64_t> GetStrides(const std::vector<int64_t>& shape) {
+void CreateMLValue(void* data_ptr, onnxruntime::MLDataType element_type, const std::vector<int64_t>& dims, OrtValue* p_mlvalue) {
+  onnxruntime::TensorShape shape(dims);
+  CreateMLValue(data_ptr, element_type, shape, p_mlvalue);
+}
+
+std::vector<int64_t> GetStrides(gsl::span<const int64_t> shape) {
   std::vector<int64_t> strides(shape.size(), 1);
   for (auto i = shape.size(); i > 1; --i) {
     strides[i - 2] = strides[i - 1] * shape[i - 1];

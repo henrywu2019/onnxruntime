@@ -11,6 +11,7 @@
 #include "core/framework/data_types.h"
 #include "core/framework/kernel_def_builder.h"
 #include "core/framework/mldata_type_utils.h"
+#include "core/framework/inlined_containers.h"
 #include "core/framework/op_kernel.h"
 #include "core/framework/session_state.h"
 #include "core/framework/tensorprotoutils.h"
@@ -447,6 +448,16 @@ class PlannerImpl {
         // TODO this should be an error case, needs more investigation
         continue;
       }
+
+#if !defined(DISABLE_OPTIONAL_TYPE)
+      // Make sure optional types are not up for re-use as we aren't quite
+      // sure if the re-used tensor will be a None or otherwise. This cannot
+      // be determined statically.
+      if (IsOptionalType(*p_node_arg)) {
+        continue;
+      }
+#endif
+
       auto& available_memory_info = AllocPlan(p_node_arg->Name()).location;
       if (!(available_memory_info == required_memory_info)) continue;
       auto p_available_buffer_shape = context_.GetShape(*p_node_arg);
@@ -487,8 +498,10 @@ class PlannerImpl {
 
   Status ComputeUseCounts() {
     // Note: for every ml-value, its definition must appear before all its uses in a topological sort of a valid model
-    std::unordered_set<std::string> graph_inputs;
-    for (auto& graph_input : graph_viewer_.GetInputsIncludingInitializers()) {
+    using GraphInputsSet = InlinedHashSet<std::string_view>;
+    const auto& graph_inputs_nodes = graph_viewer_.GetInputsIncludingInitializers();
+    GraphInputsSet graph_inputs(graph_inputs_nodes.size());
+    for (auto& graph_input : graph_inputs_nodes) {
       graph_inputs.insert(graph_input->Name());
     }
 
@@ -512,7 +525,7 @@ class PlannerImpl {
       UseCount(initializer_name)++;
     }
 
-    std::unordered_set<OrtValueIndex> set_node_arg_has_explicit_consumer;
+    InlinedHashSet<OrtValueIndex> set_node_arg_has_explicit_consumer;
 
     for (SequentialExecutionPlan::NodeExecutionPlan& step : plan_.execution_plan) {
       auto pnode = graph_viewer_.GetNode(step.node_index);
@@ -887,17 +900,18 @@ class PlannerImpl {
               }
             }
           }
-        } else if (IsNonTensor(*node_output)) {
-          // we do not try sharing-optimization for non-tensors
-          AllocPlan(current).alloc_kind = AllocKind::kAllocate;
-          AllocPlan(current).program_counter.AddStart(program_counter);
         } else if (!context_.IsParallelExecutionEnabled() &&
                    FindReusableInput(*pnode, static_cast<int>(output_arg_def_index), &reused)) {
-          // Reuse one of this node's input buffers as the output buffer (for in-place update)
+          // Re-using inputs is applicable for tensors, sequence tensors,
+          // and optional types if the kernel has marked certain inputs as
+          // possible candidates for re-use
           Reuse(reused, current, AllocKind::kReuse);
 #if !defined(ORT_MINIMAL_BUILD) && defined(ORT_MEMORY_PROFILE)
           InplaceReuse(reused, current);
 #endif
+        } else if (IsNonTensor(*node_output)) {
+          AllocPlan(current).alloc_kind = AllocKind::kAllocate;
+          AllocPlan(current).program_counter.AddStart(program_counter);
         } else if (!context_.IsParallelExecutionEnabled() &&
                    FindReusableTensor(*node_output, &reused)) {
           // Reuse an available (dead) buffer for this output, this is only for sequential execution.
@@ -1134,6 +1148,13 @@ class PlannerImpl {
     auto& type_proto = ONNX_NAMESPACE::Utils::DataTypeUtils::ToTypeProto(ptype);
     return !utils::HasTensorType(type_proto);
   }
+
+#if !defined(DISABLE_OPTIONAL_TYPE)
+  static bool IsOptionalType(const onnxruntime::NodeArg& nodearg) {
+    const auto* type_proto = nodearg.TypeAsProto();
+    return type_proto->value_case() == ONNX_NAMESPACE::TypeProto::kOptionalType;
+  }
+#endif
 
   //For in-place reuse tensors, the lifetime is the union of all the tensors that tensors that use that buffer
 #if !defined(ORT_MINIMAL_BUILD) && defined(ORT_MEMORY_PROFILE)

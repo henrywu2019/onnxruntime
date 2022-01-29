@@ -107,7 +107,7 @@ KernelDefHashes ParseKernelDefHashes(std::istream& in) {
 
 void AppendKernelDefHashesFromFile(const PathString& path, KernelDefHashes& kernel_def_hashes) {
   std::ifstream in{path};
-  ORT_ENFORCE(in, "Failed to open file: ", ToMBString(path));
+  ORT_ENFORCE(in, "Failed to open file: ", ToUTF8String(path));
   const auto file_kernel_def_hashes = ParseKernelDefHashes(in);
   kernel_def_hashes.insert(
       kernel_def_hashes.end(), file_kernel_def_hashes.begin(), file_kernel_def_hashes.end());
@@ -174,7 +174,10 @@ TEST(KernelDefHashTest, ExpectedCpuKernelDefHashes) {
 #if defined(ENABLE_TRAINING_OPS)
     AppendKernelDefHashesFromFile(ORT_TSTR("testdata/kernel_def_hashes/training_ops.cpu.json"), result);
 #endif  // ENABLE_TRAINING_OPS
-    // TODO also handle kernels enabled by these symbols: ML_FEATURIZERS, BUILD_MS_EXPERIMENTAL_OPS
+#if !defined(DISABLE_OPTIONAL_TYPE)
+    AppendKernelDefHashesFromFile(ORT_TSTR("testdata/kernel_def_hashes/onnx.optional_type_ops.cpu.json"), result);
+#endif  // !DISABLE_OPTIONAL_TYPE
+    // TODO also handle kernels enabled by these symbols: BUILD_MS_EXPERIMENTAL_OPS
     std::sort(result.begin(), result.end());
     return result;
   }();

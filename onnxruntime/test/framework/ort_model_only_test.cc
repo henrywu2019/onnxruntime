@@ -1,9 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-// if we can't load an ORT format model we can't really test anything
-#if defined(ENABLE_ORT_FORMAT_LOAD)
-
 #include "core/framework/data_types.h"
 #include "core/framework/tensorprotoutils.h"
 #include "core/graph/onnx_protobuf.h"
@@ -282,7 +279,7 @@ TEST(OrtModelOnlyTests, ValidateOrtFormatModelDoesNotRunOptimizersInFullBuild) {
   const std::basic_string<ORTCHAR_T> ort_file = ORT_TSTR("testdata/mnist.onnx.test_output.ort");
   SaveAndCompareModels("testdata/mnist.onnx", ort_file);
 
-  // DumpOrtModelAsJson(ToMBString(ort_file));
+  // DumpOrtModelAsJson(ToUTF8String(ort_file));
 
   OrtModelTestInfo test_info;
   test_info.model_filename = ort_file;
@@ -309,7 +306,7 @@ TEST(OrtModelOnlyTests, SerializeToOrtFormat) {
   const std::basic_string<ORTCHAR_T> ort_file = ORT_TSTR("testdata/ort_github_issue_4031.onnx.test_output.ort");
   SaveAndCompareModels("testdata/ort_github_issue_4031.onnx", ort_file);
 
-  // DumpOrtModelAsJson(ToMBString(ort_file));
+  // DumpOrtModelAsJson(ToUTF8String(ort_file));
 
   OrtModelTestInfo test_info;
   test_info.model_filename = ort_file;
@@ -528,5 +525,3 @@ TEST(OrtModelOnlyTests, LoadOrtFormatModelMLOpsFromBufferNoCopy) {
 
 }  // namespace test
 }  // namespace onnxruntime
-
-#endif  //  defined(ENABLE_ORT_FORMAT_LOAD)
