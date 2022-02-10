@@ -40,9 +40,13 @@ void MemoryInfo::GenerateTensorMap(const SequentialExecutionPlan* execution_plan
     mem_info.location = execution_plan->allocation_plan[value_idx].location;
 
     ORT_ENFORCE(mem_info.lifetime_interval.first <= mem_info.lifetime_interval.second);
+    std::cout << "value index:" << value_idx << std::endl;
     tensor_alloc_info_map_[value_idx] = std::move(mem_info);
     tensors_memory_info_map_[mem_info.location];
   }
+
+  std::cout << "size of tensor_alloc_info_map_:" << tensor_alloc_info_map_.size() << std::endl;
+
   return;
 }
 

@@ -1287,9 +1287,11 @@ Status SessionState::FinalizeSessionStateImpl(const std::basic_string<PATH_CHAR_
   //Record the allocation plan
 
   // Uncomment the below to dump the allocation plan to std::cout
-  // LOGS(logger_, VERBOSE) << std::make_pair(p_seq_exec_plan_.get(), this);
+  LOGS(logger_, VERBOSE) << std::make_pair(p_seq_exec_plan_.get(), this);
 #if !defined(ORT_MINIMAL_BUILD) && defined(ORT_MEMORY_PROFILE)
-  MemoryInfo::GenerateTensorMap(GetExecutionPlan(), GetOrtValueNameIdxMap());
+  auto x = GetExecutionPlan();
+  const OrtValueNameIdxMap& y = GetOrtValueNameIdxMap();
+  MemoryInfo::GenerateTensorMap(x, y);
 #endif
 
   // Memory pattern tracer allocates all initializers on a single continous
@@ -1329,6 +1331,7 @@ Status SessionState::FinalizeSessionStateImpl(const std::basic_string<PATH_CHAR_
 #if !defined(ORT_MINIMAL_BUILD) && defined(ORT_MEMORY_PROFILE)
   //Record Weight allocation info on device
   MemoryInfo::RecordInitializerAllocInfo(GetInitializedTensors());
+  MemoryInfo::clear();
 #endif
 
   // remove weights from the graph now to save memory but in many cases it won't save memory, if the tensor was

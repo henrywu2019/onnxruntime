@@ -199,6 +199,10 @@ class MemoryInfo {
     return true;
   }
 
+  static void clear(){
+    tensor_alloc_info_map_.clear();
+  }
+
  private:
   MemoryInfo() = default;
   static void RecordMemoryPatternInfo(const MemoryPatternGroup& mem_patterns, MapType type);
