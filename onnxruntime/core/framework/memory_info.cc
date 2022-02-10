@@ -89,7 +89,7 @@ void MemoryInfo::RecordTensorDeviceAllocInfo(const OrtValueIndex idx, const OrtV
 
 void MemoryInfo::RecordInitializerAllocInfo(const std::unordered_map<int, OrtValue>& tensor_map) {
   #ifdef DEBUG
-  std::cout << "tensor_map size:" << tensor_map.size() << std::endl;
+  /*std::cout << "tensor_map size:" << tensor_map.size() << std::endl;
   std::vector<int> vi;
   for (const auto& item : tensor_map) {
     vi.push_back(item.first);
@@ -97,7 +97,7 @@ void MemoryInfo::RecordInitializerAllocInfo(const std::unordered_map<int, OrtVal
   std::sort(vi.begin(), vi.end());
   for(auto i : vi){
     std::cout << "item.first:" << i << std::endl;
-  }
+  }*/
   #endif
   for (const auto& item : tensor_map) {
     ORT_ENFORCE(AllocPlan(item.first));
