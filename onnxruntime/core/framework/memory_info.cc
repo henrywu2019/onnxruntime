@@ -28,7 +28,7 @@ void MemoryInfo::GenerateTensorMap(const SequentialExecutionPlan* execution_plan
       continue;
     AllocInfoPerTensor mem_info;
     mem_info.mlvalue_index = value_idx;
-    auto _ = value_name_idx_map.GetName(mem_info.mlvalue_index, mem_info.mlvalue_name);
+    auto status_ = value_name_idx_map.GetName(mem_info.mlvalue_index, mem_info.mlvalue_name);
     mem_info.lifetime_interval = execution_plan->allocation_plan[value_idx].life_interval;
     mem_info.reused_buffer = (execution_plan->allocation_plan[value_idx].alloc_kind != AllocKind::kReuse) ? value_idx : execution_plan->allocation_plan[value_idx].reused_buffer;
     //If the tensor is using memory outside of the scope, do not store it
@@ -85,8 +85,16 @@ void MemoryInfo::RecordTensorDeviceAllocInfo(const OrtValueIndex idx, const OrtV
 
 void MemoryInfo::RecordInitializerAllocInfo(const std::unordered_map<int, OrtValue>& tensor_map) {
   std::cout << "tensor_map size:" << tensor_map.size() << std::endl;
+  std::vector<int> vi;
   for (const auto& item : tensor_map) {
-    std::cout << "item.first:" << item.first << std::endl;
+    //std::cout << "item.first:" << item.first << std::endl;
+    vi.push_back(item.first);
+  }
+  std::sort(vi.begin(), vi.end());
+  for(auto i : vi){
+    std::cout << "item.first:" << i << std::endl;
+  }
+  for (const auto& item : tensor_map) {
     ORT_ENFORCE(AllocPlan(item.first));
     RecordTensorDeviceAllocInfo(item.first, item.second, MapType::Initializer);
   }
@@ -267,7 +275,7 @@ std::unordered_map<size_t, std::unordered_map<size_t, MemoryInfo::AllocationSumm
 //Create sessions in the profiler.
 //p_name: session name
 //pid: sessionid
-//map_type: Initalizer, static_activation, dynamic_activation. We have this separtion because they are using different memory offsets.
+//map_type: Initializer, static_activation, dynamic_activation. We have this separtion because they are using different memory offsets.
 //group_name: The group_name that is recorded previously using function "AddRecordingTensorGroup". Used for generating customized sessions for a group of tensors
 //Top_k: The steps with the top-k highest memory consumptions are plot. When top_k == 0, we plot all the steps
 //device_t: The type of the device where the tensors are.
