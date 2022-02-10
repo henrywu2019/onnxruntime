@@ -40,7 +40,7 @@ void MemoryInfo::GenerateTensorMap(const SequentialExecutionPlan* execution_plan
     mem_info.location = execution_plan->allocation_plan[value_idx].location;
 
     ORT_ENFORCE(mem_info.lifetime_interval.first <= mem_info.lifetime_interval.second);
-    std::cout << "value index:" << value_idx << std::endl;
+    //std::cout << "value index:" << value_idx << std::endl;
     tensor_alloc_info_map_[value_idx] = std::move(mem_info);
     tensors_memory_info_map_[mem_info.location];
   }
@@ -88,16 +88,17 @@ void MemoryInfo::RecordTensorDeviceAllocInfo(const OrtValueIndex idx, const OrtV
 }
 
 void MemoryInfo::RecordInitializerAllocInfo(const std::unordered_map<int, OrtValue>& tensor_map) {
+  #ifdef DEBUG
   std::cout << "tensor_map size:" << tensor_map.size() << std::endl;
   std::vector<int> vi;
   for (const auto& item : tensor_map) {
-    //std::cout << "item.first:" << item.first << std::endl;
     vi.push_back(item.first);
   }
   std::sort(vi.begin(), vi.end());
   for(auto i : vi){
     std::cout << "item.first:" << i << std::endl;
   }
+  #endif
   for (const auto& item : tensor_map) {
     ORT_ENFORCE(AllocPlan(item.first));
     RecordTensorDeviceAllocInfo(item.first, item.second, MapType::Initializer);
