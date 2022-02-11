@@ -352,7 +352,7 @@ ExecutionFrame::ExecutionFrame(const std::vector<int>& feed_mlvalue_idxs, const 
       fetches);
 
 #if !defined(ORT_MINIMAL_BUILD) && defined(ORT_MEMORY_PROFILE)
-  MemoryInfo::IncreaseIteration();
+  session_state_.GetMutableMemoryInfo().IncreaseIteration();
 #endif
 
   // map the custom allocators to ort_value_idx entries
@@ -434,11 +434,15 @@ ExecutionFrame::ExecutionFrame(const std::vector<int>& feed_mlvalue_idxs, const 
             }
 #if !defined(ORT_MINIMAL_BUILD) && defined(ORT_MEMORY_PROFILE)
             //Record activation memory pattern
-            MemoryInfo::ClearMemoryInfoPerExecution();
+            auto& mi = session_state_.GetMutableMemoryInfo();
+            mi.ClearMemoryInfoPerExecution();
             if (mem_patterns_ && buffer != nullptr) {
-              MemoryInfo::RecordPatternInfo(*mem_patterns_, MemoryInfo::MapType::StaticActivation);
-              MemoryInfo::MemoryInfoProfile::CreateEvents("static activations_" + std::to_string(MemoryInfo::GetIteration()),
-                                                          MemoryInfo::MemoryInfoProfile::GetAndIncreasePid(), MemoryInfo::MapType::StaticActivation, "", 0);
+              mi.RecordPatternInfo(*mem_patterns_, MemoryInfo::MapType::StaticActivation);
+              mi.profiler.CreateEvents("static activations_" + std::to_string(mi.GetIteration()),
+                mi.profiler.GetAndIncreasePid(),
+                MemoryInfo::MapType::StaticActivation,
+                "",
+                0);
             }
 #endif
             // log size of activation. Keep it commented out for now to avoid log flooding.
@@ -554,7 +558,7 @@ Status ExecutionFrame::AllocateMLValueTensorSelfOwnBufferHelper(OrtValue& ort_va
     // if parallel executor is used.
     std::unique_lock<std::mutex> lock(mtx_);
     dynamic_activation_memory_sizes_in_byte_[location.name] += size;
-    MemoryInfo::SetDynamicAllocation(ort_value_index);
+    session_state_.GetMutableMemoryInfo().SetDynamicAllocation(ort_value_index);
 #endif
   }
 
@@ -734,7 +738,7 @@ Status ExecutionFrame::AllocateAsPerAllocationPlan(OrtValue& ort_value, int ort_
     }
 
 #if !defined(ORT_MINIMAL_BUILD) && defined(ORT_MEMORY_PROFILE)
-    MemoryInfo::RecordActivationAllocInfo(ort_value_index, ort_value);
+    session_state_.GetMutableMemoryInfo().RecordActivationAllocInfo(ort_value_index, ort_value);
 #endif
 
     return Status::OK();

@@ -136,7 +136,8 @@ common::Status SaveInitializedTensors(
     const SaveTensorFunction& save_tensor_func,
     const logging::Logger& logger, const DataTransferManager& data_transfer_mgr,
     const ExecutionPlanBase& exec_plan,
-    const SessionOptions& session_options) {
+    const SessionOptions& session_options,
+    MemoryInfo& memory_info) {
   LOGS(logger, INFO) << "Saving initialized tensors.";
   ORT_ENFORCE(ort_value_name_idx_map.MaxIdx() > -1, "OrtValue indexes should have been populated.");
 
@@ -169,7 +170,7 @@ common::Status SaveInitializedTensors(
     return retval;
   };
 
-  //1. first plan the memory
+  // 1. first plan the memory
   const onnxruntime::InitializedTensorSet& initialized_tensor_set = graph.GetAllInitializedTensors();
   std::unordered_map<int, const ONNX_NAMESPACE::TensorProto*> id_to_initialized_tensor;
   std::set<int> user_supplied_initializer_ids;  // set containing the ort value ids of all user supplied initializers
@@ -203,16 +204,16 @@ common::Status SaveInitializedTensors(
     }
     ORT_RETURN_IF_ERROR(planner.Trace(entry.first, entry.second));
   }
-  //2. allocate weight buffer on different locations
-  // planned_initializers_memory_size_in_byte is not actual physical size.
-  // It's the virtual size computed by planner.
+  // 2. allocate weight buffer on different locations
+  //  planned_initializers_memory_size_in_byte is not actual physical size.
+  //  It's the virtual size computed by planner.
   std::unordered_map<std::string, size_t> planned_initializers_memory_sizes_in_byte;
   ORT_RETURN_IF_ERROR(
       planner.FinalizePlan(planned_initializers_memory_sizes_in_byte));
 #if !defined(ORT_MINIMAL_BUILD) && defined(ORT_MEMORY_PROFILE)
-  MemoryInfo::RecordPatternInfo(planner.GetMemPatterns(), MemoryInfo::MapType::Initializer);
-  MemoryInfo::MemoryInfoProfile::CreateEvents("initializer_" + std::to_string(MemoryInfo::GetIteration()),
-                                              MemoryInfo::MemoryInfoProfile::GetAndIncreasePid(), MemoryInfo::MapType::Initializer, "", 0);
+  memory_info.RecordPatternInfo(planner.GetMemPatterns(), MemoryInfo::MapType::Initializer);
+  memory_info.profiler.CreateEvents("initializer_" + std::to_string(memory_info.GetIteration()),
+                                    memory_info.profiler.GetAndIncreasePid(), MemoryInfo::MapType::Initializer, "", 0);
 #endif
 
   for (auto i : planned_initializers_memory_sizes_in_byte) {
@@ -222,7 +223,7 @@ common::Status SaveInitializedTensors(
 
   OrtCallback deleter{nullptr, nullptr};
 
-  //3. create weight tensors based on weights buffer
+  // 3. create weight tensors based on weights buffer
   for (const auto& entry : id_to_initialized_tensor) {
     int ort_value_index = entry.first;
     const char* name = (entry.second->name().empty()) ? "" : entry.second->name().c_str();

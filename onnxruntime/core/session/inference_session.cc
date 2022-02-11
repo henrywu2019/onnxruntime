@@ -453,7 +453,16 @@ InferenceSession::~InferenceSession() {
     TraceLoggingWriteStop(session_activity, "OrtInferenceSessionActivity");
 #endif
 #if !defined(ORT_MINIMAL_BUILD) && defined(ORT_MEMORY_PROFILE)
-  MemoryInfo::GenerateMemoryProfile();
+  std::string model_name = std::to_string(session_id_);
+  unsigned long i = model_location_.rfind("/");
+  if (i != std::string::npos) {
+    std::string tmp = model_location_.substr(0, i);
+    i = tmp.rfind("/");
+    if (i != std::string::npos) {
+      model_name = tmp.substr(i + 1);
+    }
+  }
+  session_state_->GetMutableMemoryInfo().GenerateMemoryProfile("/tmp", model_name);
 #endif
 }
 
@@ -1236,7 +1245,7 @@ static void ResolveMemoryPatternFlags(SessionState& session_state) {
 }
 #if defined(_MSC_VER) && !defined(__clang__)
 #pragma warning(push)
-//VC++ reports: "Releasing unheld lock 'l' in function 'onnxruntime::InferenceSession::Initialize'". But I don't see anything wrong.
+// VC++ reports: "Releasing unheld lock 'l' in function 'onnxruntime::InferenceSession::Initialize'". But I don't see anything wrong.
 #pragma warning(disable : 26117)
 #endif
 common::Status InferenceSession::Initialize() {
@@ -1329,7 +1338,8 @@ common::Status InferenceSession::Initialize() {
         session_profiler_,
         session_options_.use_deterministic_compute,
         session_options_.enable_mem_reuse,
-        prepacked_weights_container_);
+        prepacked_weights_container_,
+        session_options_.local_rank);
 
     // Collect the kernel registries from execution provider instances;
     // There are 2 kinds of kernel registries with priority from high to low as below,

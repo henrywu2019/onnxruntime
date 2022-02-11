@@ -349,7 +349,7 @@ Status TrainingSession::ConfigureForTraining(
                                          config.distributed_config.horizontal_parallel_size,
                                          config.distributed_config.pipeline_parallel_size});
 #if !defined(ORT_MINIMAL_BUILD) && defined(ORT_MEMORY_PROFILE)
-  MemoryInfo::SetLocalRank(config.distributed_config.world_rank);
+  session_.GetSessionState().GetMutableMemoryInfo().SetLocalRank(config.distributed_config.world_rank);
 #endif
 
 #ifdef USE_MPI

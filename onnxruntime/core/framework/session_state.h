@@ -93,7 +93,8 @@ class SessionState {
                profiling::Profiler& profiler,
                bool use_deterministic_compute = false,
                bool enable_mem_reuse = true,
-               PrepackedWeightsContainer* prepacked_weights_container = nullptr)
+               PrepackedWeightsContainer* prepacked_weights_container = nullptr,
+               int local_rank = 0)
       : graph_(graph),
         execution_providers_(execution_providers),
         logger_(logger),
@@ -104,7 +105,9 @@ class SessionState {
         data_transfer_mgr_(data_transfer_mgr),
         use_deterministic_compute_(use_deterministic_compute),
         enable_mem_reuse_(enable_mem_reuse),
-        prepacked_weights_container_(prepacked_weights_container) {
+        prepacked_weights_container_(prepacked_weights_container),
+        local_rank_(local_rank),
+        memory_info_(local_rank) {
     SetupAllocators();
   }
 
@@ -338,6 +341,10 @@ class SessionState {
   }
 #endif
 
+  MemoryInfo& GetMutableMemoryInfo() const {
+    return const_cast<MemoryInfo&>(memory_info_);
+  }
+
  private:
   ORT_DISALLOW_COPY_ASSIGNMENT_AND_MOVE(SessionState);
 
@@ -412,8 +419,8 @@ class SessionState {
   // we also don't expect to have two allocators with the same name, one using an arena and one not.
   struct OrtMemoryInfoLessThanIgnoreAllocType {
     bool operator()(const OrtMemoryInfo& lhs, const OrtMemoryInfo& rhs) const {
-      //if (lhs.alloc_type != rhs.alloc_type)
-      //  return lhs.alloc_type < rhs.alloc_type;
+      // if (lhs.alloc_type != rhs.alloc_type)
+      //   return lhs.alloc_type < rhs.alloc_type;
       if (lhs.mem_type != rhs.mem_type)
         return lhs.mem_type < rhs.mem_type;
 
@@ -499,12 +506,17 @@ class SessionState {
   // prepacked_weights_container_ can be nullptr if no caching is required for prepacked weights
   PrepackedWeightsContainer* const prepacked_weights_container_{};
 
+  int local_rank_;
+  MemoryInfo memory_info_;
+
+  inline size_t GetRank() const { return local_rank_; }
+
 #if !defined(ORT_MINIMAL_BUILD)
   std::map<std::vector<int>, std::unordered_set<NodeIndex>> to_be_executed_nodes_;
 #endif
 
   SessionState* parent_ = nullptr;
-  //Assign each graph in each session an unique id.
+  // Assign each graph in each session an unique id.
 #ifdef ONNXRUNTIME_ENABLE_INSTRUMENT
   int graph_id_ = 0;
   int next_graph_id_ = 1;

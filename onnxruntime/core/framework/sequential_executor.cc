@@ -21,7 +21,7 @@
 
 #ifdef ENABLE_NVTX_PROFILE
 // This header is for profile using Nvidia's visual profilier.
-#include "core/providers/cuda/nvtx_profile.h" 
+#include "core/providers/cuda/nvtx_profile.h"
 #include "core/profile/context.h"
 #endif
 
@@ -68,10 +68,10 @@ static void CalculateTotalOutputSizes(OpKernelContextInternal* op_kernel_context
 #if defined(TRACE_EXECUTION)
       const TensorShape& tensor_shape = tensor.Shape();
       std::cout << node_name << " output[" << i << "]"
-                         << " size=" << tensor_size
-                         << " shape=" << tensor_shape.ToString()
-                         << " element_size=" << tensor.DataType()->Size()
-                         << "\n";
+                << " size=" << tensor_size
+                << " shape=" << tensor_shape.ToString()
+                << " element_size=" << tensor.DataType()->Size()
+                << "\n";
 #endif
       total_output_sizes += tensor_size;
     }
@@ -187,10 +187,9 @@ Status SequentialExecutor::Execute(const SessionState& session_state, const std:
 #endif
 
 #ifdef DEBUG_NODE_INPUTS_OUTPUTS
-    size_t program_counter = 0;
-    utils::NodeDumpContext dump_context { session_state.GetGraphExecutionCounter(), program_counter };
+  size_t program_counter = 0;
+  utils::NodeDumpContext dump_context{session_state.GetGraphExecutionCounter(), program_counter};
 #endif
-
 
   for (const auto& node_exec_plan : exec_plan_vec) {
     if (terminate_flag_) {
@@ -337,10 +336,11 @@ Status SequentialExecutor::Execute(const SessionState& session_state, const std:
       std::ostringstream ss;
       ss << "Non-zero status code returned while running " << node.OpType() << " node. Name:'" << node.Name()
          << "' Status Message: " << compute_status.ErrorMessage();
-      //If the computation failed, we still can record the memory consumption
+      // If the computation failed, we still can record the memory consumption
 #if !defined(ORT_MINIMAL_BUILD) && defined(ORT_MEMORY_PROFILE)
-      MemoryInfo::MemoryInfoProfile::CreateEvents("dynamic activations_" + std::to_string(MemoryInfo::GetIteration()),
-                                                  MemoryInfo::MemoryInfoProfile::GetAndIncreasePid(), MemoryInfo::MapType::DynamicActivation, "", 0);
+      auto& mi = session_state.GetMutableMemoryInfo();
+      mi.profiler.CreateEvents("dynamic activations_" + std::to_string(mi.GetIteration()),
+                               mi.profiler.GetAndIncreasePid(), MemoryInfo::MapType::DynamicActivation, "", 0);
 #endif
       const auto msg_string = ss.str();
       LOGS(logger, ERROR) << msg_string;
@@ -456,9 +456,10 @@ Status SequentialExecutor::Execute(const SessionState& session_state, const std:
   VLOGS(logger, 1) << "Done with execution.";
 
 #if !defined(ORT_MINIMAL_BUILD) && defined(ORT_MEMORY_PROFILE)
-  MemoryInfo::MemoryInfoProfile::CreateEvents("dynamic activations_" + std::to_string(MemoryInfo::GetIteration()),
-                                              MemoryInfo::MemoryInfoProfile::GetAndIncreasePid(), MemoryInfo::MapType::DynamicActivation, "", 0);
-  MemoryInfo::MemoryInfoProfile::Clear();
+  auto& mi = session_state.GetMutableMemoryInfo();
+  mi.profiler.CreateEvents("dynamic activations_" + std::to_string(mi.GetIteration()),
+                           mi.profiler.GetAndIncreasePid(), MemoryInfo::MapType::DynamicActivation, "", 0);
+  mi.profiler.Clear();
 #endif
 
   if (frame.HasMemoryPatternPlanner()) {

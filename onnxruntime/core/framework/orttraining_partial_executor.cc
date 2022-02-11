@@ -357,9 +357,9 @@ Status PartialExecutor::Execute(const SessionState& session_state, const std::ve
          << "' Status Message: " << compute_status.ErrorMessage();
 //If the computation failed, we still can record the memory consumption
 #if !defined(ORT_MINIMAL_BUILD) && defined(ORT_MEMORY_PROFILE)
-      MemoryInfo::MemoryInfoProfile::CreateEvents("dynamic activations_" + std::to_string(MemoryInfo::GetIteration()),
+      /*MemoryInfo::MemoryInfoProfile::CreateEvents("dynamic activations_" + std::to_string(MemoryInfo::GetIteration()),
                                                   MemoryInfo::MemoryInfoProfile::GetAndIncreasePid(),
-                                                  MemoryInfo::MapType::DynamicActivation, "", 0);
+                                                  MemoryInfo::MapType::DynamicActivation, "", 0);*/
 #endif
       const auto msg_string = ss.str();
       LOGS(logger, ERROR) << msg_string;
@@ -477,10 +477,10 @@ Status PartialExecutor::Execute(const SessionState& session_state, const std::ve
   VLOGS(logger, 1) << "Done with execution.";
 
 #if !defined(ORT_MINIMAL_BUILD) && defined(ORT_MEMORY_PROFILE)
-  MemoryInfo::MemoryInfoProfile::CreateEvents("dynamic activations_" + std::to_string(MemoryInfo::GetIteration()),
+  /*MemoryInfo::MemoryInfoProfile::CreateEvents("dynamic activations_" + std::to_string(MemoryInfo::GetIteration()),
                                               MemoryInfo::MemoryInfoProfile::GetAndIncreasePid(),
                                               MemoryInfo::MapType::DynamicActivation, "", 0);
-  MemoryInfo::MemoryInfoProfile::Clear();
+  MemoryInfo::MemoryInfoProfile::Clear();*/
 #endif
 
   if (frame.HasMemoryPatternPlanner()) {
