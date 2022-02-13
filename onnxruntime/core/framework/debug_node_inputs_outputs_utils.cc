@@ -539,10 +539,10 @@ std::string DumpNodeInputs(
         }
       } else {
         // should never happen...
-        std::cout << " was missing data type\n";
+        std::cerr << " was missing data type\n";
       }
     } else {
-      std::cout << "Input " << i << " is optional and was not provided.\n";
+      std::cerr << "Input " << i << " is optional and was not provided.\n";
     }
   }
   return ss.str();
