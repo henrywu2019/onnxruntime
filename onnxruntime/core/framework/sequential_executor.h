@@ -18,8 +18,8 @@
 namespace onnxruntime {
 class SequentialExecutor : public IExecutor {
  public:
-  SequentialExecutor(const bool& terminate_flag = false, const bool only_execute_path_to_fetches = false)
-      : terminate_flag_{terminate_flag}, only_execute_path_to_fetches_(only_execute_path_to_fetches) {}
+  SequentialExecutor(const bool& terminate_flag = false, const bool only_execute_path_to_fetches = false, const char* model_loc = nullptr)
+      : terminate_flag_{terminate_flag}, only_execute_path_to_fetches_(only_execute_path_to_fetches), model_loc_(model_loc){}
 
   common::Status Execute(const SessionState& session_state, const std::vector<int>& feed_mlvalue_idxs,
                          const std::vector<OrtValue>& feeds, const std::vector<int>& fetch_mlvalue_idxs,
@@ -31,6 +31,7 @@ class SequentialExecutor : public IExecutor {
   ORT_DISALLOW_COPY_ASSIGNMENT_AND_MOVE(SequentialExecutor);
   const bool& terminate_flag_;
   const bool only_execute_path_to_fetches_;
+  const char* model_loc_;
 };
-void process_mem_usage(double& vm_usage, double& resident_set);
+void process_mem_usage(long& vm_usage, long& resident_set);
 }  // namespace onnxruntime

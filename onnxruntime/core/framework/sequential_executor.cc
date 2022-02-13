@@ -15,9 +15,7 @@
 #include "core/framework/op_kernel_context_internal.h"
 #include "core/framework/utils.h"
 
-#if defined DEBUG_NODE_INPUTS_OUTPUTS
 #include "core/framework/debug_node_inputs_outputs_utils.h"
-#endif
 
 #ifdef ENABLE_NVTX_PROFILE
 // This header is for profile using Nvidia's visual profilier.
@@ -186,15 +184,15 @@ Status SequentialExecutor::Execute(const SessionState& session_state, const std:
       profile::Color::Black);
 #endif
 
-#ifdef DEBUG_NODE_INPUTS_OUTPUTS
+//#ifdef DEBUG_NODE_INPUTS_OUTPUTS
   size_t program_counter = 0;
   utils::NodeDumpContext dump_context{session_state.GetGraphExecutionCounter(), program_counter};
-#endif
+//#endif
 
   // printf("exec_plan_vec size: %ld\n", exec_plan_vec.size());
   for (const auto& node_exec_plan : exec_plan_vec) {
-    //double vm, rss;
-    //process_mem_usage(vm, rss);
+    // double vm, rss;
+    // process_mem_usage(vm, rss);
     if (terminate_flag_) {
       LOGS(logger, WARNING) << "Exiting due to terminate flag being set to true.";
       return ORT_MAKE_STATUS(ONNXRUNTIME, FAIL, "Exiting due to terminate flag being set to true.");
@@ -279,29 +277,29 @@ Status SequentialExecutor::Execute(const SessionState& session_state, const std:
       }
     }
 #ifdef DEBUG_NODE_INPUTS_OUTPUTS
-    //dump_context.program_counter = program_counter++;
-    //utils::DumpNodeInputs(dump_context, op_kernel_context, p_op_kernel->Node(), session_state);
+    // dump_context.program_counter = program_counter++;
+    // utils::DumpNodeInputs(dump_context, op_kernel_context, p_op_kernel->Node(), session_state);
 #endif
 
-      std::string node_name_for_profiling;
-      if (is_profiler_enabled or session_state.GetEnableProfilingMem()){
-        node_name_for_profiling = node.Name().empty() ? MakeString(node.OpType(), "_", node_index) : node.Name();
-      }
+    std::string node_name_for_profiling;
+    if (is_profiler_enabled or session_state.GetEnableProfilingMem()) {
+      node_name_for_profiling = node.Name().empty() ? MakeString(node.OpType(), "_", node_index) : node.Name();
+    }
 
-      if (is_profiler_enabled) {
-        session_state.Profiler().EndTimeAndRecordEvent(profiling::NODE_EVENT,
-                                                       node_name_for_profiling + "_fence_before",
-                                                       sync_time_begin,
-                                                       {{"op_name", p_op_kernel->KernelDef().OpName()}});
-        concurrency::ThreadPool::StartProfiling(session_state.GetThreadPool());
-        // call compute on the kernel
-        VLOGS(logger, 1) << "Computing kernel: " << node_name_for_profiling;
+    if (is_profiler_enabled) {
+      session_state.Profiler().EndTimeAndRecordEvent(profiling::NODE_EVENT,
+                                                     node_name_for_profiling + "_fence_before",
+                                                     sync_time_begin,
+                                                     {{"op_name", p_op_kernel->KernelDef().OpName()}});
+      concurrency::ThreadPool::StartProfiling(session_state.GetThreadPool());
+      // call compute on the kernel
+      VLOGS(logger, 1) << "Computing kernel: " << node_name_for_profiling;
 
-        kernel_begin_time = session_state.Profiler().Start();
+      kernel_begin_time = session_state.Profiler().Start();
 
-        // Calculate total input sizes for this operation.
-        CalculateTotalInputSizes(&op_kernel_context, p_op_kernel,
-                                 input_activation_sizes, input_parameter_sizes, node_name_for_profiling);
+      // Calculate total input sizes for this operation.
+      CalculateTotalInputSizes(&op_kernel_context, p_op_kernel,
+                               input_activation_sizes, input_parameter_sizes, node_name_for_profiling);
     }
 
     Status compute_status;
@@ -320,8 +318,11 @@ Status SequentialExecutor::Execute(const SessionState& session_state, const std:
           ORT_RETURN_IF_ERROR(utils::VerifyInputTensorsAllocatedContiguously(&op_kernel_context));
         }
 #endif
-        if (session_state.GetEnableProfilingMem()){
-          double vm0, vm1, rss0, rss1;
+        static char* gamma_mem_track_str = getenv("GME_SEQEXE_MEM_TRACK_MB");
+        static int gamma_mem_track_mb = gamma_mem_track_str ? std::max(atoi(gamma_mem_track_str), 64) : 64;
+
+        if (session_state.GetEnableProfilingMem() or gamma_mem_track_str != nullptr) {
+          long vm0, vm1, rss0, rss1;
           process_mem_usage(vm0, rss0);
           // if (node_name_for_profiling == "batch_norm_1.tmp_3_nchwc"){
           //   printf("%.3f\n", rss0);
@@ -329,14 +330,13 @@ Status SequentialExecutor::Execute(const SessionState& session_state, const std:
           compute_status = p_op_kernel->Compute(&op_kernel_context);
           process_mem_usage(vm1, rss1);
           // session_state.shape_patterns_;
-          //  op,vmd_,rss_,rss
-          if (rss1 - rss0 > 1024 * 64) {  // 64MB
-            std::cout << "node_name_for_profiling:" << node_name_for_profiling << std::endl;
-#ifdef DEBUG_NODE_INPUTS_OUTPUTS
-            dump_context.program_counter = program_counter++;
-            utils::DumpNodeInputs(dump_context, op_kernel_context, p_op_kernel->Node(), session_state);
-#endif
-            printf("mem:%s,%.3f,%.3f,%.3f\n", node.OpType().c_str(), vm1 - vm0, rss1 - rss0, rss1);
+          // op,vmd_,rss_,rss
+          if (rss1 - rss0 > (gamma_mem_track_mb << 10)) {
+            node_name_for_profiling = node.Name().empty() ? MakeString(node.OpType(), "_", node_index) : node.Name();
+
+            //dump_context.program_counter = program_counter++;
+            std::string o = utils::DumpNodeInputs(dump_context, op_kernel_context, p_op_kernel->Node(), session_state);
+            printf("gme_mem:%s,%s,%ld,%ld,%ld,%s\n", model_loc_, node_name_for_profiling.c_str(), vm1 - vm0, rss1 - rss0, rss1, o.c_str());
           }
         } else {
           compute_status = p_op_kernel->Compute(&op_kernel_context);
@@ -446,7 +446,7 @@ Status SequentialExecutor::Execute(const SessionState& session_state, const std:
     }
 
 #ifdef DEBUG_NODE_INPUTS_OUTPUTS
-    //utils::DumpNodeOutputs(dump_context, op_kernel_context, p_op_kernel->Node(), session_state);
+    // utils::DumpNodeOutputs(dump_context, op_kernel_context, p_op_kernel->Node(), session_state);
 #endif
 
     // free ml-values corresponding to this node
@@ -531,36 +531,28 @@ static Status ReleaseNodeMLValues(ExecutionFrame& frame,
   return Status::OK();
 }
 
-void process_mem_usage(double& vm_usage, double& resident_set) {
+void process_mem_usage(long& vm_usage, long& resident_set) {
   using std::ifstream;
   using std::ios_base;
   using std::string;
 
-  vm_usage = 0.0;
-  resident_set = 0.0;
-
   // 'file' stat seems to give the most reliable results
-  //
   ifstream stat_stream("/proc/self/stat", ios_base::in);
 
   // dummy vars for leading entries in stat that we don't care about
-  //
-  string pid, comm, state, ppid, pgrp, session, tty_nr;
-  string tpgid, flags, minflt, cminflt, majflt, cmajflt;
-  string utime, stime, cutime, cstime, priority, nice;
-  string O, itrealvalue, starttime;
+  static string pid, comm, state, ppid, pgrp, session, tty_nr, tpgid, flags, minflt, cminflt, majflt, cmajflt, utime, stime, cutime, cstime, priority, nice, O, itrealvalue, starttime;
 
   // the two fields we want
   //
-  unsigned long vsize;
-  long rss;
+  static long vsize;
+  static long rss;
 
   stat_stream >> pid >> comm >> state >> ppid >> pgrp >> session >> tty_nr >> tpgid >> flags >> minflt >> cminflt >> majflt >> cmajflt >> utime >> stime >> cutime >> cstime >> priority >> nice >> O >> itrealvalue >> starttime >> vsize >> rss;  // don't care about the rest
 
   stat_stream.close();
 
-  long page_size_kb = sysconf(_SC_PAGE_SIZE) / 1024;  // in case x86-64 is configured to use 2MB pages
-  vm_usage = vsize / 1024.0;
+  static long page_size_kb = sysconf(_SC_PAGE_SIZE)>>10;  // in case x86-64 is configured to use 2MB pages
+  vm_usage = vsize>>10;
   resident_set = rss * page_size_kb;
 }
 

@@ -106,6 +106,16 @@ std::string TensorShape::ToString() const {
   return result;
 }
 
+std::string TensorShape::Repr() const {
+  std::string result;
+  for (auto dim : GetDims()) {
+    result.append(std::to_string(dim));
+    result.append(":");
+  }
+  result.pop_back();
+  return result;
+}
+
 int64_t TensorShape::SizeHelper(size_t start, size_t end) const {
   // Must return 1 for an empty sequence
   SafeInt<int64_t> size = 1;  // this is used to calculate the size, which is used for memory allocations, so validate no overflow

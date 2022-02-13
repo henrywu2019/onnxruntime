@@ -29,6 +29,8 @@
 #include "core/session/provider_bridge_ort.h"
 #include "core/providers/tensorrt/tensorrt_provider_options.h"
 
+#include <thread>
+
 // Explicitly provide a definition for the static const var 'GPU' in the OrtDevice struct,
 // GCC 4.x doesn't seem to define this and it breaks the pipelines based on CentOS as it uses
 // GCC 4.x.
@@ -1553,18 +1555,30 @@ void InitializeEnv() {
     // Initialization of the module
     InitArray();
     OrtThreadingOptions tp_options;
-    tp_options.inter_op_thread_pool_params.thread_pool_size = 5;
-    tp_options.inter_op_thread_pool_params.set_denormal_as_zero = true;
-    tp_options.intra_op_thread_pool_params.thread_pool_size = 5;
-    tp_options.intra_op_thread_pool_params.set_denormal_as_zero = true;
+    unsigned int hc = std::min(std::thread::hardware_concurrency(), 29U);
+    const char* tmp = getenv("GME_GLOBAL_TC");
+    if (tmp != nullptr and strlen(tmp) < 3) {
+      hc = atoi(tmp);
+    }
+    tmp = getenv("GME_GLOBAL_TH_DISABLE");
+    bool gthread_disable = tmp and tmp[0] == '1';
+    OrtThreadingOptions* pto = nullptr;
+    if (!gthread_disable) {
+      tp_options.inter_op_thread_pool_params.thread_pool_size = hc;
+      tp_options.inter_op_thread_pool_params.set_denormal_as_zero = true;
+      tp_options.intra_op_thread_pool_params.thread_pool_size = hc;
+      tp_options.intra_op_thread_pool_params.set_denormal_as_zero = true;
+      pto = &tp_options;
+    }
+    // printf("gthread_disable: %d\n", int(gthread_disable));
     Env::Default().GetTelemetryProvider().SetLanguageProjection(OrtLanguageProjection::ORT_PROJECTION_PYTHON);
     OrtPybindThrowIfError(Environment::Create(std::make_unique<LoggingManager>(
                                                   std::make_unique<CLogSink>(),
                                                   Severity::kWARNING, false, LoggingManager::InstanceType::Default,
                                                   &SessionObjectInitializer::default_logger_id),
                                               session_env,
-                                              &tp_options,
-                                              true));
+                                              pto,
+                                              !gthread_disable));
 
     static bool initialized = false;
     if (initialized) {

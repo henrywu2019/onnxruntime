@@ -12,8 +12,6 @@
 // select data dump destination using
 //   ORT_DEBUG_NODE_IO_DUMP_DATA_DESTINATION= one of {stdout, files, sqlite}
 
-#ifdef DEBUG_NODE_INPUTS_OUTPUTS
-
 #pragma once
 
 #include "core/common/path.h"
@@ -115,14 +113,14 @@ struct NodeDumpContext {
 const NodeDumpOptions& NodeDumpOptionsFromEnvironmentVariables();
 
 // dumps inputs for a node
-void DumpNodeInputs(
+std::string DumpNodeInputs(
     const NodeDumpOptions& dump_options,
     const NodeDumpContext& dump_context,
     const OpKernelContext& context, 
     const Node& node, 
     const SessionState& session_state);
 
-void DumpNodeInputs(
+std::string DumpNodeInputs(
     const NodeDumpContext& dump_context,
     const OpKernelContext& context, 
     const Node& node, 
@@ -145,4 +143,4 @@ void DumpNodeOutputs(
 }  // namespace utils
 }  // namespace onnxruntime
 
-#endif
+

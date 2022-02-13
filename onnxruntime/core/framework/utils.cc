@@ -556,15 +556,15 @@ static common::Status ExecuteGraphImpl(const SessionState& session_state,
                                        const logging::Logger& logger, const bool only_execute_path_to_fetches = false,
                                        const char* model_loc = nullptr) {
   std::unique_ptr<IExecutor> p_exec;
-  ORT_UNUSED_PARAMETER(model_loc);
+  // ORT_UNUSED_PARAMETER(model_loc);
   // printf("model_loc: %s\n", model_loc);
   if (execution_mode == ExecutionMode::ORT_SEQUENTIAL) {
-    p_exec = std::make_unique<SequentialExecutor>(terminate_flag, only_execute_path_to_fetches);
+    p_exec = std::make_unique<SequentialExecutor>(terminate_flag, only_execute_path_to_fetches, model_loc);
   } else if (execution_mode == ExecutionMode::ORT_PARALLEL) {
     auto* p_inter_op_thread_pool = session_state.GetInterOpThreadPool();
     if (!p_inter_op_thread_pool) {
       LOGS(logger, WARNING) << "Only one thread was configured for parallel execution. Hence will use sequential execution.";
-      p_exec = std::make_unique<SequentialExecutor>(terminate_flag, only_execute_path_to_fetches);
+      p_exec = std::make_unique<SequentialExecutor>(terminate_flag, only_execute_path_to_fetches, model_loc);
     } else {
       p_exec = std::make_unique<ParallelExecutor>(session_state, terminate_flag);
     }

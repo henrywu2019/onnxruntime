@@ -154,6 +154,11 @@ class TensorShape {
   std::string ToString() const;
 
   /**
+     output dimensions nicely formatted version 2
+  */
+  std::string Repr() const;
+
+  /**
      Calculate size between start and end.
      Assumes start and end are between 0 and this->NumDimensions(), inclusive, and that
      start < end.

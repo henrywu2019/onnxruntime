@@ -491,6 +491,7 @@ class InferenceSession {
 
   // The file path of where the model was loaded. e.g. /tmp/test_squeezenet/model.onnx
   std::basic_string<ORTCHAR_T> model_location_;
+  std::basic_string<ORTCHAR_T> model_name_;
 
   // The list of execution providers.
   ExecutionProviders execution_providers_;
@@ -631,7 +632,7 @@ class InferenceSession {
   // initialized from session options
   // Determines which threadpools will be intialized and used for the duration of this session.
   // If true, use the per session ones, or else the global threadpools.
-  bool use_per_session_threads_;
+  //bool use_per_session_threads_;
 
   KernelRegistryManager kernel_registry_manager_;
 

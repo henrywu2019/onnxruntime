@@ -11,6 +11,7 @@
 #include <string>
 #include <thread>
 
+#include "core/gamma/gme.h"
 #include "core/common/denormal.h"
 #include "core/common/logging/logging.h"
 #include "core/common/parse_string.h"
@@ -266,9 +267,10 @@ void InferenceSession::ConstructorCommon(const SessionOptions& session_options,
     });
   }
 
-  use_per_session_threads_ = session_options.use_per_session_threads;
+  char* tmp = getenv("GME_GLOBAL_TH_DISABLE");
+  bool gthread_disable = tmp and tmp[0] == '1';
 
-  if (use_per_session_threads_) {
+  if (session_options.use_per_session_threads or gthread_disable) {
     LOGS(*session_logger_, INFO) << "Creating and using per session threadpools since use_per_session_threads_ is true";
     {
       bool allow_intra_op_spinning =
@@ -453,20 +455,10 @@ InferenceSession::~InferenceSession() {
     TraceLoggingWriteStop(session_activity, "OrtInferenceSessionActivity");
 #endif
 
-  if (session_options_.enable_profiling_mem){
-    std::string model_name = std::to_string(session_id_);
-    unsigned long i = model_location_.rfind("/");
-    if (i != std::string::npos) {
-      std::string tmp = model_location_.substr(0, i);
-      i = tmp.rfind("/");
-      if (i != std::string::npos) {
-        model_name = tmp.substr(i + 1);
-      }
-    }
+  if (session_options_.enable_profiling_mem) {
+    std::string model_name = gme::get_model_name(model_location_, "model_" + std::to_string(session_id_));
     session_state_->GetMutableMemoryInfo().GenerateMemoryProfile("/tmp", model_name);
   }
-
-
 }
 
 common::Status InferenceSession::RegisterExecutionProvider(const std::shared_ptr<IExecutionProvider>& p_exec_provider) {
@@ -676,6 +668,7 @@ common::Status InferenceSession::Load(std::function<common::Status(std::shared_p
 template <typename T>
 common::Status InferenceSession::Load(const std::basic_string<T>& model_uri) {
   model_location_ = ToWideString(model_uri);
+  model_name_ = gme::get_model_name(model_location_, "model_" + std::to_string(session_id_));
   auto loader = [this](std::shared_ptr<onnxruntime::Model>& model) {
 #ifdef ENABLE_LANGUAGE_INTEROP_OPS
     LoadInterOp(model_location_, interop_domains_, [&](const char* msg) { LOGS(*session_logger_, WARNING) << msg; });
@@ -1447,9 +1440,9 @@ common::Status InferenceSession::Initialize() {
       }
 
       if (saving_ort_format) {
-        ORT_RETURN_IF_ERROR_SESSIONID_(SaveToOrtFormat(session_options_.optimized_model_filepath));
+        ORT_RETURN_IF_ERROR_SESSIONID_(SaveToOrtFormat(session_options_.optimized_model_filepath+model_name_+".onnx"));
       } else {
-        ORT_RETURN_IF_ERROR_SESSIONID_(Model::Save(*model_, session_options_.optimized_model_filepath));
+        ORT_RETURN_IF_ERROR_SESSIONID_(Model::Save(*model_, session_options_.optimized_model_filepath+model_name_+".onnx"));
       }
     }
 #endif  // !defined(ORT_MINIMAL_BUILD)
@@ -1823,8 +1816,8 @@ Status InferenceSession::Run(const RunOptions& run_options,
     // log evaluation start to trace logging provider
     env.GetTelemetryProvider().LogEvaluationStart();
 
-    ORT_RETURN_IF_ERROR_SESSIONID_(ValidateInputs(feed_names, feeds));
-    ORT_RETURN_IF_ERROR_SESSIONID_(ValidateOutputs(output_names, p_fetches));
+    // ORT_RETURN_IF_ERROR_SESSIONID_(ValidateInputs(feed_names, feeds));
+    // ORT_RETURN_IF_ERROR_SESSIONID_(ValidateOutputs(output_names, p_fetches));
 
     // shrink certain default memory arenas if the user has requested for it
     const std::string& shrink_memory_arenas =
@@ -1885,7 +1878,7 @@ Status InferenceSession::Run(const RunOptions& run_options,
 #endif
     ORT_CHECK_AND_SET_RETVAL(utils::ExecuteGraph(*session_state_, feeds_fetches_manager, feeds, *p_fetches,
                                                  session_options_.execution_mode, run_options.terminate, run_logger,
-                                                 run_options.only_execute_path_to_fetches, model_location_.c_str()));
+                                                 run_options.only_execute_path_to_fetches, model_name_.c_str()));
   }
   ORT_CATCH(const std::exception& e) {
     ORT_HANDLE_EXCEPTION([&]() {

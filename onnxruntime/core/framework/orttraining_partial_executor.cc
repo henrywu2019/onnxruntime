@@ -184,9 +184,7 @@ Status PartialExecutor::Execute(const SessionState& session_state, const std::ve
       profile::Color::Black);
 #endif
 
-#ifdef DEBUG_NODE_INPUTS_OUTPUTS
     utils::NodeDumpContext dump_context { session_state.GetGraphExecutionCounter(), 0 };
-#endif
 
 
   for (size_t program_counter = state_.GetProgramCounterStart();

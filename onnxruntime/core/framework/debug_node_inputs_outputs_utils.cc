@@ -1,8 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-
-#ifdef DEBUG_NODE_INPUTS_OUTPUTS
-
 #include "core/framework/debug_node_inputs_outputs_utils.h"
 
 #include <iomanip>
@@ -485,7 +482,7 @@ static void PrintIf(bool boolean_expression, const std::string& message) {
   }
 }
 
-void DumpNodeInputs(
+std::string DumpNodeInputs(
     const NodeDumpOptions& dump_options, 
     const NodeDumpContext& dump_context, 
     const OpKernelContext& context, 
@@ -493,10 +490,10 @@ void DumpNodeInputs(
     const SessionState& session_state) {
   const bool is_any_output_dumped = IsAnyOutputDumped(dump_options);
   if (!is_any_output_dumped) {
-    return;
+    return "";
   }
 
-  if (!FilterNode(dump_options, node)) return;
+  if (!FilterNode(dump_options, node)) return "";
 
   bool should_dump_node_placement = (dump_options.dump_flags & NodeDumpOptions::DumpFlags::NodePlacement) != 0;
   if (dump_context.iteration == 1 && should_dump_node_placement) {
@@ -506,15 +503,17 @@ void DumpNodeInputs(
 #endif
   }
 
-  std::cout << "-----------\n";
-  std::cout << node.OpType() << " node: " << node.Name() << "\n";
+  std::stringstream ss;
+  //std::cout << "-----------\n";
+  //std::cout << node.OpType() << " node: " << node.Name() << "\n";
+  //ss << node.OpType() << "," << node.Name();
 
   const auto& input_defs = node.InputDefs();
   TensorMetadata tensor_metadata;
 
   for (auto i = 0, end = context.InputCount(); i < end; ++i) {
     if (input_defs[i]->Exists()) {
-      std::cout << "Input " << i << " Name: " << input_defs[i]->Name() << "\n";
+      ss << "input;" << i << ";" << input_defs[i]->Name() << ";";
 
       const auto* type = context.InputType(i);
 
@@ -524,7 +523,10 @@ void DumpNodeInputs(
           const auto& shape = tensor.Shape();
 
           const bool is_shape_set = (dump_options.dump_flags & NodeDumpOptions::DumpFlags::Shape) != 0;
-          PrintIf(is_shape_set, MakeString(" Shape: ", shape, "\n"));
+          //PrintIf(is_shape_set, MakeString(" Shape: ", shape, "\n"));
+          if (is_shape_set){
+            ss << shape.Repr() << ";";
+          }
 
           if ((dump_options.dump_flags & NodeDumpOptions::DumpFlags::InputData) != 0) {
             tensor_metadata.name = input_defs[i]->Name();
@@ -543,14 +545,15 @@ void DumpNodeInputs(
       std::cout << "Input " << i << " is optional and was not provided.\n";
     }
   }
+  return ss.str();
 }
 
-void DumpNodeInputs(
+std::string DumpNodeInputs(
     const NodeDumpContext& dump_context, 
     const OpKernelContext& context, 
     const Node& node, 
     const SessionState& session_state) {
-  DumpNodeInputs(NodeDumpOptionsFromEnvironmentVariables(), dump_context, context, node, session_state);
+  return DumpNodeInputs(NodeDumpOptionsFromEnvironmentVariables(), dump_context, context, node, session_state);
 }
 
 void DumpNodeOutputs(
@@ -623,4 +626,3 @@ void DumpNodeOutputs(
 }  // namespace utils
 }  // namespace onnxruntime
 
-#endif

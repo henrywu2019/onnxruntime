@@ -50,3 +50,5 @@ endif()
 if (onnxruntime_ENABLE_TRAINING_TORCH_INTEROP)
   onnxruntime_add_include_to_target(onnxruntime_session Python::Module) 
 endif()
+
+target_link_libraries(onnxruntime_session PRIVATE onnxruntime_gamma)
