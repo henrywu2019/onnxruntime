@@ -1552,12 +1552,19 @@ void InitializeEnv() {
   auto initialize = [&]() {
     // Initialization of the module
     InitArray();
+    OrtThreadingOptions tp_options;
+    tp_options.inter_op_thread_pool_params.thread_pool_size = 5;
+    tp_options.inter_op_thread_pool_params.set_denormal_as_zero = true;
+    tp_options.intra_op_thread_pool_params.thread_pool_size = 5;
+    tp_options.intra_op_thread_pool_params.set_denormal_as_zero = true;
     Env::Default().GetTelemetryProvider().SetLanguageProjection(OrtLanguageProjection::ORT_PROJECTION_PYTHON);
     OrtPybindThrowIfError(Environment::Create(std::make_unique<LoggingManager>(
                                                   std::make_unique<CLogSink>(),
                                                   Severity::kWARNING, false, LoggingManager::InstanceType::Default,
                                                   &SessionObjectInitializer::default_logger_id),
-                                              session_env));
+                                              session_env,
+                                              &tp_options,
+                                              true));
 
     static bool initialized = false;
     if (initialized) {
