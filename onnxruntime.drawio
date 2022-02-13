@@ -1,0 +1,79 @@
+<mxfile host="65bd71144e">
+    <diagram id="O0XC9Z7MXdle3vqdGaA9" name="Page-1">
+        <mxGraphModel dx="1366" dy="942" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="10" value="" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="150" y="250" width="470" height="160" as="geometry"/>
+                </mxCell>
+                <mxCell id="3" value="" style="shape=table;startSize=0;container=1;collapsible=0;childLayout=tableLayout;" vertex="1" parent="1">
+                    <mxGeometry x="260" y="270" width="340" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="4" value="" style="shape=partialRectangle;collapsible=0;dropTarget=0;pointerEvents=0;fillColor=none;top=0;left=0;bottom=0;right=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="3">
+                    <mxGeometry width="340" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="5" value="&lt;div style=&quot;color: rgb(240 , 243 , 246) ; background-color: rgb(10 , 12 , 16) ; font-family: &amp;#34;jetbrains mono&amp;#34; , &amp;#34;consolas&amp;#34; , monospace , &amp;#34;menlo&amp;#34; , &amp;#34;monaco&amp;#34; , &amp;#34;courier new&amp;#34; , monospace ; font-size: 13px ; line-height: 15px&quot;&gt;OrtMemoryInfo&lt;/div&gt;" style="shape=partialRectangle;html=1;whiteSpace=wrap;connectable=0;overflow=hidden;fillColor=none;top=0;left=0;bottom=0;right=0;pointerEvents=1;" vertex="1" parent="4">
+                    <mxGeometry width="114" height="40" as="geometry">
+                        <mxRectangle width="114" height="40" as="alternateBounds"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="6" value="" style="shape=partialRectangle;html=1;whiteSpace=wrap;connectable=0;overflow=hidden;fillColor=none;top=0;left=0;bottom=0;right=0;pointerEvents=1;" vertex="1" parent="4">
+                    <mxGeometry x="114" width="112" height="40" as="geometry">
+                        <mxRectangle width="112" height="40" as="alternateBounds"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="8" value="" style="shape=partialRectangle;html=1;whiteSpace=wrap;connectable=0;overflow=hidden;fillColor=none;top=0;left=0;bottom=0;right=0;pointerEvents=1;" vertex="1" parent="4">
+                    <mxGeometry x="226" width="114" height="40" as="geometry">
+                        <mxRectangle width="114" height="40" as="alternateBounds"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="12" value="" style="shape=table;startSize=0;container=1;collapsible=0;childLayout=tableLayout;" vertex="1" parent="1">
+                    <mxGeometry x="260" y="340" width="340" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="13" value="" style="shape=partialRectangle;collapsible=0;dropTarget=0;pointerEvents=0;fillColor=none;top=0;left=0;bottom=0;right=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;" vertex="1" parent="12">
+                    <mxGeometry width="340" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="14" value="&lt;div style=&quot;color: rgb(240 , 243 , 246) ; background-color: rgb(10 , 12 , 16) ; font-family: &amp;#34;jetbrains mono&amp;#34; , &amp;#34;consolas&amp;#34; , monospace , &amp;#34;menlo&amp;#34; , &amp;#34;monaco&amp;#34; , &amp;#34;courier new&amp;#34; , monospace ; font-size: 13px ; line-height: 15px&quot;&gt;MemoryPattern&lt;/div&gt;" style="shape=partialRectangle;html=1;whiteSpace=wrap;connectable=0;overflow=hidden;fillColor=none;top=0;left=0;bottom=0;right=0;pointerEvents=1;" vertex="1" parent="13">
+                    <mxGeometry width="113" height="40" as="geometry">
+                        <mxRectangle width="113" height="40" as="alternateBounds"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="15" value="" style="shape=partialRectangle;html=1;whiteSpace=wrap;connectable=0;overflow=hidden;fillColor=none;top=0;left=0;bottom=0;right=0;pointerEvents=1;" vertex="1" parent="13">
+                    <mxGeometry x="113" width="113" height="40" as="geometry">
+                        <mxRectangle width="113" height="40" as="alternateBounds"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="16" value="" style="shape=partialRectangle;html=1;whiteSpace=wrap;connectable=0;overflow=hidden;fillColor=none;top=0;left=0;bottom=0;right=0;pointerEvents=1;" vertex="1" parent="13">
+                    <mxGeometry x="226" width="114" height="40" as="geometry">
+                        <mxRectangle width="114" height="40" as="alternateBounds"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="19" value="&lt;div style=&quot;color: rgb(240 , 243 , 246) ; background-color: rgb(10 , 12 , 16) ; font-family: &amp;#34;jetbrains mono&amp;#34; , &amp;#34;consolas&amp;#34; , monospace , &amp;#34;menlo&amp;#34; , &amp;#34;monaco&amp;#34; , &amp;#34;courier new&amp;#34; , monospace ; font-size: 13px ; line-height: 15px&quot;&gt;&lt;span style=&quot;color: #ffb757&quot;&gt;MemoryPatternGroup&lt;/span&gt;&lt;/div&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+                    <mxGeometry x="310" y="200" width="170" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="20" value="&lt;meta charset=&quot;utf-8&quot;&gt;&lt;div style=&quot;color: rgb(240, 243, 246); background-color: rgb(10, 12, 16); font-family: &amp;quot;jetbrains mono&amp;quot;, consolas, monospace, menlo, monaco, &amp;quot;courier new&amp;quot;, monospace; font-weight: 300; font-size: 13px; line-height: 15px;&quot;&gt;&lt;div&gt;&lt;span style=&quot;color: #f0f3f6&quot;&gt;locations&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;" style="text;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="170" y="275" width="120" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="21" value="&lt;meta charset=&quot;utf-8&quot;&gt;&lt;div style=&quot;color: rgb(240, 243, 246); background-color: rgb(10, 12, 16); font-family: &amp;quot;jetbrains mono&amp;quot;, consolas, monospace, menlo, monaco, &amp;quot;courier new&amp;quot;, monospace; font-weight: 300; font-size: 13px; line-height: 15px;&quot;&gt;&lt;div&gt;&lt;span style=&quot;color: #f0f3f6&quot;&gt;patterns&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;" style="text;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="170" y="345" width="90" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="22" value="/home/opc/workspace/dev/gme/include/onnxruntime/core/framework/ortmemoryinfo.h" style="text;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="630" y="275" width="480" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="23" value="/home/opc/workspace/dev/gme/onnxruntime/core/framework/mem_pattern.h" style="text;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="630" y="345" width="430" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="24" value="MemoryBlock" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="205" y="480" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="25" value="&lt;div style=&quot;color: rgb(240 , 243 , 246) ; background-color: rgb(10 , 12 , 16) ; font-family: &amp;#34;jetbrains mono&amp;#34; , &amp;#34;consolas&amp;#34; , monospace , &amp;#34;menlo&amp;#34; , &amp;#34;monaco&amp;#34; , &amp;#34;courier new&amp;#34; , monospace ; font-size: 13px ; line-height: 15px&quot;&gt;&lt;span style=&quot;color: #ffb757&quot;&gt;MemPatternPlanner&lt;/span&gt;&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;" vertex="1" parent="1">
+                    <mxGeometry x="140" y="580" width="250" height="160" as="geometry"/>
+                </mxCell>
+                <mxCell id="26" value="MemoryPattern" style="rounded=0;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="205" y="640" width="120" height="60" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
