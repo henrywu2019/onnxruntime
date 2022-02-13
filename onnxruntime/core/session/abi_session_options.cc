@@ -71,6 +71,18 @@ ORT_API_STATUS_IMPL(OrtApis::DisableProfiling, _In_ OrtSessionOptions* options) 
   return nullptr;
 }
 
+// enable profiling for this session.
+ORT_API_STATUS_IMPL(OrtApis::EnableProfilingMem, _In_ OrtSessionOptions* options, _In_ const ORTCHAR_T* profile_file_prefix_mem) {
+  options->value.enable_profiling_mem = true;
+  options->value.profile_file_prefix_mem = profile_file_prefix_mem;
+  return nullptr;
+}
+ORT_API_STATUS_IMPL(OrtApis::DisableProfilingMem, _In_ OrtSessionOptions* options) {
+  options->value.enable_profiling_mem = false;
+  options->value.profile_file_prefix_mem.clear();
+  return nullptr;
+}
+
 // enable the memory pattern optimization.
 // The idea is if the input shapes are the same, we could trace the internal memory allocation
 // and generate a memory pattern for future request. So next time we could just do one allocation

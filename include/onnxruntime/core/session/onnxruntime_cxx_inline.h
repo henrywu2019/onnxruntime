@@ -448,6 +448,16 @@ inline SessionOptions& SessionOptions::DisableProfiling() {
   return *this;
 }
 
+inline SessionOptions& SessionOptions::EnableProfilingMem(const ORTCHAR_T* profile_file_prefix_mem) {
+  ThrowOnError(GetApi().EnableProfilingMem(p_, profile_file_prefix_mem));
+  return *this;
+}
+
+inline SessionOptions& SessionOptions::DisableProfilingMem() {
+  ThrowOnError(GetApi().DisableProfilingMem(p_));
+  return *this;
+}
+
 inline SessionOptions& SessionOptions::EnableOrtCustomOps() {
   ThrowOnError(GetApi().EnableOrtCustomOps(p_));
   return *this;

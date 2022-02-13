@@ -339,6 +339,9 @@ struct SessionOptions : Base<OrtSessionOptions> {
   SessionOptions& EnableProfiling(const ORTCHAR_T* profile_file_prefix);  ///< Wraps OrtApi::EnableProfiling
   SessionOptions& DisableProfiling();                                     ///< Wraps OrtApi::DisableProfiling
 
+  SessionOptions& EnableProfilingMem(const ORTCHAR_T* profile_file_prefix_mem);  ///< Wraps OrtApi::EnableProfilingMem
+  SessionOptions& DisableProfilingMem();                                     ///< Wraps OrtApi::DisableProfilingMem
+
   SessionOptions& EnableOrtCustomOps();  ///< Wraps OrtApi::EnableOrtCustomOps
 
   SessionOptions& EnableMemPattern();   ///< Wraps OrtApi::EnableMemPattern

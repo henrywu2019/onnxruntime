@@ -3303,6 +3303,23 @@ struct OrtApi {
   */
   ORT_API2_STATUS(SessionOptionsAppendExecutionProvider_MIGraphX,
                   _In_ OrtSessionOptions* options, _In_ const OrtMIGraphXProviderOptions* migraphx_options);
+
+  /** \brief Enable profiling for a session (Memory)
+   *
+   * \param[in] options
+   * \param[in] profile_file_prefix_mem
+   *
+   * \snippet{doc} snippets.dox OrtStatus Return Value
+   */
+  ORT_API2_STATUS(EnableProfilingMem, _Inout_ OrtSessionOptions* options, _In_ const ORTCHAR_T* profile_file_prefix_mem);
+
+  /** \brief Disable profiling for a session
+   *
+   * \param[in] options
+   *
+   * \snippet{doc} snippets.dox OrtStatus Return Value
+   */
+  ORT_API2_STATUS(DisableProfilingMem, _Inout_ OrtSessionOptions* options);
 };
 
 /*
