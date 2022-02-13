@@ -50,6 +50,9 @@ struct SessionOptions {
   // enable profiling for this session.
   bool enable_profiling = false;
 
+  // enable memory profiling for this session.
+  bool enable_profiling_mem = false;
+
   // Non empty filepath enables serialization of the transformed optimized model to the specified filepath.
   //
   // Set session config value for ORT_SESSION_OPTIONS_CONFIG_SAVE_MODEL_FORMAT to 'ORT' or 'ONNX' to explicitly
@@ -77,7 +80,10 @@ struct SessionOptions {
   bool enable_cpu_mem_arena = true;
 
   // the prefix of the profile file. The current time will be appended to the file name.
-  std::basic_string<ORTCHAR_T> profile_file_prefix = ORT_TSTR("onnxruntime_profile_");
+  std::basic_string<ORTCHAR_T> profile_file_prefix = ORT_TSTR("ort_latency_");
+
+  // the prefix of the profile file for memory. The current time will be appended to the file name.
+  std::basic_string<ORTCHAR_T> profile_file_prefix_mem = ORT_TSTR("ort_mem_");
 
   std::string session_logid;  ///< logger id to use for session output
 

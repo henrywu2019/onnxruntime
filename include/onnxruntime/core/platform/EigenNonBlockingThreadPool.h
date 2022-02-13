@@ -84,7 +84,7 @@
 //     The tasks themselves are defined in threadpool.cc, and are
 //     submitted to the run queues via RunInParallel->SummonWorkers.
 //     Each task will loop internally, picking off iterations from the
-//     user's code via atoic-fetch-and-add, until the loop is
+//     user's code via atomic-fetch-and-add, until the loop is
 //     complete.
 //
 //     This two-layer approach lets us separate out the

@@ -32,9 +32,7 @@
 #include "core/platform/ort_mutex.h"
 #include "core/platform/path_lib.h"
 #include "core/platform/threadpool.h"
-#if !defined(ORT_MINIMAL_BUILD) && defined(ORT_MEMORY_PROFILE)
 #include "core/framework/memory_info.h"
-#endif
 
 namespace flatbuffers {
 class FlatBufferBuilder;
@@ -54,9 +52,8 @@ class OpKernel;
 class NodeIndexInfo;
 struct SequentialExecutionPlan;
 struct MemoryPatternGroup;
-#if !defined(ORT_MINIMAL_BUILD) && defined(ORT_MEMORY_PROFILE)
 class MemoryInfo;
-#endif
+
 
 /**
  * SessionState should be modified by the inference session class only.
@@ -94,7 +91,8 @@ class SessionState {
                bool use_deterministic_compute = false,
                bool enable_mem_reuse = true,
                PrepackedWeightsContainer* prepacked_weights_container = nullptr,
-               int local_rank = 0)
+               int local_rank = 0,
+               bool enable_profiling_mem = false)
       : graph_(graph),
         execution_providers_(execution_providers),
         logger_(logger),
@@ -107,7 +105,8 @@ class SessionState {
         enable_mem_reuse_(enable_mem_reuse),
         prepacked_weights_container_(prepacked_weights_container),
         local_rank_(local_rank),
-        memory_info_(local_rank) {
+        memory_info_(local_rank),
+        enable_profiling_mem_(enable_profiling_mem) {
     SetupAllocators();
   }
 
@@ -345,6 +344,10 @@ class SessionState {
     return const_cast<MemoryInfo&>(memory_info_);
   }
 
+  bool GetEnableProfilingMem() const{
+    return enable_profiling_mem_;
+  }
+
  private:
   ORT_DISALLOW_COPY_ASSIGNMENT_AND_MOVE(SessionState);
 
@@ -508,6 +511,7 @@ class SessionState {
 
   int local_rank_;
   MemoryInfo memory_info_;
+  bool enable_profiling_mem_;
 
   inline size_t GetRank() const { return local_rank_; }
 

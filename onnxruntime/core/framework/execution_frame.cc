@@ -17,9 +17,8 @@
 #include "core/framework/session_state.h"
 #include "core/framework/TensorSeq.h"
 #include "core/framework/utils.h"
-#if !defined(ORT_MINIMAL_BUILD) && defined(ORT_MEMORY_PROFILE)
 #include "core/framework/memory_info.h"
-#endif
+
 
 using namespace onnxruntime::common;
 
@@ -162,10 +161,12 @@ Status IExecutionFrame::GetOrCreateNodeOutputMLValue(const int output_index, int
 #endif
       }
     } else {
+      ORT_UNUSED_PARAMETER(output_index);
+      ORT_UNUSED_PARAMETER(node);
       // shape is nullptr for traditional ML output values
-      if (shape != nullptr && IsOutput(ort_value_idx)) {
+      /*if (shape != nullptr && IsOutput(ort_value_idx)) {
         VerifyOutputSizes(output_index, node, *shape);
-      }
+      }*/
       status = CreateNodeOutputMLValueImpl(*p_ort_value, ort_value_idx, shape);
     }
   }
@@ -275,7 +276,7 @@ void IExecutionFrame::Init(const std::vector<int>& feed_mlvalue_idxs, const std:
                                                                 *dest.GetMutable<SparseTensor>()));
       } else {
 #else
-        ORT_UNUSED_PARAMETER(is_initializer_sparse_func);
+      ORT_UNUSED_PARAMETER(is_initializer_sparse_func);
 #endif  //  !defined(DISABLE_SPARSE_TENSORS)
         if (!dest.IsAllocated()) {
           // NOTE: This doesn't need to support ExecutionFrame custom allocators as they only come into play
@@ -351,9 +352,9 @@ ExecutionFrame::ExecutionFrame(const std::vector<int>& feed_mlvalue_idxs, const 
 #endif
       fetches);
 
-#if !defined(ORT_MINIMAL_BUILD) && defined(ORT_MEMORY_PROFILE)
-  session_state_.GetMutableMemoryInfo().IncreaseIteration();
-#endif
+  if (session_state_.GetEnableProfilingMem()) {
+    session_state_.GetMutableMemoryInfo().IncreaseIteration();
+  }
 
   // map the custom allocators to ort_value_idx entries
   if (!fetch_allocators.empty()) {
@@ -380,19 +381,23 @@ ExecutionFrame::ExecutionFrame(const std::vector<int>& feed_mlvalue_idxs, const 
       }
     }
 
-    //if there are some traditional ml value type in inputs disable the memory pattern optimization.
+    // if there are some traditional ml value type in inputs disable the memory pattern optimization.
     if (all_tensors) {
       mem_patterns_ = session_state.GetMemoryPatternGroup(feeds, feed_mlvalue_idxs, inferred_shapes_);
       // if no existing patterns, generate one in this executionframe
       if (!mem_patterns_) {
         planner_ = std::make_unique<OrtValuePatternPlanner>(*session_state.GetExecutionPlan());
       } else {
+        //std::cout << "inferred_shapes:" << inferred_shapes_.ToString() << std::endl;
         // pre-allocate the big chunk requested in memory pattern.
         // all the internal kernel's input/output tensors will be allocated on these buffer.
         for (size_t i = 0; i < mem_patterns_->locations.size(); i++) {
           const auto& location = mem_patterns_->locations[i];
           ORT_ENFORCE(buffers_.find(location) == buffers_.end());
-          if (mem_patterns_->patterns[i].PeakSize() > 0) {
+          auto peak_size = mem_patterns_->patterns[i].PeakSize();
+          if (peak_size > 0) {
+            // std::cout << "peak size:" << peak_size << std::endl;
+
             AllocatorPtr alloc = GetAllocator(location);
             void* buffer = nullptr;
             // it's possible we can't allocate the large block. if we have memory patterns we know we have successfully
@@ -401,19 +406,19 @@ ExecutionFrame::ExecutionFrame(const std::vector<int>& feed_mlvalue_idxs, const 
             // it's less efficient (the arena will add some overhead to coalesce individual allocations
             // back into blocks on 'free'), but better than failing completely.
             ORT_TRY {
-              auto peak_size = mem_patterns_->patterns[i].PeakSize();
               // Planning of one memory type should only happen once.
-#if !defined(ORT_MINIMAL_BUILD) && defined(ORT_MEMORY_PROFILE)
-              ORT_ENFORCE(
-                  static_activation_memory_sizes_in_byte_.find(location.name) ==
-                      static_activation_memory_sizes_in_byte_.end(),
-                  "Memory type ",
-                  location.name,
-                  " should only appear once.");
-              // static_activation_memory_in_bytes_ is max virtual memory size the planner computes.
-              // Memory dynamically allocated when executing kernels is not recorded using this field.
-              static_activation_memory_sizes_in_byte_[location.name] = peak_size;
-#endif
+              if (session_state_.GetEnableProfilingMem()) {
+                ORT_ENFORCE(
+                    static_activation_memory_sizes_in_byte_.find(location.name) ==
+                        static_activation_memory_sizes_in_byte_.end(),
+                    "Memory type ",
+                    location.name,
+                    " should only appear once.");
+                // static_activation_memory_in_bytes_ is max virtual memory size the planner computes.
+                // Memory dynamically allocated when executing kernels is not recorded using this field.
+                static_activation_memory_sizes_in_byte_[location.name] = peak_size;
+              }
+                
               buffer = alloc->Alloc(peak_size);
               // handle allocator that doesn't throw
               if (buffer == nullptr) {
@@ -432,21 +437,21 @@ ExecutionFrame::ExecutionFrame(const std::vector<int>& feed_mlvalue_idxs, const 
             if (buffer != nullptr) {
               buffers_[location] = BufferUniquePtr(buffer, alloc);
             }
-#if !defined(ORT_MINIMAL_BUILD) && defined(ORT_MEMORY_PROFILE)
-            //Record activation memory pattern
-            auto& mi = session_state_.GetMutableMemoryInfo();
-            mi.ClearMemoryInfoPerExecution();
-            if (mem_patterns_ && buffer != nullptr) {
-              mi.RecordPatternInfo(*mem_patterns_, MemoryInfo::MapType::StaticActivation);
-              mi.profiler.CreateEvents("static activations_" + std::to_string(mi.GetIteration()),
-                mi.profiler.GetAndIncreasePid(),
-                MemoryInfo::MapType::StaticActivation,
-                "",
-                0);
+            if (session_state_.GetEnableProfilingMem()) {
+              // Record activation memory pattern
+              auto& mi = session_state_.GetMutableMemoryInfo();
+              mi.ClearMemoryInfoPerExecution();
+              if (mem_patterns_ && buffer != nullptr) {
+                mi.RecordPatternInfo(*mem_patterns_, MemoryInfo::MapType::StaticActivation);
+                mi.profiler.CreateEvents("static activations_" + std::to_string(mi.GetIteration()),
+                                         mi.profiler.GetAndIncreasePid(),
+                                         MemoryInfo::MapType::StaticActivation,
+                                         "",
+                                         0);
+              }
             }
-#endif
             // log size of activation. Keep it commented out for now to avoid log flooding.
-            // VLOGS(session_state_.Logger(), 1) << "**** Allocated memory for activations, size: " <<mem_patterns_->patterns[i].PeakSize();
+            VLOGS(session_state_.Logger(), 1) << "**** Allocated memory for activations, size: " << peak_size;
           }
         }
       }
@@ -540,7 +545,7 @@ Status ExecutionFrame::AllocateMLValueTensorSelfOwnBufferHelper(OrtValue& ort_va
     }
   }
 
-  //no memory pattern, or the pattern is not correct.
+  // no memory pattern, or the pattern is not correct.
   if (!alloc) alloc = GetAllocator(location);
   Tensor::InitOrtValue(element_type, shape, std::move(alloc), ort_value);
 
@@ -551,16 +556,16 @@ Status ExecutionFrame::AllocateMLValueTensorSelfOwnBufferHelper(OrtValue& ort_va
     TraceAllocate(ort_value_index, size);
   }
 
-  {
-#if !defined(ORT_MINIMAL_BUILD) && defined(ORT_MEMORY_PROFILE)
-    // This code block is not thread-safe.
-    // Dynamic activation size would be accessed by multiple threads
-    // if parallel executor is used.
-    std::unique_lock<std::mutex> lock(mtx_);
-    dynamic_activation_memory_sizes_in_byte_[location.name] += size;
-    session_state_.GetMutableMemoryInfo().SetDynamicAllocation(ort_value_index);
-#endif
-  }
+
+    if (session_state_.GetEnableProfilingMem()) {
+      // This code block is not thread-safe.
+      // Dynamic activation size would be accessed by multiple threads
+      // if parallel executor is used.
+      std::unique_lock<std::mutex> lock(mtx_);
+      dynamic_activation_memory_sizes_in_byte_[location.name] += size;
+      session_state_.GetMutableMemoryInfo().SetDynamicAllocation(ort_value_index);
+    }
+
 
   return Status::OK();
 }
@@ -737,12 +742,12 @@ Status ExecutionFrame::AllocateAsPerAllocationPlan(OrtValue& ort_value, int ort_
       }
     }
 
-#if !defined(ORT_MINIMAL_BUILD) && defined(ORT_MEMORY_PROFILE)
-    session_state_.GetMutableMemoryInfo().RecordActivationAllocInfo(ort_value_index, ort_value);
-#endif
+    if (session_state_.GetEnableProfilingMem()) {
+      session_state_.GetMutableMemoryInfo().RecordActivationAllocInfo(ort_value_index, ort_value);
+    }
 
     return Status::OK();
-  } else if (ml_type->IsSparseTensorType()) {
+    } else if (ml_type->IsSparseTensorType()) {
 #if !defined(DISABLE_SPARSE_TENSORS)
     return AllocateSparseTensor(ort_value, *ml_type, GetAllocator(alloc_info),
                                 *shape, per_alloc_plan.create_fence_if_async, session_state_);
@@ -750,11 +755,11 @@ Status ExecutionFrame::AllocateAsPerAllocationPlan(OrtValue& ort_value, int ort_
     // Model load should have failed so this should be unreachable
     ORT_THROW("SparseTensor is not supported in this build.");
 #endif
-  } else if (ml_type->IsTensorSequenceType()
+    } else if (ml_type->IsTensorSequenceType()
 #if !defined(DISABLE_OPTIONAL_TYPE)
-             || utils::IsOptionalSeqTensor(ml_type)
+               || utils::IsOptionalSeqTensor(ml_type)
 #endif
-  ) {
+    ) {
     AllocKind alloc_kind = per_alloc_plan.alloc_kind;
 
     if (alloc_kind == AllocKind::kReuse) {
@@ -771,9 +776,9 @@ Status ExecutionFrame::AllocateAsPerAllocationPlan(OrtValue& ort_value, int ort_
     } else {
       return AllocateTensorSequence(ort_value);
     }
-  } else {
-    return AllocateTraditionalMLValue(ort_value, *static_cast<const NonTensorTypeBase*>(ml_type));
-  }
+    } else {
+      return AllocateTraditionalMLValue(ort_value, *static_cast<const NonTensorTypeBase*>(ml_type));
+    }
 }
 
 AllocatorPtr ExecutionFrame::GetAllocatorImpl(const OrtMemoryInfo& info) const {

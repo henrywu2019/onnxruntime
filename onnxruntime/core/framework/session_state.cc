@@ -427,7 +427,20 @@ Status SessionState::PrepackConstantInitializedTensors(std::unordered_map<std::s
 static int64_t CalculateMemoryPatternsKey(const gsl::span<const OrtValue>& tensor_inputs) {
   int64_t key = 0;
   for (const auto& input : tensor_inputs) {
-    for (auto dim : input.Get<Tensor>().Shape().GetDims()) key ^= dim;
+    const gsl::span<const long int>& dims = input.Get<Tensor>().Shape().GetDims();
+#if 0
+    std::string shape="[";
+    for (auto dim : dims){
+      shape += std::to_string(dim) + ",";
+      key ^= dim;
+    }
+    shape += "]";
+    printf("input_shape: %s\n", shape.c_str());
+#else
+    for (auto dim : dims) {
+      key ^= dim;
+    }
+#endif
   }
   return key;
 }
@@ -1278,7 +1291,10 @@ Status SessionState::FinalizeSessionStateImpl(const std::basic_string<PATH_CHAR_
   SubgraphsKernelCreateInfoMaps subgraphs_kernel_create_info_maps;
   AccumulateAllNestedSubgraphsInfo(*this, "", 0, subgraphs_kernel_create_info_maps);
 
-  SequentialPlannerContext context(session_options.execution_mode, session_options.execution_order, session_options.enable_mem_reuse);
+  SequentialPlannerContext context(session_options.execution_mode,
+                                   session_options.execution_order,
+                                   session_options.enable_mem_reuse,
+                                   session_options.enable_profiling_mem);
   ORT_RETURN_IF_ERROR(SequentialPlanner::CreatePlan(parent_node, *graph_viewer_, valid_outer_scope_node_args,
                                                     execution_providers_, kernel_create_info_map_,
                                                     subgraphs_kernel_create_info_maps,
@@ -1288,11 +1304,11 @@ Status SessionState::FinalizeSessionStateImpl(const std::basic_string<PATH_CHAR_
 
   // Uncomment the below to dump the allocation plan to std::cout
   // LOGS(logger_, VERBOSE) << std::make_pair(p_seq_exec_plan_.get(), this);
-#if !defined(ORT_MINIMAL_BUILD) && defined(ORT_MEMORY_PROFILE)
-  auto x = GetExecutionPlan();
-  const OrtValueNameIdxMap& y = GetOrtValueNameIdxMap();
-  memory_info_.GenerateTensorMap(x, y);
-#endif
+  if (GetEnableProfilingMem()){
+    auto x = GetExecutionPlan();
+    const OrtValueNameIdxMap& y = GetOrtValueNameIdxMap();
+    memory_info_.GenerateTensorMap(x, y);
+  }
 
   // Memory pattern tracer allocates all initializers on a single continous
   // buffer. This has the effect of reducing memory fragementation.
@@ -1328,11 +1344,11 @@ Status SessionState::FinalizeSessionStateImpl(const std::basic_string<PATH_CHAR_
             return AddInitializedTensor(idx, value, &d, constant, sparse);
           },
           logger_, data_transfer_mgr_, *p_seq_exec_plan_.get(), session_options, memory_info_));
-#if !defined(ORT_MINIMAL_BUILD) && defined(ORT_MEMORY_PROFILE)
-  //Record Weight allocation info on device
-  memory_info_.RecordInitializerAllocInfo(GetInitializedTensors());
-  memory_info_.clear();
-#endif
+  if (GetEnableProfilingMem()) {
+    // Record Weight allocation info on device
+    memory_info_.RecordInitializerAllocInfo(GetInitializedTensors());
+    memory_info_.clear();
+  }
 
   // remove weights from the graph now to save memory but in many cases it won't save memory, if the tensor was
   // preallocated with the some other tensors in a single 'allocate' call, which is very common.
@@ -1403,6 +1419,6 @@ Status SessionState::FinalizeSessionStateImpl(const std::basic_string<PATH_CHAR_
   }
 
   return Status::OK();
-}
+  }
 
 }  // namespace onnxruntime

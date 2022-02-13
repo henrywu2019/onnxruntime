@@ -25,9 +25,8 @@
 #include "core/session/onnxruntime_session_options_config_keys.h"
 #include "core/framework/mem_buffer.h"
 #include "core/framework/tensor_allocator.h"
-#if !defined(ORT_MINIMAL_BUILD) && defined(ORT_MEMORY_PROFILE)
 #include "core/framework/memory_info.h"
-#endif
+
 
 namespace onnxruntime {
 namespace session_state_utils {
@@ -141,7 +140,7 @@ common::Status SaveInitializedTensors(
   LOGS(logger, INFO) << "Saving initialized tensors.";
   ORT_ENFORCE(ort_value_name_idx_map.MaxIdx() > -1, "OrtValue indexes should have been populated.");
 
-  // Determine if an intializer was supplied by the user for the purpose of sharing and if it requires a cross-device
+  // Determine if an initializer was supplied by the user for the purpose of sharing and if it requires a cross-device
   // copy. In case a cross-device copy is required, sharing cannot be accomplished since we allocate our own buffer
   // for the destn device which cannot be shared between sessions.
   auto use_user_supplied_initializer =
@@ -210,11 +209,11 @@ common::Status SaveInitializedTensors(
   std::unordered_map<std::string, size_t> planned_initializers_memory_sizes_in_byte;
   ORT_RETURN_IF_ERROR(
       planner.FinalizePlan(planned_initializers_memory_sizes_in_byte));
-#if !defined(ORT_MINIMAL_BUILD) && defined(ORT_MEMORY_PROFILE)
-  memory_info.RecordPatternInfo(planner.GetMemPatterns(), MemoryInfo::MapType::Initializer);
-  memory_info.profiler.CreateEvents("initializer_" + std::to_string(memory_info.GetIteration()),
-                                    memory_info.profiler.GetAndIncreasePid(), MemoryInfo::MapType::Initializer, "", 0);
-#endif
+  if (session_options.enable_profiling_mem) {
+    memory_info.RecordPatternInfo(planner.GetMemPatterns(), MemoryInfo::MapType::Initializer);
+    memory_info.profiler.CreateEvents("initializer_" + std::to_string(memory_info.GetIteration()),
+                                      memory_info.profiler.GetAndIncreasePid(), MemoryInfo::MapType::Initializer, "", 0);
+  }
 
   for (auto i : planned_initializers_memory_sizes_in_byte) {
     LOGS(logger, INFO) << "[Memory] SessionStateInitializer statically allocates "

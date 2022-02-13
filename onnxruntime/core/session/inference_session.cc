@@ -452,18 +452,21 @@ InferenceSession::~InferenceSession() {
   if (session_activity_started_)
     TraceLoggingWriteStop(session_activity, "OrtInferenceSessionActivity");
 #endif
-#if !defined(ORT_MINIMAL_BUILD) && defined(ORT_MEMORY_PROFILE)
-  std::string model_name = std::to_string(session_id_);
-  unsigned long i = model_location_.rfind("/");
-  if (i != std::string::npos) {
-    std::string tmp = model_location_.substr(0, i);
-    i = tmp.rfind("/");
+
+  if (session_options_.enable_profiling_mem){
+    std::string model_name = std::to_string(session_id_);
+    unsigned long i = model_location_.rfind("/");
     if (i != std::string::npos) {
-      model_name = tmp.substr(i + 1);
+      std::string tmp = model_location_.substr(0, i);
+      i = tmp.rfind("/");
+      if (i != std::string::npos) {
+        model_name = tmp.substr(i + 1);
+      }
     }
+    session_state_->GetMutableMemoryInfo().GenerateMemoryProfile("/tmp", model_name);
   }
-  session_state_->GetMutableMemoryInfo().GenerateMemoryProfile("/tmp", model_name);
-#endif
+
+
 }
 
 common::Status InferenceSession::RegisterExecutionProvider(const std::shared_ptr<IExecutionProvider>& p_exec_provider) {
@@ -1339,7 +1342,8 @@ common::Status InferenceSession::Initialize() {
         session_options_.use_deterministic_compute,
         session_options_.enable_mem_reuse,
         prepacked_weights_container_,
-        session_options_.local_rank);
+        session_options_.local_rank,
+        session_options_.enable_profiling_mem);
 
     // Collect the kernel registries from execution provider instances;
     // There are 2 kinds of kernel registries with priority from high to low as below,
@@ -1881,7 +1885,7 @@ Status InferenceSession::Run(const RunOptions& run_options,
 #endif
     ORT_CHECK_AND_SET_RETVAL(utils::ExecuteGraph(*session_state_, feeds_fetches_manager, feeds, *p_fetches,
                                                  session_options_.execution_mode, run_options.terminate, run_logger,
-                                                 run_options.only_execute_path_to_fetches));
+                                                 run_options.only_execute_path_to_fetches, model_location_.c_str()));
   }
   ORT_CATCH(const std::exception& e) {
     ORT_HANDLE_EXCEPTION([&]() {

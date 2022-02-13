@@ -553,8 +553,11 @@ static common::Status ExecuteGraphImpl(const SessionState& session_state,
                                        const std::vector<OrtValue>& feeds, std::vector<OrtValue>& fetches,
                                        const std::unordered_map<size_t, IExecutor::CustomAllocator>& fetch_allocators,
                                        ExecutionMode execution_mode, const bool& terminate_flag,
-                                       const logging::Logger& logger, const bool only_execute_path_to_fetches = false) {
+                                       const logging::Logger& logger, const bool only_execute_path_to_fetches = false,
+                                       const char* model_loc = nullptr) {
   std::unique_ptr<IExecutor> p_exec;
+  ORT_UNUSED_PARAMETER(model_loc);
+  // printf("model_loc: %s\n", model_loc);
   if (execution_mode == ExecutionMode::ORT_SEQUENTIAL) {
     p_exec = std::make_unique<SequentialExecutor>(terminate_flag, only_execute_path_to_fetches);
   } else if (execution_mode == ExecutionMode::ORT_PARALLEL) {
@@ -625,14 +628,14 @@ common::Status ExecuteGraph(const SessionState& session_state,
                             FeedsFetchesManager& feeds_fetches_manager,
                             const std::vector<OrtValue>& feeds, std::vector<OrtValue>& fetches,
                             ExecutionMode execution_mode, const bool& terminate_flag,
-                            const logging::Logger& logger, bool only_execute_path_to_fetches) {
+                            const logging::Logger& logger, bool only_execute_path_to_fetches, const char* model_loc) {
   ORT_RETURN_IF_ERROR(utils::InitializeFeedFetchCopyInfo(session_state, feeds_fetches_manager));
 
   // finalize the copy info using the provided feeds and fetches. will update device_copy_checks in the background
   FinalizeFeedFetchCopyInfo(feeds_fetches_manager, feeds, fetches);
 
   auto status = ExecuteGraphImpl(session_state, feeds_fetches_manager, feeds, fetches, {},
-                                 execution_mode, terminate_flag, logger, only_execute_path_to_fetches);
+                                 execution_mode, terminate_flag, logger, only_execute_path_to_fetches, model_loc);
 
   return status;
 }

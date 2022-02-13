@@ -44,15 +44,17 @@ class ISequentialPlannerContext {
   virtual ExecutionOrder GetExecutionOrder() const { return ExecutionOrder::DEFAULT; }
 
   virtual bool GetEnableMemoryReuse() const { return true; }
+  virtual bool GetEnableProfilingMem() const { return false; }
   virtual ~ISequentialPlannerContext() = default;
 };
 
 class SequentialPlannerContext : public ISequentialPlannerContext {
  public:
-  SequentialPlannerContext(ExecutionMode execution_mode, ExecutionOrder execution_order, bool enable_memory_reuse)
+  SequentialPlannerContext(ExecutionMode execution_mode, ExecutionOrder execution_order, bool enable_memory_reuse, bool enable_profiling_mem)
       : execution_mode_(execution_mode),
         exection_order_(execution_order),
-        enable_memory_reuse_(enable_memory_reuse) {
+        enable_memory_reuse_(enable_memory_reuse),
+        enable_profiling_mem_(enable_profiling_mem) {
   }
 
   const ONNX_NAMESPACE::TensorShapeProto* GetShape(const onnxruntime::NodeArg& arg) const override {
@@ -65,10 +67,13 @@ class SequentialPlannerContext : public ISequentialPlannerContext {
 
   bool GetEnableMemoryReuse() const override { return enable_memory_reuse_; }
 
+  bool GetEnableProfilingMem() const override { return enable_profiling_mem_; }
+
  private:
   ExecutionMode execution_mode_ = ExecutionMode::ORT_SEQUENTIAL;
   ExecutionOrder exection_order_ = ExecutionOrder::DEFAULT;
   bool enable_memory_reuse_ = true;
+  bool enable_profiling_mem_ = false;
 };
 
 class SequentialPlanner {

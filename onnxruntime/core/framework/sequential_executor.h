@@ -32,4 +32,5 @@ class SequentialExecutor : public IExecutor {
   const bool& terminate_flag_;
   const bool only_execute_path_to_fetches_;
 };
+void process_mem_usage(double& vm_usage, double& resident_set);
 }  // namespace onnxruntime

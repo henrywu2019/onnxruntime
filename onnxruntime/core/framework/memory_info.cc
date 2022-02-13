@@ -1,4 +1,3 @@
-#if !defined(ORT_MINIMAL_BUILD) && defined(ORT_MEMORY_PROFILE)
 #include "core/framework/memory_info.h"
 #include "core/framework/mem_pattern.h"
 #include "core/framework/ort_value.h"
@@ -383,4 +382,3 @@ std::string MemoryInfo::GenerateMemoryProfile(const std::string& folder, const s
 }
 
 }  // namespace onnxruntime
-#endif

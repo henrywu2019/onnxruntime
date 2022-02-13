@@ -1,4 +1,3 @@
-#if !defined(ORT_MINIMAL_BUILD) && defined(ORT_MEMORY_PROFILE)
 #pragma once
 #include "core/graph/basic_types.h"
 #include "core/framework/alloc_kind.h"
@@ -240,4 +239,4 @@ class MemoryInfo {
 };
 
 }  // namespace onnxruntime
-#endif
+
