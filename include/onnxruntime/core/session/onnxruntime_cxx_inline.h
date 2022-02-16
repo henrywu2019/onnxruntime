@@ -438,6 +438,11 @@ inline SessionOptions& SessionOptions::SetOptimizedModelFilePath(const ORTCHAR_T
   return *this;
 }
 
+inline SessionOptions& SessionOptions::SetOptimizedModelFolder(const ORTCHAR_T* optimized_model_folder) {
+  ThrowOnError(GetApi().SetOptimizedModelFolder(p_, optimized_model_folder));
+  return *this;
+}
+
 inline SessionOptions& SessionOptions::EnableProfiling(const ORTCHAR_T* profile_file_prefix) {
   ThrowOnError(GetApi().EnableProfiling(p_, profile_file_prefix));
   return *this;

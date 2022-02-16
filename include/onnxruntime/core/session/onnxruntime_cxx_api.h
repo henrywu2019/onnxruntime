@@ -334,7 +334,9 @@ struct SessionOptions : Base<OrtSessionOptions> {
   SessionOptions& EnableCpuMemArena();   ///< Wraps OrtApi::EnableCpuMemArena
   SessionOptions& DisableCpuMemArena();  ///< Wraps OrtApi::DisableCpuMemArena
 
-  SessionOptions& SetOptimizedModelFilePath(const ORTCHAR_T* optimized_model_file);  ///< Wraps OrtApi::SetOptimizedModelFilePath
+  SessionOptions& SetOptimizedModelFilePath(const ORTCHAR_T* optimized_model_filepath);  ///< Wraps OrtApi::SetOptimizedModelFilePath
+
+  SessionOptions& SetOptimizedModelFolder(const ORTCHAR_T* optimized_model_folder);  ///< Wraps OrtApi::SetOptimizedModelFolder
 
   SessionOptions& EnableProfiling(const ORTCHAR_T* profile_file_prefix);  ///< Wraps OrtApi::EnableProfiling
   SessionOptions& DisableProfiling();                                     ///< Wraps OrtApi::DisableProfiling

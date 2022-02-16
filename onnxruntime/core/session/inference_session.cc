@@ -12,6 +12,7 @@
 #include <thread>
 
 #include "core/gamma/gme.h"
+#include "core/gamma/env.h"
 #include "core/common/denormal.h"
 #include "core/common/logging/logging.h"
 #include "core/common/parse_string.h"
@@ -1250,6 +1251,10 @@ common::Status InferenceSession::Initialize() {
   if (session_profiler_.IsEnabled()) {
     tp = session_profiler_.Start();
   }
+  const std::string env_omf(gme::StringFromEnv("OPTIMIZED_MODEL_FOLDER", ""));
+  if (!env_omf.empty()) {
+    session_options_.optimized_model_folder = env_omf;
+  }
 
   ORT_TRY {
     LOGS(*session_logger_, INFO) << "Initializing session.";
@@ -1348,16 +1353,14 @@ common::Status InferenceSession::Initialize() {
     // Register 2nd registries into KernelRegistryManager.
     ORT_RETURN_IF_ERROR_SESSIONID_(kernel_registry_manager_.RegisterKernels(execution_providers_));
 
-#TODO : Fuheng Wu
+    // TODO : Fuheng Wu
     const bool loading_ort_format = !ort_format_model_bytes_.empty();
-    const bool saving_model = !session_options_.optimized_model_filepath.empty();
+    const bool saving_model = !session_options_.optimized_model_filepath.empty() or !session_options_.optimized_model_folder.empty();
     const bool saving_ort_format = [&]() {
       if (saving_model) {
-        const std::string model_type = session_options_.config_options.GetConfigOrDefault(kOrtSessionOptionsConfigSaveModelFormat, "");
+        const std::string model_type = session_options_.config_options.GetConfigOrDefault(kOrtSessionOptionsConfigSaveModelFormat, "ORT");
         const bool has_explicit_type = !model_type.empty();
-        return ((has_explicit_type && model_type == "ORT") ||
-                (!has_explicit_type &&
-                 fbs::utils::IsOrtFormatModel(session_options_.optimized_model_filepath)));
+        return has_explicit_type and model_type == "ORT";
       }
       return false;
     }();
@@ -1432,18 +1435,42 @@ common::Status InferenceSession::Initialize() {
       }
 
       // add a warning if the NchwcTransformer was enabled, as it contains the hardware specific logic
-      if (session_options_.graph_optimization_level >= TransformerLevel::Level3 &&
+      /*if (session_options_.graph_optimization_level >= TransformerLevel::Level3 &&
           optimizers_to_disable_.find("NchwcTransformer") == optimizers_to_disable_.cend()) {
         LOGS(*session_logger_, WARNING)
             << "Serializing optimized model with Graph Optimization level greater than ORT_ENABLE_EXTENDED and the "
                "NchwcTransformer enabled. The generated model may contain hardware specific optimizations, and "
                "should only be used in the same environment the model was optimized in.";
-      }
+      }*/
 
       if (saving_ort_format) {
-        ORT_RETURN_IF_ERROR_SESSIONID_(SaveToOrtFormat(session_options_.optimized_model_filepath + model_name_ + ".onnx"));
+        if (session_options_.optimized_model_folder.empty()) {
+          ORT_RETURN_IF_ERROR_SESSIONID_(SaveToOrtFormat(session_options_.optimized_model_filepath));
+        } else {
+          std::string folder = session_options_.optimized_model_folder;
+          if (folder.back() == 0x2F) {
+            folder.pop_back();
+          }
+          std::string folder_ = folder + "/" + model_name_;
+          gme::ensure_folder(folder_);
+          std::string target = folder_ + "/model.ort";
+          if (! gme::exists(target))
+            ORT_RETURN_IF_ERROR_SESSIONID_(SaveToOrtFormat(target));
+        }
       } else {
-        ORT_RETURN_IF_ERROR_SESSIONID_(Model::Save(*model_, session_options_.optimized_model_filepath + model_name_ + ".onnx"));
+        if (session_options_.optimized_model_folder.empty()) {
+          ORT_RETURN_IF_ERROR_SESSIONID_(Model::Save(*model_, session_options_.optimized_model_filepath));
+        } else {
+          std::string folder = session_options_.optimized_model_folder;
+          if (folder.back() == 0x2F) {
+            folder.pop_back();
+          }
+          std::string folder_ = folder + "/" + model_name_;
+          gme::ensure_folder(folder_);
+          std::string target = folder_ + "/model.onnx";
+          if (!gme::exists(target))
+            ORT_RETURN_IF_ERROR_SESSIONID_(Model::Save(*model_, target));
+        }
       }
     }
 #endif  // !defined(ORT_MINIMAL_BUILD)

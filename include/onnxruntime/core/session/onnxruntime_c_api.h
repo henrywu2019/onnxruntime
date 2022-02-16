@@ -3320,6 +3320,17 @@ struct OrtApi {
    * \snippet{doc} snippets.dox OrtStatus Return Value
    */
   ORT_API2_STATUS(DisableProfilingMem, _Inout_ OrtSessionOptions* options);
+
+  /** \brief Set folder to save optimized model after graph level transformations
+   *
+   * \param[in] options
+   * \param[in] optimized_model_folder
+   *
+   * \snippet{doc} snippets.dox OrtStatus Return Value
+   */
+  ORT_API2_STATUS(SetOptimizedModelFolder, _Inout_ OrtSessionOptions* options,
+                  _In_ const ORTCHAR_T* optimized_model_folder);
+
 };
 
 /*

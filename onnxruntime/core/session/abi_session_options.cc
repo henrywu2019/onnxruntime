@@ -59,6 +59,12 @@ ORT_API_STATUS_IMPL(OrtApis::SetOptimizedModelFilePath, _In_ OrtSessionOptions* 
   return nullptr;
 }
 
+// set folder to save optimized onnx model.
+ORT_API_STATUS_IMPL(OrtApis::SetOptimizedModelFolder, _In_ OrtSessionOptions* options, _In_ const ORTCHAR_T* optimized_model_folder) {
+  options->value.optimized_model_folder = optimized_model_folder;
+  return nullptr;
+}
+
 // enable profiling for this session.
 ORT_API_STATUS_IMPL(OrtApis::EnableProfiling, _In_ OrtSessionOptions* options, _In_ const ORTCHAR_T* profile_file_prefix) {
   options->value.enable_profiling = true;

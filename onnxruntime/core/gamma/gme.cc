@@ -1,5 +1,7 @@
 #include "core/gamma/gme.h"
 #include <stdlib.h>
+#include <filesystem>
+namespace fs = std::filesystem;
 
 namespace gme {
 
@@ -8,7 +10,7 @@ namespace gme {
 // input: home/opc/workspace/vision_service_ocr_models/ocr_onnx/../det_doc/mbin/model.onnx
 // output: det_doc
 std::string get_model_name(const std::string& s, const std::string& fallback) {
-  char actualpath[4096];
+  char actualpath[4097];
   std::string model_location_(realpath(s.c_str(), actualpath));
 
   std::string model_name = fallback;
@@ -29,4 +31,15 @@ std::string get_model_name(const std::string& s, const std::string& fallback) {
   }
   return model_name;
 }
+
+void ensure_folder(const std::string& folder){
+  if (!fs::is_directory(folder)){
+    fs::create_directories(folder);
+  }
+}
+
+bool exists(const std::string& f) {
+  return fs::exists(f);
+}
+
 }  // namespace gme

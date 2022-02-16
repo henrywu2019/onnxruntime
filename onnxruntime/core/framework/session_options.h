@@ -62,6 +62,8 @@ struct SessionOptions {
   // unless the filepath ends in '.ort' (case insensitive).
   std::basic_string<ORTCHAR_T> optimized_model_filepath;
 
+  std::basic_string<ORTCHAR_T> optimized_model_folder;
+
   // enable the memory pattern optimization.
   // The idea is if the input shapes are the same, we could trace the internal memory allocation
   // and generate a memory pattern for future request. So next time we could just do one allocation
