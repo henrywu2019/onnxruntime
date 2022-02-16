@@ -358,6 +358,9 @@ class InferenceSession(Session):
         providers, provider_options = check_and_normalize_provider_args(providers,
                                                                         provider_options,
                                                                         available_providers)
+        if not providers and 'GAMMA_TVM' in os.environ:
+            providers = ['StvmExecutionProvider', 'CPUExecutionProvider']
+
         if providers == [] and len(available_providers) > 1:
             self.disable_fallback()
             raise ValueError("This ORT build has {} enabled. ".format(available_providers) +

@@ -9,6 +9,7 @@
 #define PY_ARRAY_UNIQUE_SYMBOL onnxruntime_python_ARRAY_API
 #include <numpy/arrayobject.h>
 
+#include "core/gamma/env.h"
 #include "core/common/logging/logging.h"
 #include "core/common/logging/severity.h"
 #include "core/common/optional.h"
@@ -1555,19 +1556,29 @@ void InitializeEnv() {
     // Initialization of the module
     InitArray();
     OrtThreadingOptions tp_options;
-    unsigned int hc = std::min(std::thread::hardware_concurrency(), 29U);
+    unsigned int core_number = std::thread::hardware_concurrency();
+    unsigned int hc = std::min(core_number, 29U);
     const char* tmp = getenv("GME_GLOBAL_TC");
     if (tmp != nullptr and strlen(tmp) < 3) {
       hc = atoi(tmp);
     }
+    int thread_pool_size_inter = gme::Int32FromEnv("TH_POOL_SIZE_INTER", 1);
+    int thread_pool_size_intra = gme::Int32FromEnv("TH_POOL_SIZE_INTRA", -1);
     tmp = getenv("GME_GLOBAL_TH_DISABLE");
     bool gthread_disable = tmp and tmp[0] == '1';
     OrtThreadingOptions* pto = nullptr;
     if (!gthread_disable) {
-      tp_options.inter_op_thread_pool_params.thread_pool_size = hc;
-      tp_options.inter_op_thread_pool_params.set_denormal_as_zero = true;
-      tp_options.intra_op_thread_pool_params.thread_pool_size = hc;
-      tp_options.intra_op_thread_pool_params.set_denormal_as_zero = true;
+      int inter = thread_pool_size_inter;
+      int intra = thread_pool_size_intra == -1 ? hc : thread_pool_size_intra;
+      bool inter_dn_0 = gme::BoolFromEnv("DENORMAL_ZERO_INTER", true);
+      bool intra_dn_0 = gme::BoolFromEnv("DENORMAL_ZERO_INTRA", true);
+      tp_options.inter_op_thread_pool_params.thread_pool_size = inter;
+      tp_options.inter_op_thread_pool_params.set_denormal_as_zero = inter_dn_0;
+      tp_options.intra_op_thread_pool_params.thread_pool_size = intra;
+      tp_options.intra_op_thread_pool_params.set_denormal_as_zero = intra_dn_0;
+      if (gme::BoolFromEnv("DEBUG", false))
+        printf("cn:%u,inter_tp:%d,intra_tp:%d,inter_dn_0:%d,intra_dn_0:%d\n",
+          core_number, inter, intra, inter_dn_0, intra_dn_0);
       pto = &tp_options;
     }
     // printf("gthread_disable: %d\n", int(gthread_disable));

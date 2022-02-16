@@ -1348,6 +1348,7 @@ common::Status InferenceSession::Initialize() {
     // Register 2nd registries into KernelRegistryManager.
     ORT_RETURN_IF_ERROR_SESSIONID_(kernel_registry_manager_.RegisterKernels(execution_providers_));
 
+#TODO : Fuheng Wu
     const bool loading_ort_format = !ort_format_model_bytes_.empty();
     const bool saving_model = !session_options_.optimized_model_filepath.empty();
     const bool saving_ort_format = [&]() {
@@ -1440,9 +1441,9 @@ common::Status InferenceSession::Initialize() {
       }
 
       if (saving_ort_format) {
-        ORT_RETURN_IF_ERROR_SESSIONID_(SaveToOrtFormat(session_options_.optimized_model_filepath+model_name_+".onnx"));
+        ORT_RETURN_IF_ERROR_SESSIONID_(SaveToOrtFormat(session_options_.optimized_model_filepath + model_name_ + ".onnx"));
       } else {
-        ORT_RETURN_IF_ERROR_SESSIONID_(Model::Save(*model_, session_options_.optimized_model_filepath+model_name_+".onnx"));
+        ORT_RETURN_IF_ERROR_SESSIONID_(Model::Save(*model_, session_options_.optimized_model_filepath + model_name_ + ".onnx"));
       }
     }
 #endif  // !defined(ORT_MINIMAL_BUILD)
