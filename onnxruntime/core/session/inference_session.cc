@@ -457,8 +457,7 @@ InferenceSession::~InferenceSession() {
 #endif
 
   if (session_options_.enable_profiling_mem) {
-    std::string model_name = gme::get_model_name(model_location_, "model_" + std::to_string(session_id_));
-    session_state_->GetMutableMemoryInfo().GenerateMemoryProfile("/tmp", model_name);
+    session_state_->GetMutableMemoryInfo().GenerateMemoryProfile("/tmp", model_name_);
   }
 }
 
@@ -669,7 +668,9 @@ common::Status InferenceSession::Load(std::function<common::Status(std::shared_p
 template <typename T>
 common::Status InferenceSession::Load(const std::basic_string<T>& model_uri) {
   model_location_ = ToWideString(model_uri);
-  model_name_ = gme::get_model_name(model_location_, "model_" + std::to_string(session_id_));
+  if (model_name_.empty()) {
+    model_name_ = gme::get_model_name(model_location_, "model_" + std::to_string(session_id_));
+  }
   auto loader = [this](std::shared_ptr<onnxruntime::Model>& model) {
 #ifdef ENABLE_LANGUAGE_INTEROP_OPS
     LoadInterOp(model_location_, interop_domains_, [&](const char* msg) { LOGS(*session_logger_, WARNING) << msg; });
@@ -1246,6 +1247,9 @@ static void ResolveMemoryPatternFlags(SessionState& session_state) {
 #pragma warning(disable : 26117)
 #endif
 common::Status InferenceSession::Initialize() {
+  if (model_name_.empty()) {
+    model_name_ = gme::get_model_name(model_location_, "model_" + std::to_string(session_id_));
+  }
   Status status = Status::OK();
   TimePoint tp;
   if (session_profiler_.IsEnabled()) {
@@ -1355,6 +1359,7 @@ common::Status InferenceSession::Initialize() {
 
     // TODO : Fuheng Wu
     const bool loading_ort_format = !ort_format_model_bytes_.empty();
+#if !defined(ORT_MINIMAL_BUILD)
     const bool saving_model = !session_options_.optimized_model_filepath.empty() or !session_options_.optimized_model_folder.empty();
     const bool saving_ort_format = [&]() {
       if (saving_model) {
@@ -1364,57 +1369,63 @@ common::Status InferenceSession::Initialize() {
       }
       return false;
     }();
-
+#endif
     const fbs::SessionState* serialized_session_state =
         loading_ort_format
             ? fbs::GetInferenceSession(ort_format_model_bytes_.data())->session_state()
             : nullptr;
 
 #if !defined(ORT_MINIMAL_BUILD)
-    if (!loading_ort_format) {
-      const bool saving_runtime_optimizations =
-          saving_ort_format &&
-          session_options_.config_options.GetConfigOrDefault(kOrtSessionOptionsConfigSaveRuntimeOptimizations,
-                                                             "0") == "1";
-      // add predefined transformers
-      ORT_RETURN_IF_ERROR_SESSIONID_(AddPredefinedTransformers(graph_transformation_mgr_,
-                                                               session_options_.graph_optimization_level,
-                                                               saving_runtime_optimizations));
+    bool is_ort_model = fbs::utils::IsOrtFormatModel(model_location_);
+    if (is_ort_model) {
+      ORT_RETURN_IF_ERROR(AssignNodesToEpsFromHashes(graph, *serialized_session_state, kernel_registry_manager_,
+                                                     *session_logger_));
+    } else {
+      if (!loading_ort_format) {
+        const bool saving_runtime_optimizations =
+            saving_ort_format &&
+            session_options_.config_options.GetConfigOrDefault(kOrtSessionOptionsConfigSaveRuntimeOptimizations,
+                                                               "0") == "1";
+        // add predefined transformers
+        ORT_RETURN_IF_ERROR_SESSIONID_(AddPredefinedTransformers(graph_transformation_mgr_,
+                                                                 session_options_.graph_optimization_level,
+                                                                 saving_runtime_optimizations));
 
-      // apply any transformations to the main graph and any subgraphs
-      ORT_RETURN_IF_ERROR_SESSIONID_(TransformGraph(graph, graph_transformation_mgr_,
-                                                    execution_providers_, kernel_registry_manager_,
-                                                    insert_cast_transformer_,
-                                                    *session_state_,
-                                                    saving_ort_format));
+        // apply any transformations to the main graph and any subgraphs
+        ORT_RETURN_IF_ERROR_SESSIONID_(TransformGraph(graph, graph_transformation_mgr_,
+                                                      execution_providers_, kernel_registry_manager_,
+                                                      insert_cast_transformer_,
+                                                      *session_state_,
+                                                      saving_ort_format));
 
-      // now that all the transforms are done, call Resolve on the main graph. this will recurse into the subgraphs.
-      ORT_RETURN_IF_ERROR_SESSIONID_(graph.Resolve());
+        // now that all the transforms are done, call Resolve on the main graph. this will recurse into the subgraphs.
+        ORT_RETURN_IF_ERROR_SESSIONID_(graph.Resolve());
 
-      // Update temporary copies of metadata, input- and output definitions to the same state as the resolved graph
-      ORT_RETURN_IF_ERROR_SESSIONID_(SaveModelMetadata(*model_));
-    } else
+        // Update temporary copies of metadata, input- and output definitions to the same state as the resolved graph
+        ORT_RETURN_IF_ERROR_SESSIONID_(SaveModelMetadata(*model_));
+      } else
 #endif  // !defined(ORT_MINIMAL_BUILD)
-    {
-      ORT_ENFORCE(loading_ort_format && serialized_session_state != nullptr);
+      {
+        ORT_ENFORCE(loading_ort_format && serialized_session_state != nullptr);
 
 #if !defined(ORT_MINIMAL_BUILD) || defined(ORT_EXTENDED_MINIMAL_BUILD)
-      // nodes are already partitioned, but a custom EP may compile some at runtime.
-      // run the partitioning to allow that to happen.
-      //
-      // We always have the CPU EP, so only need to run this if some other EP is enabled
-      if (execution_providers_.NumProviders() > 1) {
-        ORT_RETURN_IF_ERROR(PartitionOrtFormatModel(graph, execution_providers_, kernel_registry_manager_,
-                                                    *session_state_));
-      }
+        // nodes are already partitioned, but a custom EP may compile some at runtime.
+        // run the partitioning to allow that to happen.
+        //
+        // We always have the CPU EP, so only need to run this if some other EP is enabled
+        if (execution_providers_.NumProviders() > 1) {
+          ORT_RETURN_IF_ERROR(PartitionOrtFormatModel(graph, execution_providers_, kernel_registry_manager_,
+                                                      *session_state_));
+        }
 
 #if !defined(ORT_MINIMAL_BUILD) || defined(ORT_ENABLE_RUNTIME_OPTIMIZATION_IN_MINIMAL_BUILD)
-      ORT_RETURN_IF_ERROR_SESSIONID_(ReplaySavedRuntimeOptimizations(graph, *session_logger_, session_options_));
+        ORT_RETURN_IF_ERROR_SESSIONID_(ReplaySavedRuntimeOptimizations(graph, *session_logger_, session_options_));
 #endif  // !defined(ORT_MINIMAL_BUILD) || defined(ORT_ENABLE_RUNTIME_OPTIMIZATION_IN_MINIMAL_BUILD)
 #endif  // !defined(ORT_MINIMAL_BUILD) || defined(ORT_EXTENDED_MINIMAL_BUILD)
 
-      ORT_RETURN_IF_ERROR(AssignNodesToEpsFromHashes(graph, *serialized_session_state, kernel_registry_manager_,
-                                                     *session_logger_));
+        ORT_RETURN_IF_ERROR(AssignNodesToEpsFromHashes(graph, *serialized_session_state, kernel_registry_manager_,
+                                                       *session_logger_));
+      }
     }
 
     ORT_RETURN_IF_ERROR_SESSIONID_(
@@ -1426,7 +1437,7 @@ common::Status InferenceSession::Initialize() {
                                              saving_ort_format));
 
 #if !defined(ORT_MINIMAL_BUILD)
-    if (saving_model) {
+    if (saving_model and !is_ort_model) {
       if (session_state_->GetFuncMgr().NumFuncs() > 0) {
         ORT_RETURN_IF_ERROR_SESSIONID_(
             ORT_MAKE_STATUS(ONNXRUNTIME, FAIL,
@@ -1454,7 +1465,7 @@ common::Status InferenceSession::Initialize() {
           std::string folder_ = folder + "/" + model_name_;
           gme::ensure_folder(folder_);
           std::string target = folder_ + "/model.ort";
-          if (! gme::exists(target))
+          if (!gme::exists(target))
             ORT_RETURN_IF_ERROR_SESSIONID_(SaveToOrtFormat(target));
         }
       } else {

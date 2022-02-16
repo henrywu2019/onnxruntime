@@ -316,16 +316,17 @@ class InferenceSession(Session):
 
         if isinstance(path_or_bytes, str):
             self._model_path = path_or_bytes
+            self_model_path = None
             if 'GME_OPTIMIZED_MODEL_FOLDER' in os.environ:
                 if 'mbin' in self._model_path:
                     tmp = self._model_path.split("mbin/")
                     folder = os.environ['GME_OPTIMIZED_MODEL_FOLDER']
-                    if folder[-1] == '/':
+                    if len(folder)>5 and folder[-1] == '/':
                         folder = folder[:-1]
                     if len(tmp) == 2:
                         self_model_path = folder + "/" + tmp[1]
                         self_model_path = self_model_path.replace(".onnx", ".ort")
-                if os.path.exists(self_model_path):
+                if self_model_path and os.path.exists(self_model_path):
                     self._model_path = self_model_path
             self._model_bytes = None
         elif isinstance(path_or_bytes, bytes):
