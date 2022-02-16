@@ -356,54 +356,58 @@ class InferenceSession(Session):
                 raise
 
     def _create_inference_session(self, providers, provider_options, disabled_optimizers=None):
-        available_providers = C.get_available_providers()
+        try:
+            available_providers = C.get_available_providers()
 
-        # Tensorrt can fall back to CUDA. All others fall back to CPU.
-        if 'TensorrtExecutionProvider' in available_providers:
-            self._fallback_providers = ['CUDAExecutionProvider', 'CPUExecutionProvider']
-        elif 'MIGraphXExecutionProvider' in available_providers:
-            self._fallback_providers = ['ROCMExecutionProvider', 'CPUExecutionProvider']
-        else:
-            self._fallback_providers = ['CPUExecutionProvider']
+            # Tensorrt can fall back to CUDA. All others fall back to CPU.
+            if 'TensorrtExecutionProvider' in available_providers:
+                self._fallback_providers = ['CUDAExecutionProvider', 'CPUExecutionProvider']
+            elif 'MIGraphXExecutionProvider' in available_providers:
+                self._fallback_providers = ['ROCMExecutionProvider', 'CPUExecutionProvider']
+            else:
+                self._fallback_providers = ['CPUExecutionProvider']
 
-        # validate providers and provider_options before other initialization
-        providers, provider_options = check_and_normalize_provider_args(providers,
-                                                                        provider_options,
-                                                                        available_providers)
-        if not providers and 'GAMMA_TVM' in os.environ:
-            providers = ['StvmExecutionProvider', 'CPUExecutionProvider']
+            # validate providers and provider_options before other initialization
+            providers, provider_options = check_and_normalize_provider_args(providers,
+                                                                            provider_options,
+                                                                            available_providers)
+            if not providers and 'GAMMA_TVM' in os.environ:
+                providers = ['StvmExecutionProvider', 'CPUExecutionProvider']
 
-        if providers == [] and len(available_providers) > 1:
-            self.disable_fallback()
-            raise ValueError("This ORT build has {} enabled. ".format(available_providers) +
-                             "Since ORT 1.9, you are required to explicitly set " +
-                             "the providers parameter when instantiating InferenceSession. For example, "
-                             "onnxruntime.InferenceSession(..., providers={}, ...)".format(available_providers))
+            if providers == [] and len(available_providers) > 1:
+                self.disable_fallback()
+                raise ValueError("This ORT build has {} enabled. ".format(available_providers) +
+                                "Since ORT 1.9, you are required to explicitly set " +
+                                "the providers parameter when instantiating InferenceSession. For example, "
+                                "onnxruntime.InferenceSession(..., providers={}, ...)".format(available_providers))
 
-        session_options = self._sess_options if self._sess_options else C.get_default_session_options()
-        if self._model_path:
-            sess = C.InferenceSession(session_options, self._model_path, True, self._read_config_from_model)
-        else:
-            sess = C.InferenceSession(session_options, self._model_bytes, False, self._read_config_from_model)
+            session_options = self._sess_options if self._sess_options else C.get_default_session_options()
+            if self._model_path:
+                sess = C.InferenceSession(session_options, self._model_path, True, self._read_config_from_model)
+            else:
+                sess = C.InferenceSession(session_options, self._model_bytes, False, self._read_config_from_model)
 
-        if disabled_optimizers is None:
-            disabled_optimizers = set()
-        elif not isinstance(disabled_optimizers, set):
-            # convert to set. assumes iterable
-            disabled_optimizers = set(disabled_optimizers)
+            if disabled_optimizers is None:
+                disabled_optimizers = set()
+            elif not isinstance(disabled_optimizers, set):
+                # convert to set. assumes iterable
+                disabled_optimizers = set(disabled_optimizers)
 
-        # initialize the C++ InferenceSession
-        sess.initialize_session(providers, provider_options, disabled_optimizers)
+            # initialize the C++ InferenceSession
+            sess.initialize_session(providers, provider_options, disabled_optimizers)
 
-        self._sess = sess
-        self._sess_options = self._sess.session_options
-        self._inputs_meta = self._sess.inputs_meta
-        self._outputs_meta = self._sess.outputs_meta
-        self._overridable_initializers = self._sess.overridable_initializers
-        self._model_meta = self._sess.model_meta
-        self._providers = self._sess.get_providers()
-        self._provider_options = self._sess.get_provider_options()
-        self._profiling_start_time_ns = self._sess.get_profiling_start_time_ns
+            self._sess = sess
+            self._sess_options = self._sess.session_options
+            self._inputs_meta = self._sess.inputs_meta
+            self._outputs_meta = self._sess.outputs_meta
+            self._overridable_initializers = self._sess.overridable_initializers
+            self._model_meta = self._sess.model_meta
+            self._providers = self._sess.get_providers()
+            self._provider_options = self._sess.get_provider_options()
+            self._profiling_start_time_ns = self._sess.get_profiling_start_time_ns
+        except Exception as e:
+            print(self._model_path, str(e))
+            raise e
 
     def _reset_session(self, providers, provider_options):
         "release underlying session object."
