@@ -1246,6 +1246,10 @@ static void ResolveMemoryPatternFlags(SessionState& session_state) {
 // VC++ reports: "Releasing unheld lock 'l' in function 'onnxruntime::InferenceSession::Initialize'". But I don't see anything wrong.
 #pragma warning(disable : 26117)
 #endif
+
+static const bool large_memory(gme::BoolFromEnv("LARGE_MEMORY", false));
+static const std::string env_omf(gme::StringFromEnv("OPTIMIZED_MODEL_FOLDER", ""));
+
 common::Status InferenceSession::Initialize() {
   if (model_name_.empty()) {
     model_name_ = gme::get_model_name(model_location_, "model_" + std::to_string(session_id_));
@@ -1255,9 +1259,14 @@ common::Status InferenceSession::Initialize() {
   if (session_profiler_.IsEnabled()) {
     tp = session_profiler_.Start();
   }
-  const std::string env_omf(gme::StringFromEnv("OPTIMIZED_MODEL_FOLDER", ""));
+
   if (!env_omf.empty()) {
     session_options_.optimized_model_folder = env_omf;
+  }
+  if (large_memory){
+    session_options_.enable_mem_pattern = true;
+    session_options_.enable_mem_reuse = true;
+    session_options_.enable_cpu_mem_arena = true;
   }
 
   ORT_TRY {
@@ -1357,7 +1366,6 @@ common::Status InferenceSession::Initialize() {
     // Register 2nd registries into KernelRegistryManager.
     ORT_RETURN_IF_ERROR_SESSIONID_(kernel_registry_manager_.RegisterKernels(execution_providers_));
 
-    // TODO : Fuheng Wu
     const bool loading_ort_format = !ort_format_model_bytes_.empty();
 #if !defined(ORT_MINIMAL_BUILD)
     const bool saving_model = !session_options_.optimized_model_filepath.empty() or !session_options_.optimized_model_folder.empty();
@@ -1444,27 +1452,21 @@ common::Status InferenceSession::Initialize() {
                             "Unable to serialize model as it contains compiled nodes. "
                             "Please disable any execution providers which generate compiled nodes."));
       }
-
-      // add a warning if the NchwcTransformer was enabled, as it contains the hardware specific logic
-      /*if (session_options_.graph_optimization_level >= TransformerLevel::Level3 &&
-          optimizers_to_disable_.find("NchwcTransformer") == optimizers_to_disable_.cend()) {
-        LOGS(*session_logger_, WARNING)
-            << "Serializing optimized model with Graph Optimization level greater than ORT_ENABLE_EXTENDED and the "
-               "NchwcTransformer enabled. The generated model may contain hardware specific optimizations, and "
-               "should only be used in the same environment the model was optimized in.";
-      }*/
-
+      auto get_target = [&](const std::string& suffix) {
+        std::string folder = session_options_.optimized_model_folder;
+        if (folder.back() == 0x2F) {
+          folder.pop_back();
+        }
+        std::string folder_ = folder + "/" + model_name_;
+        gme::ensure_folder(folder_);
+        std::string target = folder_ + "/model." + suffix;
+        return target;
+      };
       if (saving_ort_format) {
         if (session_options_.optimized_model_folder.empty()) {
           ORT_RETURN_IF_ERROR_SESSIONID_(SaveToOrtFormat(session_options_.optimized_model_filepath));
         } else {
-          std::string folder = session_options_.optimized_model_folder;
-          if (folder.back() == 0x2F) {
-            folder.pop_back();
-          }
-          std::string folder_ = folder + "/" + model_name_;
-          gme::ensure_folder(folder_);
-          std::string target = folder_ + "/model.ort";
+          std::string target = get_target("ort");
           if (!gme::exists(target))
             ORT_RETURN_IF_ERROR_SESSIONID_(SaveToOrtFormat(target));
         }
@@ -1472,13 +1474,7 @@ common::Status InferenceSession::Initialize() {
         if (session_options_.optimized_model_folder.empty()) {
           ORT_RETURN_IF_ERROR_SESSIONID_(Model::Save(*model_, session_options_.optimized_model_filepath));
         } else {
-          std::string folder = session_options_.optimized_model_folder;
-          if (folder.back() == 0x2F) {
-            folder.pop_back();
-          }
-          std::string folder_ = folder + "/" + model_name_;
-          gme::ensure_folder(folder_);
-          std::string target = folder_ + "/model.onnx";
+          std::string target = get_target("onnx");
           if (!gme::exists(target))
             ORT_RETURN_IF_ERROR_SESSIONID_(Model::Save(*model_, target));
         }
