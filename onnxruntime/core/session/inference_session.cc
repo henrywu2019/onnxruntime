@@ -104,6 +104,12 @@ inline std::basic_string<T> GetCurrentTimeString() {
 
 using NodePlacementMap = std::unordered_map<std::string, std::vector<std::string>>;
 
+// Using environmental variables to make benchmark easier
+static const bool large_memory(gme::BoolFromEnv("LARGE_MEMORY", false));
+static const std::string env_omf(gme::StringFromEnv("OPTIMIZED_MODEL_FOLDER", ""));
+static const std::string mem_profile_folder(gme::StringFromEnv("MEM_PROFILE_FOLDER", "/tmp"));
+static const bool gthread_disable(gme::BoolFromEnv("GLOBAL_TH_DISABLE", false));
+
 Status VerifyEachNodeIsAssignedToAnEpImpl(const Graph& graph, bool is_verbose,
                                           NodePlacementMap& node_placements) {
   for (const auto& node : graph.Nodes()) {
@@ -267,9 +273,6 @@ void InferenceSession::ConstructorCommon(const SessionOptions& session_options,
       LOGS(*session_logger_, INFO) << "Flush-to-zero and denormal-as-zero are " << ((set_denormal_as_zero) ? "on" : "off");
     });
   }
-
-  char* tmp = getenv("GME_GLOBAL_TH_DISABLE");
-  bool gthread_disable = tmp and tmp[0] == '1';
 
   if (session_options.use_per_session_threads or gthread_disable) {
     LOGS(*session_logger_, INFO) << "Creating and using per session threadpools since use_per_session_threads_ is true";
@@ -457,8 +460,10 @@ InferenceSession::~InferenceSession() {
 #endif
 
   if (session_options_.enable_profiling_mem) {
-    session_state_->GetMutableMemoryInfo().GenerateMemoryProfile("/tmp", model_name_);
+    session_state_->GetMutableMemoryInfo().GenerateMemoryProfile(mem_profile_folder, model_name_);
   }
+
+  
 }
 
 common::Status InferenceSession::RegisterExecutionProvider(const std::shared_ptr<IExecutionProvider>& p_exec_provider) {
@@ -1246,9 +1251,6 @@ static void ResolveMemoryPatternFlags(SessionState& session_state) {
 // VC++ reports: "Releasing unheld lock 'l' in function 'onnxruntime::InferenceSession::Initialize'". But I don't see anything wrong.
 #pragma warning(disable : 26117)
 #endif
-
-static const bool large_memory(gme::BoolFromEnv("LARGE_MEMORY", false));
-static const std::string env_omf(gme::StringFromEnv("OPTIMIZED_MODEL_FOLDER", ""));
 
 common::Status InferenceSession::Initialize() {
   if (model_name_.empty()) {

@@ -539,7 +539,7 @@ std::string DumpNodeInputs(
         }
       } else {
         // should never happen...
-        std::cerr << " was missing data type\n";
+        std::cerr << input_defs[i]->Name() << " was missing data type\n";
       }
     } else {
       std::cerr << "Input " << i << " is optional and was not provided.\n";

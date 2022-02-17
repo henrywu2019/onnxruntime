@@ -7,6 +7,8 @@
 #include <thread>
 #include <vector>
 #include <sstream>
+#include "core/gamma/env.h"
+#include "core/gamma/gme.h"
 #include "core/common/common.h"
 #include "core/common/logging/logging.h"
 #include "core/framework/allocation_planner.h"
@@ -52,6 +54,10 @@ LARGE_INTEGER perf_freq = OrtGetPerformanceFrequency();
 #endif
 
 namespace onnxruntime {
+
+static const char* const gamma_mem_track_str = getenv("GME_SEQEXE_MEM_TRACK_MB");
+static const int gamma_mem_track_mb = gamma_mem_track_str != nullptr ? std::max(atoi(gamma_mem_track_str), 64) : 64;
+static const std::string bm_log_folder(gme::StringFromEnv("BM_LOG_FOLDER", ""));
 
 static void CalculateTotalOutputSizes(OpKernelContextInternal* op_kernel_context,
                                       size_t& total_output_sizes, const std::string& node_name) {
@@ -125,6 +131,7 @@ Status SequentialExecutor::Execute(const SessionState& session_state, const std:
                                    std::vector<OrtValue>& fetches,
                                    const std::unordered_map<size_t, CustomAllocator>& fetch_allocators,
                                    const logging::Logger& logger) {
+  p_ICPUUsage = gme::CreateICPUUsage();
   const bool is_profiler_enabled = session_state.Profiler().IsEnabled();
   TimePoint tp;
   TimePoint sync_time_begin;
@@ -184,10 +191,10 @@ Status SequentialExecutor::Execute(const SessionState& session_state, const std:
       profile::Color::Black);
 #endif
 
-//#ifdef DEBUG_NODE_INPUTS_OUTPUTS
+  //#ifdef DEBUG_NODE_INPUTS_OUTPUTS
   size_t program_counter = 0;
   utils::NodeDumpContext dump_context{session_state.GetGraphExecutionCounter(), program_counter};
-//#endif
+  //#endif
 
   // printf("exec_plan_vec size: %ld\n", exec_plan_vec.size());
   for (const auto& node_exec_plan : exec_plan_vec) {
@@ -318,25 +325,28 @@ Status SequentialExecutor::Execute(const SessionState& session_state, const std:
           ORT_RETURN_IF_ERROR(utils::VerifyInputTensorsAllocatedContiguously(&op_kernel_context));
         }
 #endif
-        static char* gamma_mem_track_str = getenv("GME_SEQEXE_MEM_TRACK_MB");
-        static int gamma_mem_track_mb = gamma_mem_track_str ? std::max(atoi(gamma_mem_track_str), 64) : 64;
 
-        if (session_state.GetEnableProfilingMem() or gamma_mem_track_str != nullptr) {
-          long vm0, vm1, rss0, rss1;
-          process_mem_usage(vm0, rss0);
+        if (session_state.GetEnableProfilingMem() or gamma_mem_track_mb > 0) {
+          long rss0, rss1;
+          process_mem_usage(rss0);
           // if (node_name_for_profiling == "batch_norm_1.tmp_3_nchwc"){
           //   printf("%.3f\n", rss0);
           // }
           compute_status = p_op_kernel->Compute(&op_kernel_context);
-          process_mem_usage(vm1, rss1);
+          process_mem_usage(rss1);
           // session_state.shape_patterns_;
           // op,vmd_,rss_,rss
           if (rss1 - rss0 > (gamma_mem_track_mb << 10)) {
             node_name_for_profiling = node.Name().empty() ? MakeString(node.OpType(), "_", node_index) : node.Name();
 
-            //dump_context.program_counter = program_counter++;
+            // dump_context.program_counter = program_counter++;
             std::string o = utils::DumpNodeInputs(dump_context, op_kernel_context, p_op_kernel->Node(), session_state);
-            printf("gme_mem:%s,%s,%ld,%ld,%ld,%s\n", model_loc_, node_name_for_profiling.c_str(), vm1 - vm0, rss1 - rss0, rss1, o.c_str());
+            static char bm_tmp[4096] = {};
+            ;
+            sprintf(bm_tmp,
+                    "%lu,%s,%s,%d,%ld,%ld,%s\n",
+                    time(0), model_loc_, node_name_for_profiling.c_str(), p_ICPUUsage->GetUsage(), rss1 - rss0, rss1, o.c_str());
+            perf_data.push_back(bm_tmp);
           }
         } else {
           compute_status = p_op_kernel->Compute(&op_kernel_context);
@@ -515,6 +525,17 @@ Status SequentialExecutor::Execute(const SessionState& session_state, const std:
     }
   }
 
+  if (!bm_log_folder.empty() and !perf_data.empty()) {
+    gme::ensure_folder(bm_log_folder);
+    auto file_path = bm_log_folder + "/bm.csv";
+    std::ofstream l(file_path, std::ios::app);
+    for (const auto& e : perf_data) {
+      l << e;
+    }
+    perf_data.clear();
+    l.close();
+  }
+
   return Status::OK();
 }
 
@@ -531,7 +552,7 @@ static Status ReleaseNodeMLValues(ExecutionFrame& frame,
   return Status::OK();
 }
 
-void process_mem_usage(long& vm_usage, long& resident_set) {
+void process_mem_usage(long& resident_set) {
   using std::ifstream;
   using std::ios_base;
   using std::string;
@@ -551,8 +572,7 @@ void process_mem_usage(long& vm_usage, long& resident_set) {
 
   stat_stream.close();
 
-  static long page_size_kb = sysconf(_SC_PAGE_SIZE)>>10;  // in case x86-64 is configured to use 2MB pages
-  vm_usage = vsize>>10;
+  static long page_size_kb = sysconf(_SC_PAGE_SIZE) >> 10;  // in case x86-64 is configured to use 2MB pages
   resident_set = rss * page_size_kb;
 }
 

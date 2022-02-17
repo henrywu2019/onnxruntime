@@ -5,6 +5,7 @@
 
 #include <vector>
 #include <unordered_map>
+#include "core/gamma/cpumem.h"
 #include "core/common/common.h"
 #include "core/common/status.h"
 #include "core/common/logging/logging.h"
@@ -32,6 +33,8 @@ class SequentialExecutor : public IExecutor {
   const bool& terminate_flag_;
   const bool only_execute_path_to_fetches_;
   const char* model_loc_;
+  std::vector<std::string> perf_data;
+  std::unique_ptr<gme::ICPUUsage> p_ICPUUsage;
 };
-void process_mem_usage(long& vm_usage, long& resident_set);
+void process_mem_usage(long& resident_set);
 }  // namespace onnxruntime
