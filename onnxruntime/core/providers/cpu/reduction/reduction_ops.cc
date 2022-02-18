@@ -4,7 +4,7 @@
 #include "core/framework/inlined_containers.h"
 #include "core/providers/cpu/reduction/reduction_ops.h"
 #include "core/providers/common.h"
-//TODO: fix the warnings
+// TODO: fix the warnings
 #if defined(_MSC_VER) && !defined(__clang__)
 #pragma warning(disable : 26451)
 #endif
@@ -259,8 +259,13 @@ static void ValidateFastReduceRK(const gsl::span<const int64_t>& fast_shape, con
 }
 
 static void ValidateFastReduceKRK(const gsl::span<const int64_t>& fast_shape, const Tensor& output) {
-  ORT_ENFORCE(fast_shape.size() == 3, "Only works on matrices with two dimensions.");
+  ORT_ENFORCE(fast_shape.size() == 3, "Only works on matrices with three dimensions.");
   ORT_ENFORCE(fast_shape[0] * fast_shape[2] == output.Shape().Size(), "Output size mismatch.");
+}
+
+static void ValidateFastReduceRKR(const gsl::span<const int64_t>& fast_shape, const Tensor& output) {
+  ORT_ENFORCE(fast_shape.size() == 3, "Only works on matrices with three dimensions.");
+  ORT_ENFORCE(fast_shape[1] == output.Shape().Size(), "Output size mismatch.");
 }
 
 void ReduceAggregatorBase::FastReduceKR(const Tensor&, const gsl::span<const int64_t>&, Tensor&, concurrency::ThreadPool*) {
@@ -270,6 +275,9 @@ void ReduceAggregatorBase::FastReduceRK(const Tensor&, const gsl::span<const int
   ValidateMustBeOverloaded();
 }
 void ReduceAggregatorBase::FastReduceKRK(const Tensor&, const gsl::span<const int64_t>&, Tensor&, concurrency::ThreadPool*) {
+  ValidateMustBeOverloaded();
+}
+void ReduceAggregatorBase::FastReduceRKR(const Tensor&, const gsl::span<const int64_t>&, Tensor&, concurrency::ThreadPool*) {
   ValidateMustBeOverloaded();
 }
 
@@ -624,8 +632,8 @@ FastReduceKind OptimizeShapeForFastReduce(gsl::span<const int64_t> input_shape,
   if (fast_shape.size() == 2) {
     return reduce[0] ? FastReduceKind::kRK : FastReduceKind::kKR;
   }
-  if (fast_shape.size() == 3 && !reduce[0]) {
-    return FastReduceKind::kKRK;
+  if (fast_shape.size() == 3) {
+    return reduce[0] ? FastReduceKind::kRKR : FastReduceKind::kKRK;
   }
   return FastReduceKind::kNone;
 }
@@ -636,7 +644,7 @@ void ValidateCommonFastReduce(const Tensor* axes_tensor) {
               "An axes tensor must be a vector tensor.");
 }
 
-//template <typename T, typename TVAL>
+// template <typename T, typename TVAL>
 bool CommonFastReduceCopy(OpKernelContext* ctx, TensorShapeVector& input_axes, bool noop_with_empty_axes) {
   if (ctx->InputCount() == 2) {
     // second input holds the axes.
@@ -671,7 +679,8 @@ bool CommonFastReduceSwitch(OpKernelContext* ctx,
                             FastReduceKind which_fast_reduce,
                             fast_reduce_fct* case_kr,
                             fast_reduce_fct* case_rk,
-                            fast_reduce_fct* case_krk) {
+                            fast_reduce_fct* case_krk,
+                            fast_reduce_fct* case_rkr) {
   TensorShapeVector axes;
   const Tensor* input = ctx->Input<Tensor>(0);
   auto reduced_dims = input->Shape().GetDims();
@@ -715,6 +724,14 @@ bool CommonFastReduceSwitch(OpKernelContext* ctx,
           } else {
             break;
           }
+        case FastReduceKind::kRKR:
+          ValidateFastReduceRKR(fast_shape, *output);
+          if (fast_shape[1] >= std::max(2, concurrency::ThreadPool::DegreeOfParallelism(ctx->GetOperatorThreadPool()))) {
+            case_rkr(*input, fast_shape, *output, ctx->GetOperatorThreadPool());
+            return true;
+          } else {
+            break;
+          }
         case FastReduceKind::kR:
         case FastReduceKind::kK:
         case FastReduceKind::kNone:
@@ -738,7 +755,8 @@ bool CommonFastReduce(OpKernelContext* ctx,
                       TensorShapeVector& fast_axes) {
   return CommonFastReduceSwitch(ctx, axes_, keepdims_, noop_with_empty_axes,
                                 fast_kind, fast_shape, output_shape, fast_axes,
-                                AGG::WhichFastReduce(), &AGG::FastReduceKR, &AGG::FastReduceRK, &AGG::FastReduceKRK);
+                                AGG::WhichFastReduce(), &AGG::FastReduceKR, &AGG::FastReduceRK,
+                                &AGG::FastReduceKRK, &AGG::FastReduceRKR);
 }
 
 static void ValidateKeepDims(const TensorShape& shape, int64_t keepdims) {
@@ -921,6 +939,14 @@ std::unique_ptr<Tensor> ReduceSum<T>::Impl(const Tensor& input, gsl::span<const 
         if (fast_shape[0] >= std::max(2, concurrency::ThreadPool::DegreeOfParallelism(tp))) {
           // See benchmarks in PR #7719.
           ReduceAggregatorSum<T>::FastReduceKRK(input, fast_shape, *output, tp);
+          return output;
+        } else {
+          break;
+        }
+      case FastReduceKind::kRKR:
+        ValidateFastReduceRKR(fast_shape, *output);
+        if (fast_shape[0] >= std::max(2, concurrency::ThreadPool::DegreeOfParallelism(tp))) {
+          ReduceAggregatorSum<T>::FastReduceRKR(input, fast_shape, *output, tp);
           return output;
         } else {
           break;
