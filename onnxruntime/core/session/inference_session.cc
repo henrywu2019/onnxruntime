@@ -105,6 +105,7 @@ inline std::basic_string<T> GetCurrentTimeString() {
 using NodePlacementMap = std::unordered_map<std::string, std::vector<std::string>>;
 
 // Using environmental variables to make benchmark easier
+static const std::string save_model_format(gme::StringFromEnv("SAVE_MODEL_FORMAT", ""));
 static const bool large_memory(gme::BoolFromEnv("LARGE_MEMORY", false));
 static const std::string env_omf(gme::StringFromEnv("OPTIMIZED_MODEL_FOLDER", ""));
 static const std::string mem_profile_folder(gme::StringFromEnv("MEM_PROFILE_FOLDER", "/tmp"));
@@ -1373,7 +1374,10 @@ common::Status InferenceSession::Initialize() {
     const bool saving_model = !session_options_.optimized_model_filepath.empty() or !session_options_.optimized_model_folder.empty();
     const bool saving_ort_format = [&]() {
       if (saving_model) {
-        const std::string model_type = session_options_.config_options.GetConfigOrDefault(kOrtSessionOptionsConfigSaveModelFormat, "ORT");
+        if (!save_model_format.empty()) {
+          return save_model_format=="ORT";
+        }
+        const std::string model_type = session_options_.config_options.GetConfigOrDefault(kOrtSessionOptionsConfigSaveModelFormat, "ONNX");
         const bool has_explicit_type = !model_type.empty();
         return has_explicit_type and model_type == "ORT";
       }

@@ -9,6 +9,7 @@
 #include <sstream>
 #include "core/gamma/env.h"
 #include "core/gamma/gme.h"
+#include "core/gamma/fwriter.h"
 #include "core/common/common.h"
 #include "core/common/logging/logging.h"
 #include "core/framework/allocation_planner.h"
@@ -57,7 +58,6 @@ namespace onnxruntime {
 
 static const char* const gamma_mem_track_str = getenv("GME_SEQEXE_MEM_TRACK_MB");
 static const int gamma_mem_track_mb = gamma_mem_track_str != nullptr ? std::max(atoi(gamma_mem_track_str), 64) : 64;
-static const std::string bm_log_folder(gme::StringFromEnv("BM_LOG_FOLDER", ""));
 
 static void CalculateTotalOutputSizes(OpKernelContextInternal* op_kernel_context,
                                       size_t& total_output_sizes, const std::string& node_name) {
@@ -342,11 +342,10 @@ Status SequentialExecutor::Execute(const SessionState& session_state, const std:
             // dump_context.program_counter = program_counter++;
             std::string o = utils::DumpNodeInputs(dump_context, op_kernel_context, p_op_kernel->Node(), session_state);
             static char bm_tmp[4096] = {};
-            ;
             sprintf(bm_tmp,
                     "%lu,%s,%s,%d,%ld,%ld,%s\n",
                     time(0), model_loc_, node_name_for_profiling.c_str(), p_ICPUUsage->GetUsage(), rss1 - rss0, rss1, o.c_str());
-            perf_data.push_back(bm_tmp);
+            gme::fwriter::instance().put(bm_tmp);
           }
         } else {
           compute_status = p_op_kernel->Compute(&op_kernel_context);
@@ -523,17 +522,6 @@ Status SequentialExecutor::Execute(const SessionState& session_state, const std:
       LOGS(logger, INFO) << "[Memory] ExecutionFrame dynamically allocates "
                          << i.second << " bytes for " << i.first << std::endl;
     }
-  }
-
-  if (!bm_log_folder.empty() and !perf_data.empty()) {
-    gme::ensure_folder(bm_log_folder);
-    auto file_path = bm_log_folder + "/bm.csv";
-    std::ofstream l(file_path, std::ios::app);
-    for (const auto& e : perf_data) {
-      l << e;
-    }
-    perf_data.clear();
-    l.close();
   }
 
   return Status::OK();
