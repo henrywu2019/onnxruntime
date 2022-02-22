@@ -342,9 +342,11 @@ Status SequentialExecutor::Execute(const SessionState& session_state, const std:
             // dump_context.program_counter = program_counter++;
             std::string o = utils::DumpNodeInputs(dump_context, op_kernel_context, p_op_kernel->Node(), session_state);
             static char bm_tmp[4096] = {};
+            short cpu_usage = p_ICPUUsage->GetUsage();
+            // time,model,node,cpu,rss_delta,rss,node_input
             sprintf(bm_tmp,
-                    "%lu,%s,%s,%d,%ld,%ld,%s\n",
-                    time(0), model_loc_, node_name_for_profiling.c_str(), p_ICPUUsage->GetUsage(), rss1 - rss0, rss1, o.c_str());
+              "%lu,%s,%s,%d,%ld,%ld,%s\n",
+              time(0), model_loc_, node_name_for_profiling.c_str(), cpu_usage, rss1 - rss0, rss1, o.c_str());
             gme::fwriter::instance().put(bm_tmp);
           }
         } else {

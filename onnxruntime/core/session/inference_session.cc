@@ -13,6 +13,7 @@
 
 #include "core/gamma/gme.h"
 #include "core/gamma/env.h"
+#include "core/gamma/fwriter.h"
 #include "core/common/denormal.h"
 #include "core/common/logging/logging.h"
 #include "core/common/parse_string.h"
@@ -463,8 +464,8 @@ InferenceSession::~InferenceSession() {
   if (session_options_.enable_profiling_mem) {
     session_state_->GetMutableMemoryInfo().GenerateMemoryProfile(mem_profile_folder, model_name_);
   }
-
-  
+  //printf("close InferenceSession %d!\n", session_id_);
+  gme::fwriter::instance().force_write();
 }
 
 common::Status InferenceSession::RegisterExecutionProvider(const std::shared_ptr<IExecutionProvider>& p_exec_provider) {
