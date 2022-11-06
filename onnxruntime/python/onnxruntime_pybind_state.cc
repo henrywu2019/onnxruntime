@@ -9,6 +9,7 @@
 #define PY_ARRAY_UNIQUE_SYMBOL onnxruntime_python_ARRAY_API
 #include <numpy/arrayobject.h>
 
+#include "core/gamma/env.h"
 #include "core/common/inlined_containers.h"
 #include "core/common/logging/logging.h"
 #include "core/common/logging/severity.h"
@@ -29,6 +30,8 @@
 #include "core/session/abi_session_options_impl.h"
 #include "core/session/onnxruntime_session_options_config_keys.h"
 #include "core/session/provider_bridge_ort.h"
+
+#include <thread>
 
 #ifdef ENABLE_ATEN
 #include "contrib_ops/cpu/aten_ops/aten_op_executor.h"
@@ -1682,12 +1685,42 @@ void InitializeEnv() {
   auto initialize = [&]() {
     // Initialization of the module
     InitArray();
+
+    OrtThreadingOptions tp_options;
+    unsigned int core_number = std::thread::hardware_concurrency();
+    unsigned int hc = std::min(core_number, 29U);
+    const char* tmp = getenv("GME_GLOBAL_TC");
+    if (tmp != nullptr and strlen(tmp) < 3) {
+      hc = atoi(tmp);
+    }
+    int thread_pool_size_inter = gme::Int32FromEnv("POOL_SIZE_INTER", 1);
+    int thread_pool_size_intra = gme::Int32FromEnv("POOL_SIZE_INTRA", -1);
+    tmp = getenv("GME_GLOBAL_TP_DISABLE"); // global thread pool
+    bool gthread_disable = tmp and tmp[0] == '1';
+    OrtThreadingOptions* pto = nullptr;
+    if (!gthread_disable) {
+      int inter = thread_pool_size_inter;
+      int intra = thread_pool_size_intra == -1 ? hc : thread_pool_size_intra;
+      bool inter_dn_0 = gme::BoolFromEnv("DENORMAL_ZERO_INTER", true);
+      bool intra_dn_0 = gme::BoolFromEnv("DENORMAL_ZERO_INTRA", true);
+      tp_options.inter_op_thread_pool_params.thread_pool_size = inter;
+      tp_options.inter_op_thread_pool_params.set_denormal_as_zero = inter_dn_0;
+      tp_options.intra_op_thread_pool_params.thread_pool_size = intra;
+      tp_options.intra_op_thread_pool_params.set_denormal_as_zero = intra_dn_0;
+      if (gme::BoolFromEnv("DEBUG", false))
+        printf("cn:%u,inter_tp:%d,intra_tp:%d,inter_dn_0:%d,intra_dn_0:%d\n",
+          core_number, inter, intra, inter_dn_0, intra_dn_0);
+      pto = &tp_options;
+    }
+
     Env::Default().GetTelemetryProvider().SetLanguageProjection(OrtLanguageProjection::ORT_PROJECTION_PYTHON);
     OrtPybindThrowIfError(Environment::Create(std::make_unique<LoggingManager>(
                                                   std::make_unique<CLogSink>(),
                                                   Severity::kWARNING, false, LoggingManager::InstanceType::Default,
                                                   &SessionObjectInitializer::default_logger_id),
-                                              session_env));
+                                              session_env,
+                                              pto,
+                                              !gthread_disable));
 
     static bool initialized = false;
     if (initialized) {

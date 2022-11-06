@@ -19,7 +19,7 @@ from setuptools import Extension, setup
 from setuptools.command.install import install as InstallCommandBase
 
 nightly_build = False
-package_name = "onnxruntime"
+package_name = "gme"
 wheel_name_suffix = None
 
 

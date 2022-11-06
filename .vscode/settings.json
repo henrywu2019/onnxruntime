@@ -39,5 +39,10 @@
     "cpplint.filters": [
         "-build/include_subdir",
         "-runtime/references"
-    ]
+    ],
+    "workbench.colorCustomizations": {
+        "activityBar.background": "#322653",
+        "titleBar.activeBackground": "#453575",
+        "titleBar.activeForeground": "#FAFAFD"
+    }
 }
