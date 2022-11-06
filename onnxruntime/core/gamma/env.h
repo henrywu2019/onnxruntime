@@ -46,5 +46,4 @@ bool IsFlag(const char* str, const char* flag);
 bool IsTruthyFlagValue(const std::string& value);
 
 int32_t gamma_tn();
-
 }  // namespace gme
