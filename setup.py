@@ -69,7 +69,7 @@ elif parse_arg_remove_boolean(sys.argv, "--use_openvino"):
 elif parse_arg_remove_boolean(sys.argv, "--use_dnnl"):
     package_name = "onnxruntime-dnnl"
 elif parse_arg_remove_boolean(sys.argv, "--use_tvm"):
-    package_name = "onnxruntime-tvm"
+    package_name = "gme-tvm"
 elif parse_arg_remove_boolean(sys.argv, "--use_vitisai"):
     package_name = "onnxruntime-vitisai"
 elif parse_arg_remove_boolean(sys.argv, "--use_acl"):
@@ -538,7 +538,7 @@ if enable_training:
                 # cpu version for documentation
                 local_version = "+cpu"
 
-if package_name == "onnxruntime-tvm":
+if package_name == "gme-tvm":
     packages += ["onnxruntime.providers.tvm"]
 
 package_data["onnxruntime"] = data + examples + extra
