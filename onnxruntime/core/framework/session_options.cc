@@ -4,6 +4,7 @@
 #include "core/framework/session_options.h"
 #include "core/common/logging/logging.h"
 #include "core/framework/ort_value.h"
+#include "core/gamma/env.h"
 
 namespace onnxruntime {
 
@@ -28,6 +29,15 @@ Status CheckInitializer(const char* name, const OrtValue* val) {
 }
 
 }  // namespace
+
+SessionOptions::SessionOptions(){
+  bool x = gme::BoolFromEnv("MEM_PATTERN", false);
+  enable_mem_pattern = x;
+  enable_mem_reuse = x;
+  enable_cpu_mem_arena = x;
+
+  use_per_session_threads = gme::BoolFromEnv("PER_SESSION_THREAD", true);
+}
 
 Status SessionOptions::AddInitializer(_In_z_ const char* name, _In_ const OrtValue* val) {
   // input validation
