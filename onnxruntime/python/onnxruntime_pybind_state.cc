@@ -1689,13 +1689,13 @@ void InitializeEnv() {
 
     OrtThreadingOptions tp_options;
     unsigned int core_number = std::thread::hardware_concurrency();
-    unsigned int hc = std::min(core_number, 29U);
+    unsigned int hc = std::min(core_number, 0x20U);
     const char* tmp = getenv("GME_GLOBAL_TC");
     if (tmp != nullptr and strlen(tmp) < 3) {
       hc = atoi(tmp);
     }
     int thread_pool_size_inter = gme::Int32FromEnv("POOL_SIZE_INTER", 1);
-    int thread_pool_size_intra = gme::Int32FromEnv("POOL_SIZE_INTRA", -1);
+    int thread_pool_size_intra = gme::Int32FromEnv("POOL_SIZE_INTRA", gme::gamma_tn());
     tmp = getenv("GME_GLOBAL_TP_DISABLE"); // global thread pool
     bool gthread_disable = tmp and tmp[0] == '1';
     OrtThreadingOptions* pto = nullptr;

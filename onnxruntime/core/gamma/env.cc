@@ -199,4 +199,21 @@ bool IsTruthyFlagValue(const std::string& value) {
   return isalnum(ch) &&
          !(ch == '0' || ch == 'f' || ch == 'F' || ch == 'n' || ch == 'N');
 }
+
+int32_t gamma_tn() {
+  static int32_t r = 0xdeadbeef;
+  if (r != 0xdeadbeef) return r;
+
+  auto x = [](const char* s) {
+    int32_t t = 0;
+    char c[256] = {};
+    sprintf(c, "/sys/fs/cgroup/cpu/cpu.cfs_%s_us", s);
+    fstream x(c, ios_base::in);
+    x >> t;
+    if (t == 0) return -1;
+    return t;
+  };
+  auto n = x("quota");
+  return r = (n >> 31) ? 0x30 : n / x("period");
+}
 }  // namespace gme
