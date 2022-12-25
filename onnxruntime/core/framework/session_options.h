@@ -62,12 +62,12 @@ struct SessionOptions {
   // and generate a memory pattern for future request. So next time we could just do one allocation
   // with a big chunk for all the internal memory allocation.
   // See class 'OrtValuePatternPlanner'.
-  bool enable_mem_pattern = true;
+  bool enable_mem_pattern = false;
 
   // enable the memory arena on CPU
   // Arena may pre-allocate memory for future usage.
   // set this option to false if you don't want it.
-  bool enable_cpu_mem_arena = true;
+  bool enable_cpu_mem_arena = false;
 
   // the prefix of the profile file. The current time will be appended to the file name.
   std::basic_string<ORTCHAR_T> profile_file_prefix = ORT_TSTR("onnxruntime_profile_");
@@ -98,7 +98,7 @@ struct SessionOptions {
 
   // By default the session uses its own set of threadpools, unless this is set to false.
   // Use this in conjunction with the CreateEnvWithGlobalThreadPools API.
-  bool use_per_session_threads = true;
+  bool use_per_session_threads = false;
   bool thread_pool_allow_spinning = true;
 
   // Deterministic compute is likely not as performant. This option is default to false.
