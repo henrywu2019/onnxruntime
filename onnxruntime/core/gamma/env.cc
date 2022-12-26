@@ -1,6 +1,8 @@
 #include "core/gamma/env.h"
 #include <iostream>
 #include <cstring>
+#include <fstream>
+#include <thread>
 #include <limits>
 
 namespace gme {
@@ -201,16 +203,16 @@ bool IsTruthyFlagValue(const std::string& value) {
 }
 
 int32_t gamma_tn() {
-  static int32_t r = 0xdeadbeef;
-  if (r != 0xdeadbeef) return r;
+  static int32_t r = -1;
+  if (r > 0) return r;
 
   auto x = [](const char* s) {
     int32_t t = 0;
     char c[256] = {};
     sprintf(c, "/sys/fs/cgroup/cpu/cpu.cfs_%s_us", s);
-    fstream x(c, ios_base::in);
+    std::fstream x(c, std::ios_base::in);
     x >> t;
-    if (t == 0) return -1;
+    if (t == 0) return int32_t(std::thread::hardware_concurrency());
     return t;
   };
   auto n = x("quota");

@@ -36,7 +36,7 @@ SessionOptions::SessionOptions(){
   enable_mem_reuse = x;
   enable_cpu_mem_arena = x;
 
-  use_per_session_threads = gme::BoolFromEnv("PER_SESSION_THREAD", true);
+  use_per_session_threads = gme::BoolFromEnv("PER_SESSION_THREAD", false);
 }
 
 Status SessionOptions::AddInitializer(_In_z_ const char* name, _In_ const OrtValue* val) {
