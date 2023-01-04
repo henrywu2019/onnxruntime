@@ -590,7 +590,8 @@ if enable_training:
                 local_version = "+cpu"
 #if parse_arg_remove_boolean(sys.argv, "--use_tvm"):
 #    packages += ["onnxruntime.providers.tvm"]
-packages += ["onnxruntime.providers.tvm"]
+
+#packages += ["onnxruntime.providers.tvm"]
 
 package_data["onnxruntime"] = data + examples + extra
 
