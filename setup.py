@@ -20,7 +20,7 @@ from setuptools.command.build_ext import build_ext as _build_ext
 from setuptools.command.install import install as InstallCommandBase
 
 nightly_build = False
-package_name = "onnxruntime"
+package_name = "gme"
 wheel_name_suffix = None
 logger = logging.getLogger()
 
@@ -69,9 +69,11 @@ elif parse_arg_remove_boolean(sys.argv, "--use_openvino"):
     is_openvino = True
     package_name = "onnxruntime-openvino"
 elif parse_arg_remove_boolean(sys.argv, "--use_dnnl"):
-    package_name = "onnxruntime-dnnl"
+    package_name = "gme"
+    #package_name += "-dnnl"
 elif parse_arg_remove_boolean(sys.argv, "--use_tvm"):
-    package_name = "onnxruntime-tvm"
+    package_name = "gme"
+    #package_name += "-tvm"
 elif parse_arg_remove_boolean(sys.argv, "--use_vitisai"):
     package_name = "onnxruntime-vitisai"
 elif parse_arg_remove_boolean(sys.argv, "--use_acl"):
@@ -567,28 +569,28 @@ if enable_training:
         # To support the package consisting of both openvino and training modules part of it
         package_name = "onnxruntime-training"
 
-        disable_local_version = environ.get("ORT_DISABLE_PYTHON_PACKAGE_LOCAL_VERSION", "0")
-        disable_local_version = (
-            disable_local_version == "1"
-            or disable_local_version.lower() == "true"
-            or disable_local_version.lower() == "yes"
-        )
-        # local version should be disabled for internal feeds.
-        if not disable_local_version:
-            # we want put default training packages to pypi. pypi does not accept package with a local version.
-            if not default_training_package_device or nightly_build:
-                if cuda_version:
-                    # removing '.' to make Cuda version number in the same form as Pytorch.
-                    local_version = "+cu" + cuda_version.replace(".", "")
-                elif rocm_version:
-                    # removing '.' to make Rocm version number in the same form as Pytorch.
-                    local_version = "+rocm" + rocm_version.replace(".", "")
-                else:
-                    # cpu version for documentation
-                    local_version = "+cpu"
-
-if package_name == "onnxruntime-tvm":
-    packages += ["onnxruntime.providers.tvm"]
+    disable_local_version = environ.get("ORT_DISABLE_PYTHON_PACKAGE_LOCAL_VERSION", "0")
+    disable_local_version = (
+        disable_local_version == "1"
+        or disable_local_version.lower() == "true"
+        or disable_local_version.lower() == "yes"
+    )
+    # local version should be disabled for internal feeds.
+    if not disable_local_version:
+        # we want put default training packages to pypi. pypi does not accept package with a local version.
+        if not default_training_package_device or nightly_build:
+            if cuda_version:
+                # removing '.' to make Cuda version number in the same form as Pytorch.
+                local_version = "+cu" + cuda_version.replace(".", "")
+            elif rocm_version:
+                # removing '.' to make Rocm version number in the same form as Pytorch.
+                local_version = "+rocm" + rocm_version.replace(".", "")
+            else:
+                # cpu version for documentation
+                local_version = "+cpu"
+#if parse_arg_remove_boolean(sys.argv, "--use_tvm"):
+#    packages += ["onnxruntime.providers.tvm"]
+packages += ["onnxruntime.providers.tvm"]
 
 package_data["onnxruntime"] = data + examples + extra
 

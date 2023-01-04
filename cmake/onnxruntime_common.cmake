@@ -7,6 +7,8 @@ set(onnxruntime_common_src_patterns
     "${ONNXRUNTIME_INCLUDE_DIR}/core/platform/*.h"
     "${ONNXRUNTIME_ROOT}/core/common/*.h"
     "${ONNXRUNTIME_ROOT}/core/common/*.cc"
+    "${ONNXRUNTIME_ROOT}/core/gamma/*.h"
+    "${ONNXRUNTIME_ROOT}/core/gamma/*.cc"
     "${ONNXRUNTIME_ROOT}/core/common/logging/*.h"
     "${ONNXRUNTIME_ROOT}/core/common/logging/*.cc"
     "${ONNXRUNTIME_ROOT}/core/common/logging/sinks/*.h"
