@@ -48,7 +48,7 @@ void DnnlConcat::CreatePrimitive(DnnlSubgraphPrimitive& sp, DnnlNode& node) {
   std::unordered_map<int, dnnl::memory> concat_args;
   for (int n = 0; n < static_cast<int>(concat_src_mems.size()); ++n)
     concat_args.insert({DNNL_ARG_MULTIPLE_SRC + n, concat_src_mems[n]});
-  concat_args.insert({DNNL_ARG_DST, concat_dst_mem});
+  concat_args.emplace(DNNL_ARG_DST, concat_dst_mem);
 
   // Create and execute primitive
   auto concat_op = dnnl::concat(concat_pd);

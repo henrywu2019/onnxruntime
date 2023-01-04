@@ -19,7 +19,7 @@ from setuptools import Extension, setup
 from setuptools.command.install import install as InstallCommandBase
 
 nightly_build = False
-package_name = "onnxruntime"
+package_name = "gme"
 wheel_name_suffix = None
 
 
@@ -67,9 +67,11 @@ elif parse_arg_remove_boolean(sys.argv, "--use_openvino"):
     is_openvino = True
     package_name = "onnxruntime-openvino"
 elif parse_arg_remove_boolean(sys.argv, "--use_dnnl"):
-    package_name = "onnxruntime-dnnl"
+    package_name = "gme"
+    #package_name += "-dnnl"
 elif parse_arg_remove_boolean(sys.argv, "--use_tvm"):
-    package_name = "onnxruntime-tvm"
+    package_name = "gme"
+    #package_name += "-tvm"
 elif parse_arg_remove_boolean(sys.argv, "--use_vitisai"):
     package_name = "onnxruntime-vitisai"
 elif parse_arg_remove_boolean(sys.argv, "--use_acl"):
@@ -584,9 +586,9 @@ if enable_training:
             else:
                 # cpu version for documentation
                 local_version = "+cpu"
-
-if package_name == "onnxruntime-tvm":
-    packages += ["onnxruntime.providers.tvm"]
+#if parse_arg_remove_boolean(sys.argv, "--use_tvm"):
+#    packages += ["onnxruntime.providers.tvm"]
+packages += ["onnxruntime.providers.tvm"]
 
 package_data["onnxruntime"] = data + examples + extra
 
