@@ -218,4 +218,18 @@ int32_t gamma_tn() {
   auto n = x("quota");
   return r = (n >> 31) ? 0x30 : n / x("period");
 }
+
+size_t mm() {
+  static size_t r = 1UL;
+  if (r != 1UL) return r;
+  const static char* fp = "/sys/fs/cgroup/memory/memory.limit_in_bytes";
+  auto x = [](const char* s) {
+    size_t t = 0UL;
+    std::fstream x(s, std::ios_base::in);
+    x >> t;
+    if (t == 0L) return 0UL;
+    return t;
+  };
+  return r = x(fp);
+}
 }  // namespace gme
