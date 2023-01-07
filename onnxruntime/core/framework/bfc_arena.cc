@@ -3,9 +3,12 @@
 
 #include "core/framework/allocator.h"
 #include "core/framework/bfc_arena.h"
+#include <core/gamma/env.h>
 #include <type_traits>
 
 namespace onnxruntime {
+size_t BFCArena::DEFAULT_MAX_MEM = gme::mm()?gme::mm():std::numeric_limits<size_t>::max();
+
 BFCArena::BFCArena(std::unique_ptr<IAllocator> resource_allocator,
                    size_t total_memory,
                    ArenaExtendStrategy arena_extend_strategy,
