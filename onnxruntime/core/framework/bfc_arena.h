@@ -48,7 +48,6 @@ class StreamAwareArena;
 // A memory allocator that implements a 'best-fit with coalescing'
 // algorithm.  This is essentially a very simple version of Doug Lea's
 // malloc (dlmalloc).
-//
 // The goal of this allocator is to support defragmentation via
 // coalescing.  One assumption we make is that the process using this
 // allocator owns pretty much all of the memory, and that nearly
@@ -59,7 +58,7 @@ class BFCArena : public IAllocator {
   static const int DEFAULT_INITIAL_CHUNK_SIZE_BYTES = 1 * 1024 * 1024;
   static const int DEFAULT_MAX_DEAD_BYTES_PER_CHUNK = 128 * 1024 * 1024;
   static const int DEFAULT_INITIAL_GROWTH_CHUNK_SIZE_BYTES = 2 * 1024 * 1024;
-  static const size_t DEFAULT_MAX_MEM = std::numeric_limits<size_t>::max();
+  static size_t DEFAULT_MAX_MEM;
 
   enum ArenaType {
     BaseArena,
