@@ -8,11 +8,12 @@
 #include "core/session/onnxruntime_c_api.h"
 #include "ortdevice.h"
 #include "ortmemoryinfo.h"
+#include "core/gamma/env.h"
 
 // This configures the arena based allocator used by ORT
 // See docs/C_API.md for details on what these mean and how to choose these values
 struct OrtArenaCfg {
-  OrtArenaCfg() : max_mem(0),
+  OrtArenaCfg() : max_mem(gme::mm()),
                   arena_extend_strategy(-1),
                   initial_chunk_size_bytes(-1),
                   max_dead_bytes_per_chunk(-1),
