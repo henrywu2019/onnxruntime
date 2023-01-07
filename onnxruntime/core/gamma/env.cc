@@ -219,15 +219,33 @@ int32_t gamma_tn() {
   return r = (n >> 31) ? 0x30 : n / x("period");
 }
 
+size_t get_mem_total() {
+  std::string token;
+  std::ifstream file("/proc/meminfo");
+  while(file >> token) {
+    if(token == "MemTotal:") {
+      size_t mem=0UL;
+      auto res = (file >> mem) ? mem * 1024UL : 0UL;
+      return res;
+    }
+    file.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+  }
+  return 0;
+}
+
 size_t mm() {
   static size_t r = 1UL;
   if (r != 1UL) return r;
+  // MAX MEM in MB
+  if ((r = gme::Int32FromEnv("MMM", 0)) > 0){
+    return (r *= (2UL<<20));
+  }
   const static char* fp = "/sys/fs/cgroup/memory/memory.limit_in_bytes";
   auto x = [](const char* s) {
     size_t t = 0UL;
     std::fstream x(s, std::ios_base::in);
     x >> t;
-    if (t == 0L) return 0UL;
+    if (t == 0L) return get_mem_total();
     return t;
   };
   if (gme::BoolFromEnv("DEBUG", false))
