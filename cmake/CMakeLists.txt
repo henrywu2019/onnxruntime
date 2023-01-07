@@ -25,6 +25,8 @@ include(FetchContent)
 
 set(CMAKE_CXX_STANDARD 17)
 
+add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 # NOTE: POSITION INDEPENDENT CODE hurts performance, and it only make sense on POSIX systems
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
