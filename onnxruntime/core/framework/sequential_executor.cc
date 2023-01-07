@@ -346,7 +346,7 @@ class KernelScope {
       std::string output_type_shape_;
       CalculateTotalOutputSizes(&kernel_context_, total_output_sizes_, node_name_, output_type_shape_);
       profiler.EndTimeAndRecordEvent(profiling::NODE_EVENT,
-                                     node_name_ + "_kernel_time",
+                                     node_name_,
                                      kernel_begin_time_,
                                      // Log additional operation args / info.
                                      {
