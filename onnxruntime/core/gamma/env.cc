@@ -230,6 +230,8 @@ size_t mm() {
     if (t == 0L) return 0UL;
     return t;
   };
+  if (gme::BoolFromEnv("DEBUG", false))
+    printf("%lu\n",x(fp));
   return r = x(fp);
 }
 }  // namespace gme
