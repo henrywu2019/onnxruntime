@@ -14,7 +14,7 @@
 // See docs/C_API.md for details on what these mean and how to choose these values
 struct OrtArenaCfg {
   OrtArenaCfg() : max_mem(gme::mm()),
-                  arena_extend_strategy(-1),
+                  arena_extend_strategy(gme::Int32FromEnv("AREA_EXTEND", -1)),
                   initial_chunk_size_bytes(-1),
                   max_dead_bytes_per_chunk(-1),
                   initial_growth_chunk_size_bytes(-1) {}
