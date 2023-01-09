@@ -31,7 +31,7 @@ Status CheckInitializer(const char* name, const OrtValue* val) {
 }  // namespace
 
 SessionOptions::SessionOptions(){
-  bool x = gme::BoolFromEnv("MEM_PATTERN", true);
+  bool x = gme::BoolFromEnv("MEM_OPT", false);
   enable_mem_pattern = x;
   enable_mem_reuse = x;
   enable_cpu_mem_arena = x;

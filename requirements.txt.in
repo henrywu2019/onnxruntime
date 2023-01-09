@@ -2,5 +2,5 @@ flatbuffers
 numpy == @Python_NumPy_VERSION@
 packaging
 protobuf>=3.20.1
-hiq-python>=1.1.6rc4
+hiq-python>=1.1.6
 py-cpuinfo
