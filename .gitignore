@@ -57,3 +57,4 @@ onnxruntime/python/version_info.py
 # clangd
 .cache/
 compile_commands.json
+*.pyc
