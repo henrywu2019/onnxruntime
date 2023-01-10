@@ -7,8 +7,7 @@ from onnx.helper import (
 from mlprodict.plotting.text_plot import onnx_simple_text_plot
 
 # initializers
-value = numpy.array([[0.5],
-                     [-0.6]], dtype=numpy.float32)
+value = numpy.array([[0.5, -0.6]], dtype=numpy.float32)
 A = numpy_helper.from_array(value, name='A')
 
 value = numpy.array([[0.4]], dtype=numpy.float32)
@@ -18,11 +17,11 @@ C = numpy_helper.from_array(value, name='C')
 X = make_tensor_value_info('X', TensorProto.FLOAT, [1,2])
 Y = make_tensor_value_info('Y', TensorProto.FLOAT, [1,1])
 
-
-
-node1 = make_node('MatMul', ['X', 'A'], ['AX'])
+node_transpose = make_node('Transpose', ['A'], ['tA'], perm=[1, 0])
+node1 = make_node('MatMul', ['X', 'tA'], ['AX'])
 node2 = make_node('Add', ['AX', 'C'], ['Y'])
-graph = make_graph([node1, node2], 'lr', [X], [Y], [A, C])
+
+graph = make_graph([node_transpose, node1, node2], 'lr', [X], [Y], [A, C])
 onnx_model = make_model(graph)
 
 print(onnx.numpy_helper.to_array(onnx_model.graph.initializer[0]))
