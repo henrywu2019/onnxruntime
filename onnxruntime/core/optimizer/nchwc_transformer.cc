@@ -468,7 +468,7 @@ void NchwcTransformerImpl::TransformConv(Node& node) {
   }
 
   // Create the replacement node.
-  std::string nchwc_node_name = graph_.GenerateNodeName(output_defs[0]->Name() + "_nchwc");
+  std::string nchwc_node_name = graph_.GenerateNodeName(node.OpType() + "_nchwc");
   Node& nchwc_node = graph_.AddNode(nchwc_node_name,
                                     "Conv",
                                     nchwc_node_name,

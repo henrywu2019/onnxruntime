@@ -22,7 +22,8 @@ struct Input {
 };
 
 extern std::unique_ptr<Ort::Env> ort_env;
-static constexpr PATH_TYPE MODEL_URI = TSTR("/home/henry/wendy/git.repo/onnxruntime/gme_play/day2/my.ort");
+//static constexpr PATH_TYPE MODEL_URI = TSTR("/home/henry/wendy/git.repo/onnxruntime/gme_play/day2/my.ort");
+static constexpr PATH_TYPE MODEL_URI = TSTR("/home/henry/wendy/git.repo/onnxruntime/gme_play/day2/modified.onnx");
 class CApiTestGlobalThreadPoolsWithProvider : public testing::Test, public ::testing::WithParamInterface<int> {
 };
 
