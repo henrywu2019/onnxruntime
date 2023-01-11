@@ -19,8 +19,9 @@ node1 = make_node('MatMul', ['X', 'tA'], ['XA'])
 node2 = make_node('Add', ['XA', 'B'], ['Y'])
 
 # node_transpose is added to the list
-graph = make_graph([node_transpose, node1, node2],
-                   'lr', [X, A, B], [Y])
+graph = make_graph([node_transpose, node1, node2], 'lr', [X, A, B], [Y])
+
+# <class 'onnx.onnx_ml_pb2.GraphProto'>
 onnx_model = make_model(graph)
 
 # the work is done, let's display it...

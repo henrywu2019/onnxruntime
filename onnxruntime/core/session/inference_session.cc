@@ -608,7 +608,12 @@ common::Status InferenceSession::SaveToOrtFormat(const PathString& filepath) con
   builder.Finish(session, fbs::InferenceSessionIdentifier());
 
   {
-    std::ofstream file(filepath, std::ios::binary);
+    auto final_path = [&](){return (filepath=="1" and model_location_.size()>5)?model_location_.substr(0,model_location_.size()-5)+".ort":filepath;}();
+    if (!gme::BoolFromEnv("ORT_OW", false)){
+      std::ifstream _file(final_path);
+      if (_file){return Status::OK();}
+    }
+    std::ofstream file(final_path, std::ios::binary);
     uint8_t* buf = builder.GetBufferPointer();
     int size = builder.GetSize();
     file.write(reinterpret_cast<const char*>(buf), size);

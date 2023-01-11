@@ -7,26 +7,28 @@ from hiq.framework.onnxruntime import plot_ort_profile
 print(ort.__file__)
 
 model_file_path = 'det_doc.onnx'
+model_file_path = 'day2/modified.onnx'
 so = ort.SessionOptions()
-so.optimized_model_filepath = "/tmp/det_doc.ort"
-sess = ort.InferenceSession(model_file_path, providers=['CPUExecutionProvider']) # 'CUDAExecutionProvider'
+so.optimized_model_filepath = "/tmp/modified.ort"
+sess = ort.InferenceSession(model_file_path, sess_options=so, providers=['CPUExecutionProvider']) # 'CUDAExecutionProvider'
 
-n = np.load('x.npy')
-output = None
-start = time.monotonic()
-
-
-
-print("*"*80)
-r = sess.run(output, {'x': n})
-print("*"*80)
+if sess:
+    n = np.load('x.npy')
+    output = None
+    start = time.monotonic()
 
 
 
-print(time.monotonic() - start)
-print(r[0].shape)
+    print("*"*80)
+    r = sess.run(output, {'x': n})
+    print("*"*80)
 
-pf = sess.end_profiling()
-print(pf)
-plot_ort_profile(pf)
+
+
+    print(time.monotonic() - start)
+    print(r[0].shape)
+
+    pf = sess.end_profiling()
+    print(pf)
+    plot_ort_profile(pf)
 

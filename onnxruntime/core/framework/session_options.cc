@@ -41,6 +41,8 @@ SessionOptions::SessionOptions(){
   enable_profiling = gme::BoolFromEnv("PROFILE", false);
   session_log_severity_level = gme::Int32FromEnv("LOG", -1);
   session_log_verbosity_level = gme::Int32FromEnv("VER", 0);
+
+  optimized_model_filepath = gme::StringFromEnv("ORT", "");
 }
 
 Status SessionOptions::AddInitializer(_In_z_ const char* name, _In_ const OrtValue* val) {
