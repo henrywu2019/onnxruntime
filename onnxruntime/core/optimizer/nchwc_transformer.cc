@@ -533,7 +533,7 @@ void NchwcTransformerImpl::TransformPool(Node& node) {
   }
 
   // Create the replacement node.
-  std::string nchwc_node_name = graph_.GenerateNodeName(output_defs[0]->Name() + "_nchwc");
+  std::string nchwc_node_name = graph_.GenerateNodeName(node.OpType() + "_nchwc");
   Node& nchwc_node = graph_.AddNode(nchwc_node_name,
                                     node.OpType(),
                                     nchwc_node_name,
@@ -902,7 +902,7 @@ void NchwcTransformerImpl::TransformBatchNormalization(Node& node) {
   auto* nchwc_conv_B_arg = &graph_utils::AddInitializer(graph_, nchwc_conv_B_tensor_proto);
 
   // Create the replacement node.
-  std::string nchwc_node_name = graph_.GenerateNodeName(output_defs[0]->Name() + "_bn_nchwc");
+  std::string nchwc_node_name = graph_.GenerateNodeName(node.OpType() + "_bn_nchwc");
   Node& nchwc_node = graph_.AddNode(nchwc_node_name,
                                     "Conv",
                                     nchwc_node_name,
@@ -1093,7 +1093,7 @@ void NchwcTransformerImpl::TransformResize(Node& node) {
     return;
   }
 
-  std::string nchwc_node_name = graph_.GenerateNodeName(output_defs[0]->Name() + "_nchwc");
+  std::string nchwc_node_name = graph_.GenerateNodeName(node.OpType() + "_nchwc");
   Node& nchwc_node = graph_.AddNode(nchwc_node_name,
                                     "Upsample",
                                     nchwc_node_name,

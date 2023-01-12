@@ -256,7 +256,7 @@ std::string ModelBuilder::GetUniqueName(const std::string& base_name) {
   std::string unique_name;
   do {
     std::ostringstream os;
-    os << base_name << "_token_" << name_token_++;
+    os << base_name << "_gme_" << name_token_++;
     unique_name = os.str();
   } while (Contains(unique_names_, unique_name));
 

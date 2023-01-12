@@ -3153,7 +3153,7 @@ std::string Graph::GenerateNodeArgName(const std::string& base_name) {
   while (node_args_.find(new_name) != node_args_.end() ||
          generated_node_arg_names_.find(new_name) != generated_node_arg_names_.end()) {
     std::ostringstream str;
-    str << base_name << "_token_" << name_generator_++;
+    str << base_name << "_gme_" << name_generator_++;
     new_name = str.str();
   }
 
@@ -3190,12 +3190,13 @@ std::string Graph::GenerateNodeName(const std::string& base_name) {
 
   while (!name_is_ok(new_name)) {
     std::ostringstream str;
-    str << base_name << "_token_" << name_generator_++;
+    str << base_name << "_gme_" << name_generator_++;
     new_name = str.str();
   }
 
   // Make sure this new_name is not going to be reused.
   generated_node_names_.insert(new_name);
+  printf("new name:%s\n", new_name.c_str());
 
   return new_name;
 }
