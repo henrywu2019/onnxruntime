@@ -29,9 +29,9 @@
 
 namespace onnxruntime {
 
-#if !defined(ORT_MINIMAL_BUILD)
-#define BATCHNORM_INCLUDE_TRAINING_SUPPORT
-#endif
+//#if !defined(ORT_MINIMAL_BUILD)
+//#define BATCHNORM_INCLUDE_TRAINING_SUPPORT
+//#endif
 
 template <typename T>
 class BatchNorm : public OpKernel {

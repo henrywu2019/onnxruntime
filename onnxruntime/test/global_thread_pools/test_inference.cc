@@ -22,8 +22,8 @@ struct Input {
 };
 
 extern std::unique_ptr<Ort::Env> ort_env;
-//static constexpr PATH_TYPE MODEL_URI = TSTR("/home/henry/wendy/git.repo/onnxruntime/gme_play/day2/my.ort");
-static constexpr PATH_TYPE MODEL_URI = TSTR("/home/henry/wendy/git.repo/onnxruntime/gme_play/day2/modified.onnx");
+static constexpr PATH_TYPE MODEL_URI = TSTR("/home/henry/wendy/git.repo/onnxruntime/gme_play/det_doc.onnx");
+//static constexpr PATH_TYPE MODEL_URI = TSTR("/home/henry/wendy/git.repo/onnxruntime/gme_play/day2/modified.onnx");
 class CApiTestGlobalThreadPoolsWithProvider : public testing::Test, public ::testing::WithParamInterface<int> {
 };
 
@@ -126,7 +126,7 @@ static void GetInputsAndExpectedOutputs(std::vector<Input>& inputs,
   // doesn't affect the core op functionality
   expected_values_y = {0.000045f, 0.003846f, 0.000125f, 0.001180f, 0.001317f};
 
-  output_name = "batch_norm_0.tmp_4";
+  output_name = "sigmoid_0.tmp_0"; //"batch_norm_0.tmp_4";
 }
 
 // All tests below use global threadpools

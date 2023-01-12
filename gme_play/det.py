@@ -7,7 +7,7 @@ from hiq.framework.onnxruntime import plot_ort_profile
 print(ort.__file__)
 
 model_file_path = 'det_doc.onnx'
-model_file_path = 'day2/modified.onnx'
+#model_file_path = 'day2/modified.onnx'
 so = ort.SessionOptions()
 #so.optimized_model_filepath = "/tmp/modified.ort"
 so.enable_profiling = True
