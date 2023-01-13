@@ -1353,11 +1353,13 @@ common::Status InferenceSession::Initialize() {
     ORT_RETURN_IF_ERROR_SESSIONID_(kernel_registry_manager_.RegisterKernels(execution_providers_));
 
     const bool loading_ort_format = !ort_format_model_bytes_.empty();
-    const bool saving_model = !session_options_.optimized_model_filepath.empty();
+    const bool saving_model = !session_options_.optimized_model_filepath.empty() and !model_location_.empty() and model_location_[model_location_.size()-4]!='.';
     const bool saving_ort_format = [&]() {
       if (saving_model) {
         const std::string model_type = session_options_.config_options.GetConfigOrDefault(kOrtSessionOptionsConfigSaveModelFormat, "");
         const bool has_explicit_type = !model_type.empty();
+        if (session_options_.optimized_model_filepath=="1")
+            return true;
         return ((has_explicit_type && model_type == "ORT") ||
                 (!has_explicit_type &&
                  fbs::utils::IsOrtFormatModel(session_options_.optimized_model_filepath)));

@@ -1194,6 +1194,7 @@ if (NOT onnxruntime_ENABLE_TRAINING_TORCH_INTEROP)
     endif()
 
     # test inference using global threadpools
+    message("henry: always test global thread")
     message(${all_dependencies})
     if (NOT CMAKE_SYSTEM_NAME MATCHES "Android|iOS" AND NOT onnxruntime_MINIMAL_BUILD)
       AddTest(DYN
