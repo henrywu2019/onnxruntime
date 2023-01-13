@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 # Minimum CMake required
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.24.2)
 cmake_policy(SET CMP0069 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
 
@@ -118,7 +118,7 @@ cmake_dependent_option(onnxruntime_DISABLE_CONTRIB_OPS "Disable contrib ops" OFF
 option(onnxruntime_DISABLE_ML_OPS "Disable traditional ML ops" OFF)
 option(onnxruntime_DISABLE_SPARSE_TENSORS "Disable sparse tensors data types" OFF)
 option(onnxruntime_DISABLE_OPTIONAL_TYPE "Disable optional type" OFF)
-option(onnxruntime_MINIMAL_BUILD "Exclude as much as possible from the build. Support ORT format models. No support for ONNX format models." OFF)
+option(onnxruntime_MINIMAL_BUILD "Exclude as much as possible from the build. Support ORT format models. No support for ONNX format models." ON)
 cmake_dependent_option(onnxruntime_DISABLE_RTTI "Disable RTTI" ON "NOT onnxruntime_ENABLE_PYTHON" OFF)
 # For now onnxruntime_DISABLE_EXCEPTIONS will only work with onnxruntime_MINIMAL_BUILD, more changes (ONNX, non-CPU EP, ...) are required to run this standalone
 cmake_dependent_option(onnxruntime_DISABLE_EXCEPTIONS "Disable exception handling. Requires onnxruntime_MINIMAL_BUILD currently." ON "onnxruntime_MINIMAL_BUILD;NOT onnxruntime_ENABLE_PYTHON" OFF)
@@ -427,6 +427,7 @@ endif()
 
 # 'extended' implies minimal.
 if (onnxruntime_EXTENDED_MINIMAL_BUILD AND NOT onnxruntime_MINIMAL_BUILD)
+  message("minimum build is on!")
   set(onnxruntime_MINIMAL_BUILD ON)
 endif()
 

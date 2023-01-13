@@ -3,10 +3,12 @@ import numpy as np
 import time
 from hiq.framework.onnxruntime import plot_ort_profile
 
+import pudb; pu.db
 
 print(ort.__file__)
 
 model_file_path = 'det_doc.onnx'
+model_file_path = 'det_doc.ort'
 #model_file_path = 'day2/modified.onnx'
 so = ort.SessionOptions()
 #so.optimized_model_filepath = "/tmp/modified.ort"
