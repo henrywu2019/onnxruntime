@@ -220,6 +220,7 @@ Status ConvTranspose<T>::DoConvTranspose(OpKernelContext* context, bool dynamic_
 
 template <>
 Status ConvTranspose<float>::DoConvTranspose(OpKernelContext* context, bool dynamic_padding) const {
+  auto t0 = std::chrono::high_resolution_clock::now();
   concurrency::ThreadPool* thread_pool = context->GetOperatorThreadPool();
 
   size_t num_inputs = OpKernel::Node().InputDefs().size();
@@ -254,6 +255,11 @@ Status ConvTranspose<float>::DoConvTranspose(OpKernelContext* context, bool dyna
   float* Ydata = p.Y->MutableData<float>();
   TensorShape output_shape = p.Y->Shape().Slice(2);
 
+  auto t1 = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> compute_time = t1 - t0;
+  std::cout << __LINE__ << " | Compute Time: "<< compute_time.count() << " s" << std::endl;
+  t0 = t1;
+
   for (auto image_id = 0; image_id < p.N; ++image_id) {
     for (int group_id = 0; group_id < conv_transpose_attrs_.group; ++group_id) {
       // Weight term
@@ -269,6 +275,10 @@ Status ConvTranspose<float>::DoConvTranspose(OpKernelContext* context, bool dyna
           0,
           col_buffer_data,
           thread_pool);
+      t1 = std::chrono::high_resolution_clock::now();
+      std::cout << __LINE__ << " | Compute Time: " << (t1 - t0).count() << " s" << std::endl;
+      t0 = t1;
+
 
       if (p.X->Shape().NumDimensions() == 4) {
         math::Col2im<float, CPUMathUtil, StorageOrder::NCHW>(
@@ -288,6 +298,10 @@ Status ConvTranspose<float>::DoConvTranspose(OpKernelContext* context, bool dyna
             p.strides[1],
             Ydata + group_id * Y_offset,
             &CPUMathUtil::Instance());
+        t1 = std::chrono::high_resolution_clock::now();
+        std::cout << __LINE__ << " | Compute Time: " << (t1 - t0).count() << " s" << std::endl;
+        t0 = t1;
+
       } else {
         math::Col2imNd<float, CPUMathUtil, StorageOrder::NCHW>(
             col_buffer_data,
@@ -302,8 +316,15 @@ Status ConvTranspose<float>::DoConvTranspose(OpKernelContext* context, bool dyna
             static_cast<int>(p.kernel_shape.size()),
             Ydata + group_id * Y_offset,
             &CPUMathUtil::Instance());
+        t1 = std::chrono::high_resolution_clock::now();
+        std::cout << __LINE__ << " | Compute Time: " << (t1 - t0).count() << " s" << std::endl;
+        t0 = t1;
+
       }
     }
+    t1 = std::chrono::high_resolution_clock::now();
+    std::cout << __LINE__ << " | Compute Time: " << (t1 - t0).count() << " s" << std::endl;
+    t0 = t1;
 
     if (p.B != nullptr) {
       auto Ymatrix = EigenMatrixMap<float>(Ydata, onnxruntime::narrow<size_t>(output_size), onnxruntime::narrow<size_t>(p.num_output_channels));
@@ -314,7 +335,9 @@ Status ConvTranspose<float>::DoConvTranspose(OpKernelContext* context, bool dyna
     Xdata += X_offset * conv_transpose_attrs_.group;
     Ydata += Y_offset * conv_transpose_attrs_.group;
   }
-
+  t1 = std::chrono::high_resolution_clock::now();
+  std::cout << __LINE__ << " | Compute Time: " << (t1 - t0).count() << " s" << std::endl;
+  t0 = t1;
   return Status::OK();
 }
 }  // namespace onnxruntime

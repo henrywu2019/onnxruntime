@@ -3,7 +3,6 @@ import numpy as np
 import time
 from hiq.framework.onnxruntime import plot_ort_profile
 
-import pudb; pu.db
 
 print(ort.__file__)
 

@@ -468,9 +468,9 @@ onnxruntime::Status ExecuteKernel(StreamExecutionContext& ctx,
         status = kernel_ctx.SetOutputMLValue(0, cache.get()->at(cached_arg_name));
       }
 #else
-      printf("kernel node name: %s\n", p_kernel->Node().Name().c_str());
       auto tmp = p_kernel->Node().Name();
-      if ( tmp == "Add_4" or tmp == "Reshape_gme_57" or tmp=="Reshape_gme_59" or tmp=="Reshape_gme_61"){
+      printf("kernel node name: %s\n", tmp.c_str());
+      if ( tmp == "BatchNormalization_24" or tmp=="ConvTranspose_0"){
         printf("let's check");
       }
       status = p_kernel->Compute(&kernel_ctx);

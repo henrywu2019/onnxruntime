@@ -346,7 +346,11 @@ class InferenceSession(Session):
             self._model_path = None
             self._model_bytes = path_or_bytes  # TODO: This is bad as we're holding the memory indefinitely
         else:
-            raise TypeError("Unable to load from type '{0}'".format(type(path_or_bytes)))
+            if hasattr(path_or_bytes, "SerializeToString"):
+                self._model_path = None
+                self._model_bytes = path_or_bytes.SerializeToString()
+            else:
+                raise TypeError("Unable to load from type '{0}'".format(type(path_or_bytes)))
 
         self._sess_options = sess_options
         self._sess_options_initial = sess_options
@@ -384,25 +388,25 @@ class InferenceSession(Session):
             providers, provider_options, available_providers
         )
         if providers == [] and len(available_providers) > 1:
-            if "DnnlExecutionProvider" in available_providers and str(os.environ.get('GME_DNNL', '0')) != '0':
-                providers = ['DnnlExecutionProvider']
-                self._fallback_providers = ['CPUExecutionProvider']
-            elif "TvmExecutionProvider" in available_providers and str(os.environ.get('GME_TVM', '0')) != '0':
-                providers = ['TvmExecutionProvider']
-                self._fallback_providers = ['CPUExecutionProvider']
-            elif "OpenVINOExecutionProvider" in available_providers and str(os.environ.get('GME_OV', '0')) != '0':
-                providers = ['OpenVINOExecutionProvider']
-                self._fallback_providers = ['CPUExecutionProvider']
+            if "DnnlExecutionProvider" in available_providers and str(os.environ.get("GME_DNNL", "0")) != "0":
+                providers = ["DnnlExecutionProvider"]
+                self._fallback_providers = ["CPUExecutionProvider"]
+            elif "TvmExecutionProvider" in available_providers and str(os.environ.get("GME_TVM", "0")) != "0":
+                providers = ["TvmExecutionProvider"]
+                self._fallback_providers = ["CPUExecutionProvider"]
+            elif "OpenVINOExecutionProvider" in available_providers and str(os.environ.get("GME_OV", "0")) != "0":
+                providers = ["OpenVINOExecutionProvider"]
+                self._fallback_providers = ["CPUExecutionProvider"]
             else:
-                providers = ['CPUExecutionProvider']
+                providers = ["CPUExecutionProvider"]
                 self._fallback_providers = []
                 self.disable_fallback()
-                #raise ValueError(
+                # raise ValueError(
                 #    "This ORT build has {} enabled. ".format(available_providers)
                 #    + "Since ORT 1.9, you are required to explicitly set "
                 #    + "the providers parameter when instantiating InferenceSession. For example, "
                 #    "onnxruntime.InferenceSession(..., providers={}, ...)".format(available_providers)
-                #)
+                # )
 
         session_options = self._sess_options if self._sess_options else C.get_default_session_options()
         if self._model_path:

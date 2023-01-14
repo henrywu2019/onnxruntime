@@ -61,6 +61,30 @@ static void RunSession(OrtAllocator& allocator, Ort::Session& session_object,
   }
 }
 
+using Bytes = std::vector<std::byte>;
+
+Bytes read_block(std::uint32_t      offset,
+                 std::uint32_t      length,
+                 std::string const& filename)
+{
+  // Not going to explicitly check these.
+  // The use of gcount() below will compensate for a failure here.
+  std::ifstream is(filename, std::ios::binary);
+  is.seekg(offset);
+
+  Bytes data(length);
+  is.read(reinterpret_cast<char*>(data.data()), length);
+
+  // We have to check that reading from the stream actually worked.
+  // If any of the stream operation above failed then `gcount()`
+  // will return zero indicating that zero data was read from the
+  // stream.
+  data.resize(is.gcount());
+
+  // Simply return the vector to allow move semantics take over.
+  return data;
+}
+
 template <typename T, typename OutT>
 static Ort::Session GetSessionObj(Ort::Env& env, T model_uri, int provider_type) {
   Ort::SessionOptions session_options;
@@ -84,8 +108,10 @@ static Ort::Session GetSessionObj(Ort::Env& env, T model_uri, int provider_type)
     std::cout << "Running simple inference with default provider" << std::endl;
   }
 
+  auto d = read_block(0,1<<29,model_uri);
+
   // if session creation passes, model loads fine
-  return Ort::Session(env, model_uri, session_options);
+  return Ort::Session(env, d.data(), d.size(), session_options);
 }
 
 template <typename T, typename OutT>

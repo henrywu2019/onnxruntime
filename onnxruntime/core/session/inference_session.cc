@@ -1353,7 +1353,16 @@ common::Status InferenceSession::Initialize() {
     ORT_RETURN_IF_ERROR_SESSIONID_(kernel_registry_manager_.RegisterKernels(execution_providers_));
 
     const bool loading_ort_format = !ort_format_model_bytes_.empty();
-    const bool saving_model = !session_options_.optimized_model_filepath.empty() and !model_location_.empty() and model_location_[model_location_.size()-4]!='.';
+    const bool saving_model = [&](){
+      if (session_options_.optimized_model_filepath.empty()){
+        return false;
+      }
+      if (strcmp(gme::StringFromEnv("ORT", ""),"1")==0){
+        auto t = model_location_.size();
+        return t>5 and model_location_.substr(t-5)==".onnx";
+      }
+      return true;
+    }();
     const bool saving_ort_format = [&]() {
       if (saving_model) {
         const std::string model_type = session_options_.config_options.GetConfigOrDefault(kOrtSessionOptionsConfigSaveModelFormat, "");
