@@ -13,6 +13,7 @@
 #include <gtest/gtest.h>
 #include "test_allocator.h"
 #include "../shared_lib/test_fixture.h"
+#include "../../onnxruntime/core/gamma/npy.h"
 #include <stdlib.h>
 
 struct Input {
@@ -136,18 +137,28 @@ static void GetInputsAndExpectedOutputs(std::vector<Input>& inputs,
                                         std::vector<int64_t>& expected_dims_y,
                                         std::vector<float>& expected_values_y,
                                         std::string& output_name) {
+
+  //std::vector<unsigned long> shape {};
+  bool fortran_order=false;
+  //std::vector<float> data;
+
+  const std::string path {"/home/henry/wendy/git.repo/onnxruntime/gme_play/x.npy"};
+
+
   inputs.resize(1);
   Input& input = inputs.back();
   input.name = "x";
-  input.dims = {1, 3, 224, 224};
-  size_t input_tensor_size = 224 * 224 * 3;
+
+  npy::LoadArrayFromNumpy(path, input.dims, fortran_order, input.values);
+
+  size_t input_tensor_size = 1 * 3 * 1600 * 1184;
   input.values.resize(input_tensor_size);
   auto& input_tensor_values = input.values;
   for (unsigned int i = 0; i < input_tensor_size; i++)
     input_tensor_values[i] = (float)i / (input_tensor_size + 1);
 
   // prepare expected inputs and outputs
-  expected_dims_y = {1, 32, 112, 112};
+  expected_dims_y = {1, 1, 1600, 1184};
   // For this test I'm checking for the first 5 values only since the global thread pool change
   // doesn't affect the core op functionality
   expected_values_y = {0.000045f, 0.003846f, 0.000125f, 0.001180f, 0.001317f};
@@ -159,7 +170,7 @@ static void GetInputsAndExpectedOutputs(std::vector<Input>& inputs,
 
 // Test 1
 // run inference on a model using just 1 session
-TEST_P(CApiTestGlobalThreadPoolsWithProvider, simple) {
+TEST_P(CApiTestGlobalThreadPoolsWithProvider, simple1) {
   // prepare inputs/outputs
   std::vector<Input> inputs;
   std::vector<int64_t> expected_dims_y;

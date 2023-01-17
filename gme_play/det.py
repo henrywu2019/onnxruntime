@@ -11,15 +11,13 @@ model_file_path = 'det_doc.ort'
 #model_file_path = 'day2/modified.onnx'
 so = ort.SessionOptions()
 #so.optimized_model_filepath = "/tmp/modified.ort"
-so.enable_profiling = True
+so.enable_profiling = False
 sess = ort.InferenceSession(model_file_path, sess_options=so, providers=['CPUExecutionProvider']) # 'CUDAExecutionProvider'
 
 if sess:
     n = np.load('x.npy')
     output = None
     start = time.monotonic()
-
-
 
     print("*"*80)
     r = sess.run(output, {'x': n})

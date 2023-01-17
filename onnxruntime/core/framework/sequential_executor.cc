@@ -469,11 +469,15 @@ onnxruntime::Status ExecuteKernel(StreamExecutionContext& ctx,
       }
 #else
       auto tmp = p_kernel->Node().Name();
-      printf("kernel node name: %s\n", tmp.c_str());
-      if ( tmp == "BatchNormalization_24" or tmp=="ConvTranspose_0"){
-        printf("let's check");
+      if (tmp=="Conv_nchwc_gme_149"){
+        printf("kernel node name: %s\n", tmp.c_str());
       }
+      // tmp == "BatchNormalization_24" or tmp=="ConvTranspose_0" or
       status = p_kernel->Compute(&kernel_ctx);
+      if (tmp=="Conv_nchwc_gme_149"){
+        printf("let's check\n");
+        kernel_ctx.save_input_output();
+      }
 #endif
     }
     ORT_CATCH(const std::exception& ex) {

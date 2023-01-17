@@ -460,7 +460,8 @@ struct MLAS_NCHWC_CONV_ALGORITHM : MLAS_NCHWC_NN_ALGORITHM
         *ih = ph * StrideHeight - PaddingLeftY;
         *EffectiveKernelHeight = KernelHeight;
 
-        if ((ph - OutputCountLeftPadY) >= OutputCountY) {
+        auto tmp = ph - OutputCountLeftPadY;
+        if (tmp >= OutputCountY) {
 
             size_t ihStep = *ih;
 
@@ -714,20 +715,36 @@ struct MLAS_NCHWC_CONV_NCHWC_ALGORITHM : MLAS_NCHWC_GROUPED_CONV_ALGORITHM
                     size_t ih;
                     size_t EffectiveKernelHeight;
 
-                    ComputeEffectiveKernel(ph + work, BlockSize * BlockSize * KernelWidth,
+                    auto kernel_stride = BlockSize * BlockSize * KernelWidth;
+                    ComputeEffectiveKernel(ph + work, kernel_stride,
                         &filter, &ih, &EffectiveKernelHeight);
 
                     //
                     // Invoke the convolution kernel.
                     //
+                    auto input_buff = input + BlockSize * (ih * InputWidth - PaddingLeftX);
+                    auto input_base = input + BlockSize * (ih * InputWidth);
 
-                    Kernel(input + BlockSize * (ih * InputWidth - PaddingLeftX),
-                        filter, output, StrideWidthBytes, DilationWidthBytes,
-                        FilterCount, InputStrideBytes, FilterStrideBytes,
-                        OutputStrideBytes, EffectiveKernelHeight, KernelWidth,
-                        input + BlockSize * (ih * InputWidth), InputWidthBytes,
-                        DilatedInputWidthBytes, OutputCountLeftPadX, OutputCountX,
-                        OutputCountRightPadX, Bias, KernelFlags);
+                    Kernel(input_buff,
+                           filter,
+                           output,
+                           StrideWidthBytes,
+                           DilationWidthBytes,
+                           FilterCount,
+                           InputStrideBytes,
+                           FilterStrideBytes,
+                           OutputStrideBytes,
+                           EffectiveKernelHeight,
+                           KernelWidth,
+                           input_base,
+                           InputWidthBytes,
+                           DilatedInputWidthBytes,
+                           OutputCountLeftPadX,
+                           OutputCountX,
+                           OutputCountRightPadX,
+                           Bias,
+                           KernelFlags
+                           );
 
                     //
                     // Test for fused non-ReLU activation.

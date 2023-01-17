@@ -154,6 +154,8 @@ Status Conv<T>::Compute(OpKernelContext* context) const {
 }
 
 Status Conv<float>::Compute(OpKernelContext* context) const {
+  auto t0 = std::chrono::high_resolution_clock::now();
+  auto start = t0;
   size_t num_inputs = OpKernel::Node().InputDefs().size();
   const Tensor* X = context->Input<Tensor>(0);
   const Tensor* W = context->Input<Tensor>(1);
@@ -213,6 +215,10 @@ Status Conv<float>::Compute(OpKernelContext* context) const {
   const size_t kernel_rank = kernel_shape.size();
   concurrency::ThreadPool* thread_pool = context->GetOperatorThreadPool();
 
+  auto t1 = std::chrono::high_resolution_clock::now();
+  std::cout << __LINE__ << " | Compute Time: " << std::chrono::duration_cast< std::chrono::microseconds >((t1 - t0)).count() << " us" << std::endl;
+  t0 = t1;
+
   if (kernel_rank >= 1 && kernel_rank <= 3) {
     MLAS_CONV_PARAMETERS Parameters;
     size_t WorkingBufferSize;
@@ -232,6 +238,9 @@ Status Conv<float>::Compute(OpKernelContext* context) const {
                     &WorkingBufferSize,
                     Beta,
                     thread_pool);
+    t1 = std::chrono::high_resolution_clock::now();
+    std::cout << __LINE__ << " | Compute Time: " << std::chrono::duration_cast< std::chrono::microseconds >((t1 - t0)).count() << " us" << std::endl;
+    t0 = t1;
 
     auto* working_data = WorkingBufferSize > 0 ? alloc->Alloc(sizeof(float) * SafeInt<size_t>(WorkingBufferSize))
                                                : nullptr;
@@ -244,6 +253,9 @@ Status Conv<float>::Compute(OpKernelContext* context) const {
              static_cast<float*>(working_buffer.get()),
              Ydata,
              thread_pool);
+    t1 = std::chrono::high_resolution_clock::now();
+    std::cout << __LINE__ << " | Compute Time: " << std::chrono::duration_cast< std::chrono::microseconds >((t1 - t0)).count() << " us" << std::endl;
+    t0 = t1;
   } else {
     const int64_t input_image_size = input_shape.Size();
     const int64_t output_image_size = output_shape.Size();
@@ -291,8 +303,13 @@ Status Conv<float>::Compute(OpKernelContext* context) const {
       Xdata += X_offset * conv_attrs_.group;
       Ydata += Y_offset * conv_attrs_.group;
     }
+    t1 = std::chrono::high_resolution_clock::now();
+    std::cout << __LINE__ << " | Compute Time: " << std::chrono::duration_cast< std::chrono::microseconds >((t1 - t0)).count() << " us" << std::endl;
+    t0 = t1;
   }
-
+  std::cout << __LINE__ << " | Total: " <<
+      std::chrono::duration_cast< std::chrono::microseconds >((std::chrono::high_resolution_clock::now() - start)).count()
+            << " us" << std::endl;
   return Status::OK();
 }
 

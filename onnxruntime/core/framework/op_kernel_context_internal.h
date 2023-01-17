@@ -7,6 +7,7 @@
 #include "core/framework/op_kernel.h"
 #include "core/framework/session_state.h"
 #include "core/session/onnxruntime_c_api.h"
+#include "core/gamma/npy.h"
 
 // onnxruntime internal OpKernelContext derived class to provide additional
 // APIs that aren't desirable to add to the public OpKernelContext API
@@ -36,6 +37,7 @@ class OpKernelContextInternal : public OpKernelContext {
                   implicit_inputs[i]->Name(), " does not.");
       implicit_input_values_.push_back(entry);
     }
+    node_name = kernel.Node().Name();
   }
 
   bool GetUseDeterministicCompute() const override {
@@ -71,7 +73,35 @@ class OpKernelContextInternal : public OpKernelContext {
 
   const bool& GetTerminateFlag() const noexcept { return terminate_flag_; }
 
+#if 1
+  void save_tensor_npy(const Tensor& t, const std::string& fname){
+    unsigned long shape[5]={};
+    const auto& sp = t.Shape();
+    unsigned long long n=0;
+    while(n<sp.NumDimensions())
+      shape[n]=sp.GetDims()[n], n++;
+    npy::SaveArrayAsNumpy<float>(fname,
+                                 false,
+                                 t.Shape().NumDimensions(),
+                                 shape,
+                                 reinterpret_cast<const float*>(t.DataRaw()));
+  }
+  void save_input_output(){
+    const auto& i = GetInputMLValue(0)->Get<Tensor>();
+    std::string fname = "/tmp/" + node_name + "_input.npy";
+    save_tensor_npy(i, fname);
+
+    const auto& w = GetInputMLValue(1)->Get<Tensor>();
+    fname = "/tmp/" + node_name + "_weight.npy";
+    save_tensor_npy(w, fname);
+
+    const auto& o = *GetOutputMLValue(0)->GetMutable<Tensor>();
+    fname = "/tmp/" + node_name + "_output.npy";
+    save_tensor_npy(o, fname);
+  }
+#endif
  private:
+  std::string node_name;
   const SessionState& session_state_;
   const bool& terminate_flag_;
   std::vector<const OrtValue*> implicit_input_values_;
