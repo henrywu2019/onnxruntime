@@ -664,6 +664,7 @@ struct MLAS_NCHWC_CONV_NCHWC_ALGORITHM : MLAS_NCHWC_GROUPED_CONV_ALGORITHM
         //
         // Loop until all of the work has been completed.
         //
+        int kernel_called = 0;
 
         const size_t StrideWidthBytes = BlockSize * StrideWidth * sizeof(float);
         const size_t DilationWidthBytes = BlockSize * DilationWidth * sizeof(float);
@@ -745,6 +746,7 @@ struct MLAS_NCHWC_CONV_NCHWC_ALGORITHM : MLAS_NCHWC_GROUPED_CONV_ALGORITHM
                            Bias,
                            KernelFlags
                            );
+                    kernel_called++;
 
                     //
                     // Test for fused non-ReLU activation.
@@ -764,6 +766,9 @@ struct MLAS_NCHWC_CONV_NCHWC_ALGORITHM : MLAS_NCHWC_GROUPED_CONV_ALGORITHM
 
             CompleteWork(WorkThisIteration);
         }
+#if 0
+        printf("kernel was called %d times.", kernel_called);
+#endif
     }
 };
 
@@ -807,6 +812,8 @@ struct MLAS_NCHWC_CONV_NCHW_ALGORITHM : MLAS_NCHWC_GROUPED_CONV_ALGORITHM
         MLAS_CONV_FLOAT_KERNEL* Kernel = MlasConvNchwFloatKernel;
 #endif
 
+        int kernel_called=0;
+
         while (WorkRemaining > 0) {
 
             //
@@ -842,6 +849,7 @@ struct MLAS_NCHWC_CONV_NCHW_ALGORITHM : MLAS_NCHWC_GROUPED_CONV_ALGORITHM
                     KernelWidth, input + (ih * InputWidth), InputWidthBytes,
                     DilatedInputWidthBytes, OutputCountLeftPadX, OutputCountX,
                     OutputCountRightPadX, Bias, KernelFlags);
+                kernel_called++;
 
                 //
                 // Test for fused non-ReLU activation.
@@ -861,6 +869,9 @@ struct MLAS_NCHWC_CONV_NCHW_ALGORITHM : MLAS_NCHWC_GROUPED_CONV_ALGORITHM
 
             CompleteWork(1);
         }
+#if 0
+        printf("MLAS_NCHWC_CONV_NCHW_ALGORITHM is called: %d times\n", kernel_called);
+#endif
     }
 };
 

@@ -72,11 +72,11 @@ class MlasNchwcConv2DTest : public MlasConv2DTest<Threaded> {
 
     if (ReorderFilterOIHWBo) {
       size_t NchwcFilterElements = NchwcOutputChannels * InputChannels * KernelHeight * KernelWidth;
-      ReorderedFilter = BufferNchwcFilter.GetBuffer(NchwcFilterElements);
+      ReorderedFilter = BufferNchwcFilter.GetBuffer(NchwcFilterElements, true);
       MlasReorderFilterOIHWBo(FilterShape, Filter, ReorderedFilter);
     } else {
       size_t NchwcFilterElements = NchwcOutputChannels * NchwcInputChannels * KernelHeight * KernelWidth;
-      ReorderedFilter = BufferNchwcFilter.GetBuffer(NchwcFilterElements);
+      ReorderedFilter = BufferNchwcFilter.GetBuffer(NchwcFilterElements, true);
       MlasReorderFilterOIHWBiBo(FilterShape, Filter, ReorderedFilter);
     }
 
@@ -85,7 +85,7 @@ class MlasNchwcConv2DTest : public MlasConv2DTest<Threaded> {
     //
 
     if (Bias != nullptr && GroupCount * FilterCount < NchwcOutputChannels) {
-      float* AlignedBias = BufferNchwcBias.GetBuffer(NchwcOutputChannels);
+      float* AlignedBias = BufferNchwcBias.GetBuffer(NchwcOutputChannels, true);
 
       size_t i;
       for (i = 0; i < GroupCount * FilterCount; i++) {
@@ -104,7 +104,7 @@ class MlasNchwcConv2DTest : public MlasConv2DTest<Threaded> {
 
     if (DoReorderInput) {
       size_t NchwcInputElements = BatchCount * NchwcInputChannels * InputHeight * InputWidth;
-      float* NchwcInput = BufferNchwcInput.GetBuffer(NchwcInputElements);
+      float* NchwcInput = BufferNchwcInput.GetBuffer(NchwcInputElements, true);
       ReorderInputNchw(InputShape, Input, NchwcInput);
       Input = NchwcInput;
       InputShape[1] = NchwcInputChannels;
@@ -113,7 +113,7 @@ class MlasNchwcConv2DTest : public MlasConv2DTest<Threaded> {
     int64_t NchwcOutputShape[] = {int64_t(BatchCount), int64_t(NchwcOutputChannels), int64_t(OutputHeight), int64_t(OutputWidth)};
 
     size_t NchwcOutputElements = BatchCount * NchwcOutputChannels * OutputHeight * OutputWidth;
-    float* NchwcOutput = BufferNchwcOutput.GetBuffer(NchwcOutputElements);
+    float* NchwcOutput = BufferNchwcOutput.GetBuffer(NchwcOutputElements, true);
 
     MLAS_ACTIVATION Activation;
     Activation.ActivationKind = MlasIdentityActivation;
