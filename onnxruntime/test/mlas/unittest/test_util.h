@@ -50,7 +50,7 @@ class MatrixGuardBuffer {
     ReleaseBuffer();
   }
 
-  T* GetBuffer(size_t Elements, bool ZeroFill = false, int minVal=-23, int maxVal=23) {
+  T* GetBuffer(size_t Elements, bool ZeroFill = false, int minVal=-23, int maxVal=23, float delta=0.0) {
     //
     // Check if the internal buffer needs to be reallocated.
     //
@@ -110,19 +110,21 @@ class MatrixGuardBuffer {
       std::fill_n(buffer, Elements, T(0));
 
     } else {
-      int MinimumFillValue = minVal;
-      int MaximumFillValue = maxVal;
+      T MinimumFillValue = minVal;
+      T MaximumFillValue = maxVal;
 
-      int FillValue = MinimumFillValue;
+      T FillValue = MinimumFillValue;
       T* FillAddress = buffer;
+      float salt=delta;
+      int C = MaximumFillValue - MinimumFillValue, count=0;
 
       while (FillAddress < GuardAddress) {
-        *FillAddress++ = (T)FillValue;
-
+        *FillAddress++ = (T)FillValue, count++;
         FillValue++;
 
-        if (FillValue > MaximumFillValue) {
-          FillValue = MinimumFillValue;
+        if (count > C) {
+          FillValue = MinimumFillValue + salt;
+          salt += delta, count=0;
         }
       }
     }

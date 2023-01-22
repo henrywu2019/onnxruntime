@@ -209,11 +209,13 @@ class MlasConv2DTest : public MlasTestBase {
     size_t BiasElements = GroupCount * FilterCount;
     size_t OutputElements = BatchCount * GroupCount * FilterCount * OutputSize;
 
-    const float* Input = BufferInput.GetBuffer(InputElements, false, 1, 16);
+    const float* Input = BufferInput.GetBuffer(InputElements, false, 1, 16, 0.01);
     const float* Filter = BufferFilter.GetBuffer(FilterElements, false, 1, 9);
-#if 0
+#if 1
     float* tmp=const_cast<float*>(Filter);
     for(size_t i=(FilterElements>>1);i<FilterElements;i++) if(*(tmp+i)>0) *(tmp+i)+=0.1;
+    //tmp=const_cast<float*>(Input);
+    //for(size_t i=(FilterElements>>1);i<FilterElements;i++) if(*(tmp+i)>0) *(tmp+i)+=0.1;
 #endif
     const float* Bias = BufferBias.GetBuffer(BiasElements, true);
     float* Output = BufferOutput.GetBuffer(OutputElements, true);

@@ -19,13 +19,22 @@ void extract(const vector<float>& v, vector<float>& D, int j,int H, int W, pair<
   }
 }
 
+/*
+> g++ -O3 main.cpp -std=c++11 -mavx2
+> ./a.out
+48 | Compute Time: 1000 ns
+474.000000, 519.000000, 564.000000, 609.000000,
+744.000000, 789.000000, 834.000000, 879.000000,
+1014.000000, 1059.000000, 1104.000000, 1149.000000,
+1284.000000, 1329.000000, 1374.000000, 1419.000000,
+ * */
 int main(){
   auto I = get_input();
   auto F= get_input(9);
 
-  /*auto start = std::chrono::high_resolution_clock::now();
-  auto t1=start;*/
   vector<float> sliced_mat(6*4,0);
+  auto start = std::chrono::high_resolution_clock::now();
+  auto t1=start;
   for(int i=0;i<3;i++){
     //auto t0 = std::chrono::high_resolution_clock::now();
     extract(I, sliced_mat, i, 6, 6, {4,4}); //////
@@ -44,14 +53,14 @@ int main(){
       }
     }
   }
-  //t1 = std::chrono::high_resolution_clock::now();
-  //std::cout << __LINE__ << " | Compute Time: " << std::chrono::duration_cast< std::chrono::nanoseconds >((t1 - start)).count() << " ns" << std::endl;
+  t1 = std::chrono::high_resolution_clock::now();
+  std::cout << __LINE__ << " | Compute Time: " << std::chrono::duration_cast< std::chrono::nanoseconds >((t1 - start)).count() << " ns" << std::endl;
 
-  /*for(int t=0;t<16;t++){
+  for(int t=0;t<16;t++){
     printf("%f, ",O[t]);
     if (t%4==3) printf("\n");
   }
-  printf("\n");*/
+  printf("\n");
 
   return 0;
 }
