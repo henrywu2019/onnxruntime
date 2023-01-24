@@ -1342,13 +1342,17 @@ Return Value:
             WorkBlock.Padding[0] == 0 && WorkBlock.Padding[1] == 0 &&
             WorkBlock.Padding[2] == 0 && WorkBlock.Padding[3] == 0) {
             ThreadedRoutine = MlasNchwcThreaded<MLAS_NCHWC_CONV_POINTWISE_ALGORITHM>;
+            printf("Conv2d Algo: MLAS_NCHWC_CONV_POINTWISE_ALGORITHM\n");
         } else {
             ThreadedRoutine = MlasNchwcThreaded<MLAS_NCHWC_CONV_NCHWC_ALGORITHM>;
+            printf("Conv2d Algo: MLAS_NCHWC_CONV_NCHWC_ALGORITHM\n");
         }
     } else if (WorkBlock.InputChannels == 1 && WorkBlock.OutputChannels == 1) {
         ThreadedRoutine = MlasNchwcThreaded<MLAS_NCHWC_CONV_DEPTHWISE_ALGORITHM>;
+        printf("Conv2d Algo: MLAS_NCHWC_CONV_DEPTHWISE_ALGORITHM\n");
     } else {
         ThreadedRoutine = MlasNchwcThreaded<MLAS_NCHWC_CONV_NCHW_ALGORITHM>;
+        printf("Conv2d Algo: MLAS_NCHWC_CONV_NCHW_ALGORITHM\n");
     }
 
     //

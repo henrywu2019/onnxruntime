@@ -52,7 +52,7 @@ void gme_conv(vector<float>& I, vector<float>& F, vector<float>& sliced_mat, flo
       // auto t0 = std::chrono::high_resolution_clock::now();
       extract(I, sliced_mat, i, 6, 6, {4, 4}, c);  //////
       // t1 = std::chrono::high_resolution_clock::now();
-      // std::cout << __LINE__ << " | Compute Time: " << std::chrono::duration_cast< std::chrono::nanoseconds >((t1 - t0)).count() << " ns" << std::endl; t0=t1;
+      // std::cout << __LINE__ << " | Compute Time: " << std::chrono::duration_cast< std::chrono::microseconds >((t1 - t0)).count() << " us" << std::endl; t0=t1;
 
       for (int k = 0; k < 3; k++) {
         auto shifted_start = sliced_mat.data() + 4 * k;

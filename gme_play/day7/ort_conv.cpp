@@ -21,7 +21,7 @@ void ReorderInputNchw(const int64_t* input_shape, const float* S, float* D) {
 
 
 
-void onnxruntime_convolution(
+void onnxruntime_conv_nchwc(
     size_t BatchCount,
     size_t GroupCount,
     size_t InputChannels,
@@ -44,6 +44,7 @@ void onnxruntime_convolution(
     const float* Filter,
     const float* Bias,
     float* Output) {
+  auto start = std::chrono::high_resolution_clock::now();
   int64_t InputShape[] = {int64_t(BatchCount), int64_t(GroupCount) * int64_t(InputChannels), int64_t(InputHeight), int64_t(InputWidth)};
   int64_t FilterShape[] = {int64_t(GroupCount) * int64_t(FilterCount), int64_t(InputChannels), int64_t(KernelHeight), int64_t(KernelWidth)};
   int64_t OutputShape[] = {int64_t(BatchCount), int64_t(GroupCount) * int64_t(FilterCount), int64_t(OutputHeight), int64_t(OutputWidth)};
@@ -135,7 +136,8 @@ void onnxruntime_convolution(
 
   MLAS_ACTIVATION Activation;
   Activation.ActivationKind = MlasIdentityActivation;
-  auto start = std::chrono::high_resolution_clock::now();
+  auto t0 = std::chrono::high_resolution_clock::now();
+  std::cout << __FUNCTION__ << " | Reorder Time: " << std::chrono::duration_cast<std::chrono::microseconds>((t0 - start)).count() << " us" << std::endl;
 
   MlasNchwcConv(InputShape,
                 KernelShape,
@@ -152,9 +154,7 @@ void onnxruntime_convolution(
                 true,
                 nullptr);
   auto t1 = std::chrono::high_resolution_clock::now();
-  std::cout << __FUNCTION__ << " | Compute Time: "
-            << std::chrono::duration_cast<std::chrono::milliseconds>((t1 - start)).count()
-            << " ms" << std::endl;
+  std::cout << __FUNCTION__ << " | Compute Time: " << std::chrono::duration_cast<std::chrono::microseconds>((t1 - start)).count() << " us" << std::endl;
 
   //
   // Reorder the output buffer.

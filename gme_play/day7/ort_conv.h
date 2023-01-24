@@ -14,7 +14,7 @@ using namespace std;
 
 void ReorderInputNchw(const int64_t* input_shape, const float* S, float* D);
 
-void onnxruntime_convolution(
+void onnxruntime_conv_nchwc(
     size_t BatchCount,
     size_t GroupCount,
     size_t InputChannels,

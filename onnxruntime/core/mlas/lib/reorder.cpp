@@ -120,7 +120,8 @@ MlasReorderTransposeFloat32x4x4(
     const float* S,
     float* D,
     size_t GatherStride,
-    size_t ScatterStride
+    size_t ScatterStride,
+    size_t input_channel=8
     )
 /*++
 
@@ -146,14 +147,21 @@ Return Value:
 
 --*/
 {
+    size_t load = input_channel>>1;
 #if defined(MLAS_SSE2_INTRINSICS)
-    MLAS_FLOAT32X4 v[4];
-    MLAS_FLOAT32X4 t[4];
+    MLAS_FLOAT32X4 v[4]={};
+    MLAS_FLOAT32X4 t[4]={};
 
     v[0] = MlasLoadFloat32x4(&S[GatherStride * 0]);
-    v[1] = MlasLoadFloat32x4(&S[GatherStride * 1]);
-    v[2] = MlasLoadFloat32x4(&S[GatherStride * 2]);
-    v[3] = MlasLoadFloat32x4(&S[GatherStride * 3]);
+    if(load>1){
+        v[1] = MlasLoadFloat32x4(&S[GatherStride * 1]);
+        if(load>2){
+            v[2] = MlasLoadFloat32x4(&S[GatherStride * 2]);
+            if(load>3){
+                v[3] = MlasLoadFloat32x4(&S[GatherStride * 3]);
+            }
+        }
+    }
 
     t[0] = _mm_unpacklo_ps(v[0], v[1]);
     t[2] = _mm_unpackhi_ps(v[0], v[1]);
@@ -171,9 +179,15 @@ Return Value:
     MlasStoreFloat32x4(&D[ScatterStride * 3], v[3]);
 #else
     MlasReorderScatterFloat32x4(&S[GatherStride * 0], &D[0], ScatterStride);
-    MlasReorderScatterFloat32x4(&S[GatherStride * 1], &D[1], ScatterStride);
-    MlasReorderScatterFloat32x4(&S[GatherStride * 2], &D[2], ScatterStride);
-    MlasReorderScatterFloat32x4(&S[GatherStride * 3], &D[3], ScatterStride);
+    if(load>1){
+        MlasReorderScatterFloat32x4(&S[GatherStride * 1], &D[1], ScatterStride);
+        if(load>2){
+            MlasReorderScatterFloat32x4(&S[GatherStride * 2], &D[2], ScatterStride);
+            if(load>3){
+                MlasReorderScatterFloat32x4(&S[GatherStride * 3], &D[3], ScatterStride);
+            }
+        }
+    }
 #endif
 }
 
@@ -231,7 +245,7 @@ Return Value:
             size_t bc = 0;
 
             for (; bc < InputChannelsThisIteration; bc += 4) {
-                MlasReorderTransposeFloat32x4x4(ss, dd, InputSize, BlockSize);
+                MlasReorderTransposeFloat32x4x4(ss, dd, InputSize, BlockSize, InputChannelsThisIteration);
                 ss += 4 * InputSize;
                 dd += 4;
             }
@@ -451,7 +465,7 @@ Return Value:
                 size_t bc = 0;
 
                 for (; bc < AlignedOutputChannelsThisIteration; bc += 4) {
-                    MlasReorderTransposeFloat32x4x4(ss, dd, BlockSize, OutputSize);
+                    MlasReorderTransposeFloat32x4x4(ss, dd, BlockSize, OutputSize, AlignedOutputChannelsThisIteration);
                     ss += 4;
                     dd += 4 * OutputSize;
                 }

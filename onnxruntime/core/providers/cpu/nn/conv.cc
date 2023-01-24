@@ -307,9 +307,7 @@ Status Conv<float>::Compute(OpKernelContext* context) const {
     std::cout << __LINE__ << " | Compute Time: " << std::chrono::duration_cast< std::chrono::microseconds >((t1 - t0)).count() << " us" << std::endl;
     t0 = t1;
   }
-  std::cout << __LINE__ << " | Total: " <<
-      std::chrono::duration_cast< std::chrono::microseconds >((std::chrono::high_resolution_clock::now() - start)).count()
-            << " us" << std::endl;
+  std::cout << __LINE__ << " | Total: " << std::chrono::duration_cast< std::chrono::nanoseconds >((std::chrono::high_resolution_clock::now() - start)).count() << " ns" << std::endl;
   return Status::OK();
 }
 

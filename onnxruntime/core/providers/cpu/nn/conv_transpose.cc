@@ -335,9 +335,7 @@ Status ConvTranspose<float>::DoConvTranspose(OpKernelContext* context, bool dyna
     Xdata += X_offset * conv_transpose_attrs_.group;
     Ydata += Y_offset * conv_transpose_attrs_.group;
   }
-  std::cout << __LINE__ << " | Total: " <<
-      std::chrono::duration_cast< std::chrono::microseconds >((std::chrono::high_resolution_clock::now() - start)).count()
-            << " us" << std::endl;
+  std::cout << __LINE__ << " | Total: " << std::chrono::duration_cast< std::chrono::nanoseconds >((std::chrono::high_resolution_clock::now() - start)).count() << " ns" << std::endl;
   return Status::OK();
 }
 }  // namespace onnxruntime

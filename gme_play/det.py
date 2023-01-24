@@ -15,6 +15,7 @@ so.enable_profiling = False
 sess = ort.InferenceSession(model_file_path, sess_options=so, providers=['CPUExecutionProvider']) # 'CUDAExecutionProvider'
 
 if sess:
+    # 1,3,1600,1184
     n = np.load('x.npy')
     output = None
     start = time.monotonic()

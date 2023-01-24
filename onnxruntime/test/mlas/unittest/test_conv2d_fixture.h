@@ -127,7 +127,7 @@ class Conv2dShortExecuteTest : public MlasTestFixture<Conv2dTester> {
 
   static size_t RegisterShortExecuteTests() {
     size_t test_registered = 0;
-    //test_registered += RegisterSingleTest(1, 1, 6, 4, 4, 2, 3, 3, 0, 0, 0, 0, 1, 1, 1, 1);
+    test_registered += RegisterSingleTest(1, 1, 3, 4, 4, 2, 3, 3, 0, 0, 0, 0, 1, 1, 1, 1);
     test_registered += RegisterSingleTest(1, 1, 16, 4, 4, 2, 3, 3, 0, 0, 0, 0, 1, 1, 1, 1);
     for (unsigned i = 1; i < 256; i <<= 1) {
       test_registered += RegisterSingleTest(1, 1, 16, i, i, 32, 3, 3, 0, 0, 0, 0, 1, 1, 1, 1);
