@@ -195,7 +195,7 @@ int main(int argc, char** argv) {
     cout << pr.second << ",";
   }
 #else
-  input_width=64, input_height=64, input_channel=256, filter_batch = 2, kernel_width=3, kernel_height=3;
+  input_width=640, input_height=640, input_channel=256, filter_batch = 2, kernel_width=3, kernel_height=3;
   if (argc==2){
     filter_batch = stoi(argv[1]);
   }
