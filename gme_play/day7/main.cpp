@@ -1,7 +1,7 @@
 #include <bits/stdc++.h>
 #include "immintrin.h"
 #include "fmaintrin.h"
-#define ORTCONV
+//#define ORTCONV
 #ifdef ORTCONV
 #include "ort_conv.h"
 #endif
@@ -22,7 +22,7 @@ void get_input(vector<float>& l, int n, int c, int w, int h) {
       for (int m = 0; m < h; m++)
         for (int k = 0; k < w; k++) {
           int idx = k + m * w + h * w * j + h * w * c * i;
-          if(rand()&1) start*=-1;
+          //if(rand()&1) start*=-1;
           //l[idx] = start, start += 0.1; //1.0;//
           l[idx] = start, start += 1;
         }
@@ -169,7 +169,7 @@ int main() {
   std::cout << "L3 data cache size: " << l3_cache_size << " bytes" << std::endl;
 
   int input_width=6, input_height=1200, input_channel=8, filter_batch = 1;
-#if 1
+#if 0
   vector<pair<int, long long>> res;
   for (auto i=input_width;i<1200;i++){
     auto t = run(input_height, i, input_channel, filter_batch);
@@ -185,7 +185,7 @@ int main() {
     cout << pr.second << ",";
   }
 #else
-  input_width=6, input_height=6, input_channel=3, filter_batch = 1;
+  input_width=48000, input_height=48000, input_channel=256, filter_batch = 256;
   auto t = run(input_height, input_width, input_channel, filter_batch);
 #endif
   return 0;

@@ -202,15 +202,15 @@ Implicit Arguments:
         lea     rbx,[rdx+rsi*2]             # compute filter plus 2 rows
 .endif
 .ifeqs "\KernelType\()","Nchwc"
-.if \BlockSize\() == 16
-        .irp Index, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
-            ComputeBlock \KernelType\(), \FilterCount\(), \OutputCount\(), \Index\()*16*4, \Index\()*4
-        .endr
-.else
-        .irp Index, 0, 1, 2, 3, 4, 5, 6, 7
-            ComputeBlock \KernelType\(), \FilterCount\(), \OutputCount\(), (\Index\()-4)*8*4, \Index\()*4
-        .endr
-.endif
+    .if \BlockSize\() == 16
+            .irp Index, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
+                ComputeBlock \KernelType\(), \FilterCount\(), \OutputCount\(), \Index\()*16*4, \Index\()*4
+            .endr
+    .else
+            .irp Index, 0, 1, 2, 3, 4, 5, 6, 7
+                ComputeBlock \KernelType\(), \FilterCount\(), \OutputCount\(), (\Index\()-4)*8*4, \Index\()*4
+            .endr
+    .endif
 .else
         ComputeBlock \KernelType\(), \FilterCount\(), \OutputCount\(), 0, 0
 .endif

@@ -766,8 +766,8 @@ struct MLAS_NCHWC_CONV_NCHWC_ALGORITHM : MLAS_NCHWC_GROUPED_CONV_ALGORITHM
 
             CompleteWork(WorkThisIteration);
         }
-#if 0
-        printf("kernel was called %d times.", kernel_called);
+#if 1
+        printf("MLAS_NCHWC_CONV_NCHWC_ALGORITHM kernel was called: %d times.\n", kernel_called);
 #endif
     }
 };
@@ -842,13 +842,28 @@ struct MLAS_NCHWC_CONV_NCHW_ALGORITHM : MLAS_NCHWC_GROUPED_CONV_ALGORITHM
                 //
                 // Invoke the convolution kernel.
                 //
+                auto input_buff = input + (ih * InputWidth - PaddingLeftX);
+                auto input_base = input + (ih * InputWidth);
 
-                Kernel(input + (ih * InputWidth - PaddingLeftX), filter, output,
-                    StrideWidthBytes, DilationWidthBytes, FilterCount, InputStrideBytes,
-                    FilterStrideBytes, OutputStrideBytes, EffectiveKernelHeight,
-                    KernelWidth, input + (ih * InputWidth), InputWidthBytes,
-                    DilatedInputWidthBytes, OutputCountLeftPadX, OutputCountX,
-                    OutputCountRightPadX, Bias, KernelFlags);
+                Kernel(input_buff,
+                       filter,
+                       output,
+                       StrideWidthBytes,
+                       DilationWidthBytes,
+                       FilterCount,
+                       InputStrideBytes,
+                       FilterStrideBytes,
+                       OutputStrideBytes,
+                       EffectiveKernelHeight,
+                       KernelWidth,
+                       input_base,
+                       InputWidthBytes,
+                       DilatedInputWidthBytes,
+                       OutputCountLeftPadX,
+                       OutputCountX,
+                       OutputCountRightPadX,
+                       Bias,
+                       KernelFlags);
                 kernel_called++;
 
                 //
@@ -869,8 +884,8 @@ struct MLAS_NCHWC_CONV_NCHW_ALGORITHM : MLAS_NCHWC_GROUPED_CONV_ALGORITHM
 
             CompleteWork(1);
         }
-#if 0
-        printf("MLAS_NCHWC_CONV_NCHW_ALGORITHM is called: %d times\n", kernel_called);
+#if 1
+        printf("MLAS_NCHWC_CONV_NCHW_ALGORITHM kernel was called: %d times.\n", kernel_called);
 #endif
     }
 };

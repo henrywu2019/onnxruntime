@@ -72,29 +72,29 @@ Implicit Arguments:
         EmitIfCountGE \OutputCount\(), 1, "vbroadcastss ymm13,DWORD PTR [rcx+\BroadcastOffset\()]"
         EmitIfCountGE \OutputCount\(), 2, "vbroadcastss ymm14,DWORD PTR [rcx+r9+\BroadcastOffset\()]"
         EmitIfCountGE \OutputCount\(), 3, "vbroadcastss ymm15,DWORD PTR [rcx+r9*2+\BroadcastOffset\()]"
-.if \OutputCount\() == 1
-        EmitIfCountGE \FilterCount\(), 1, "vfmadd231ps ymm0,ymm13,YMMWORD PTR [rdx+\VectorOffset\()]"
-        EmitIfCountGE \FilterCount\(), 2, "vfmadd231ps ymm1,ymm13,YMMWORD PTR [rdx+rsi+\VectorOffset\()]"
-        EmitIfCountGE \FilterCount\(), 3, "vfmadd231ps ymm2,ymm13,YMMWORD PTR [rbx+\VectorOffset\()]"
-        EmitIfCountGE \FilterCount\(), 4, "vfmadd231ps ymm3,ymm13,YMMWORD PTR [rbx+rsi+\VectorOffset\()]"
-.else
-        EmitIfCountGE \FilterCount\(), 1, "vmovups ymm12,YMMWORD PTR [rdx+\VectorOffset\()]"
-        EmitIfCount2GE \FilterCount\(), 1, \OutputCount\(), 1, "vfmadd231ps ymm0,ymm13,ymm12"
-        EmitIfCount2GE \FilterCount\(), 1, \OutputCount\(), 2, "vfmadd231ps ymm4,ymm14,ymm12"
-        EmitIfCount2GE \FilterCount\(), 1, \OutputCount\(), 3, "vfmadd231ps ymm8,ymm15,ymm12"
-        EmitIfCountGE \FilterCount\(), 2, "vmovups ymm12,YMMWORD PTR [rdx+rsi+\VectorOffset\()]"
-        EmitIfCount2GE \FilterCount\(), 2, \OutputCount\(), 1, "vfmadd231ps ymm1,ymm13,ymm12"
-        EmitIfCount2GE \FilterCount\(), 2, \OutputCount\(), 2, "vfmadd231ps ymm5,ymm14,ymm12"
-        EmitIfCount2GE \FilterCount\(), 2, \OutputCount\(), 3, "vfmadd231ps ymm9,ymm15,ymm12"
-        EmitIfCountGE \FilterCount\(), 3, "vmovups ymm12,YMMWORD PTR [rbx+\VectorOffset\()]"
-        EmitIfCount2GE \FilterCount\(), 3, \OutputCount\(), 1, "vfmadd231ps ymm2,ymm13,ymm12"
-        EmitIfCount2GE \FilterCount\(), 3, \OutputCount\(), 2, "vfmadd231ps ymm6,ymm14,ymm12"
-        EmitIfCount2GE \FilterCount\(), 3, \OutputCount\(), 3, "vfmadd231ps ymm10,ymm15,ymm12"
-        EmitIfCountGE \FilterCount\(), 4, "vmovups ymm12,YMMWORD PTR [rbx+rsi+\VectorOffset\()]"
-        EmitIfCount2GE \FilterCount\(), 4, \OutputCount\(), 1, "vfmadd231ps ymm3,ymm13,ymm12"
-        EmitIfCount2GE \FilterCount\(), 4, \OutputCount\(), 2, "vfmadd231ps ymm7,ymm14,ymm12"
-        EmitIfCount2GE \FilterCount\(), 4, \OutputCount\(), 3, "vfmadd231ps ymm11,ymm15,ymm12"
-.endif
+    .if \OutputCount\() == 1
+            EmitIfCountGE \FilterCount\(), 1, "vfmadd231ps ymm0,ymm13,YMMWORD PTR [rdx+\VectorOffset\()]"
+            EmitIfCountGE \FilterCount\(), 2, "vfmadd231ps ymm1,ymm13,YMMWORD PTR [rdx+rsi+\VectorOffset\()]"
+            EmitIfCountGE \FilterCount\(), 3, "vfmadd231ps ymm2,ymm13,YMMWORD PTR [rbx+\VectorOffset\()]"
+            EmitIfCountGE \FilterCount\(), 4, "vfmadd231ps ymm3,ymm13,YMMWORD PTR [rbx+rsi+\VectorOffset\()]"
+    .else
+            EmitIfCountGE \FilterCount\(), 1, "vmovups ymm12,YMMWORD PTR [rdx+\VectorOffset\()]"
+            EmitIfCount2GE \FilterCount\(), 1, \OutputCount\(), 1, "vfmadd231ps ymm0,ymm13,ymm12"
+            EmitIfCount2GE \FilterCount\(), 1, \OutputCount\(), 2, "vfmadd231ps ymm4,ymm14,ymm12"
+            EmitIfCount2GE \FilterCount\(), 1, \OutputCount\(), 3, "vfmadd231ps ymm8,ymm15,ymm12"
+            EmitIfCountGE \FilterCount\(), 2, "vmovups ymm12,YMMWORD PTR [rdx+rsi+\VectorOffset\()]"
+            EmitIfCount2GE \FilterCount\(), 2, \OutputCount\(), 1, "vfmadd231ps ymm1,ymm13,ymm12"
+            EmitIfCount2GE \FilterCount\(), 2, \OutputCount\(), 2, "vfmadd231ps ymm5,ymm14,ymm12"
+            EmitIfCount2GE \FilterCount\(), 2, \OutputCount\(), 3, "vfmadd231ps ymm9,ymm15,ymm12"
+            EmitIfCountGE \FilterCount\(), 3, "vmovups ymm12,YMMWORD PTR [rbx+\VectorOffset\()]"
+            EmitIfCount2GE \FilterCount\(), 3, \OutputCount\(), 1, "vfmadd231ps ymm2,ymm13,ymm12"
+            EmitIfCount2GE \FilterCount\(), 3, \OutputCount\(), 2, "vfmadd231ps ymm6,ymm14,ymm12"
+            EmitIfCount2GE \FilterCount\(), 3, \OutputCount\(), 3, "vfmadd231ps ymm10,ymm15,ymm12"
+            EmitIfCountGE \FilterCount\(), 4, "vmovups ymm12,YMMWORD PTR [rbx+rsi+\VectorOffset\()]"
+            EmitIfCount2GE \FilterCount\(), 4, \OutputCount\(), 1, "vfmadd231ps ymm3,ymm13,ymm12"
+            EmitIfCount2GE \FilterCount\(), 4, \OutputCount\(), 2, "vfmadd231ps ymm7,ymm14,ymm12"
+            EmitIfCount2GE \FilterCount\(), 4, \OutputCount\(), 3, "vfmadd231ps ymm11,ymm15,ymm12"
+    .endif
 .endif
 
         .endm
