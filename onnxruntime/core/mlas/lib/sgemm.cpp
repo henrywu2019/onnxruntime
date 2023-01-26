@@ -1003,6 +1003,7 @@ Return Value:
 
 #endif
 
+int GemmFloatKernel_called = 0;
 MLAS_FORCEINLINE
 float*
 MlasSgemmKernelLoop(
@@ -1074,8 +1075,8 @@ Return Value:
         C += ldc * RowsHandled;
         A += lda * RowsHandled;
         CountM -= RowsHandled;
+        GemmFloatKernel_called++;
     }
-
     return C;
 }
 

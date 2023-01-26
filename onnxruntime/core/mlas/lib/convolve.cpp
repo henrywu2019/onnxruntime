@@ -481,6 +481,7 @@ Return Value:
     }
 }
 
+extern int GemmFloatKernel_called;
 void
 MlasConvOperation(
     const MLAS_CONV_PARAMETERS* Parameters,
@@ -945,6 +946,7 @@ Return Value:
 
                     MlasActivation(Parameters->Activation, Output, bias, FilterCount,
                         OutputSize, OutputSize);
+                    printf("MlasConvAlgorithmGemmDirect is called.\n");
 
                     break;
                 }
@@ -972,6 +974,7 @@ Return Value:
 
                     MlasActivation(Parameters->Activation, Output, bias, FilterCount,
                         OutputSize, OutputSize);
+                    printf("MlasConvAlgorithmExpandThenGemm is called.\n");
 
                     break;
                 }
@@ -999,6 +1002,7 @@ Return Value:
                         MlasConvOperation(Parameters, Input, filter, bias, WorkingBuffer,
                             Output, 0, OutputSize);
                     }
+                    printf("MlasConvAlgorithmExpandThenGemmSegmented is called.\n");
 
                     break;
                 }
@@ -1017,6 +1021,9 @@ Return Value:
             Output += OutputGroupSize;
         }
     }
+#if 1
+    printf("GemmFloatKernel is called: %d times.\n", GemmFloatKernel_called);
+#endif
 }
 #if defined(_MSC_VER) && !defined(__clang__)
 #pragma warning(push)
