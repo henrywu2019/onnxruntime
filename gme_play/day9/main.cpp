@@ -49,7 +49,7 @@ void extract(const vector<float>& v, float* D, int offset, int H, int W, pair<in
 pair<int, float*> extract100(float* src, float* D, int H, int W, const pair<int, int>& hw, int channel) {
   auto t0 = std::chrono::high_resolution_clock::now();
   //if ((int)D.size() < hw.first * hw.second) D.resize(H * hw.second);
-  //l1_cache_size / hw.second;
+  auto LINE = l1_cache_size / hw.second;
   int i = 0;
   for (int x = 0; x < 100; x++) {
     ::memcpy(D + i, src, hw.second * sizeof(float));
