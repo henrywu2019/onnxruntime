@@ -32,6 +32,7 @@ void get_input(vector<float>& l, int n, int c, int w, int h) {
 }
 
 long long extract_time=0;
+int LINE=1;
 
 void extract(const vector<float>& v, float* D, int offset, int H, int W, pair<int, int> hw, int channel) {
   auto t0 = std::chrono::high_resolution_clock::now();
@@ -49,9 +50,8 @@ void extract(const vector<float>& v, float* D, int offset, int H, int W, pair<in
 pair<int, float*> extract100(float* src, float* D, int H, int W, const pair<int, int>& hw, int channel) {
   auto t0 = std::chrono::high_resolution_clock::now();
   //if ((int)D.size() < hw.first * hw.second) D.resize(H * hw.second);
-  auto LINE = l1_cache_size / hw.second;
   int i = 0;
-  for (int x = 0; x < 100; x++) {
+  for (int x = 0; x < LINE; x++) {
     ::memcpy(D + i, src, hw.second * sizeof(float));
     i += hw.second;
     src += W;
@@ -82,7 +82,8 @@ long long gme_conv(vector<float>& I,
       // auto t0 = std::chrono::high_resolution_clock::now();
       //extract(I, sliced_mat, i, input_h, input_w, {output_h, output_w}, channel);  //////
       pair<int, float*> pr = {0,I.data()+i+channel*input_h*input_w};
-      for (int h_=0; h_<input_h/100; h_++) {
+      int mini_batch = int(input_h/LINE);
+      for (int h_=0; h_<mini_batch; h_++) {
         pr = extract100(pr.second, sliced_mat,input_h, input_w, {output_h, output_w}, channel);
         int64_t area = pr.first;
         // t1 = std::chrono::high_resolution_clock::now();
@@ -95,9 +96,9 @@ long long gme_conv(vector<float>& I,
         for (int k = 0; k < Kh; k++) { // w1, w4, w7
           auto shifted_start = sliced_mat + output_w * k; // sliding down
           for (int64_t m = 0; m < Co; m++) {
-            idx = k * Kw + i + channel * Kw * Kh + m*Kw*Kh*Ci;
+            int ix = k * Kw + i + channel * Kw * Kh + m*Kw*Kh*Ci;
             //::printf("%d\n", idx);
-            float scalar = F[idx];
+            float scalar = F[ix];
 #if 0
           int t=0;
           float* tmp=Output+m*area;
@@ -118,13 +119,32 @@ long long gme_conv(vector<float>& I,
             // scalar * (shifted_start: shifted_start+16)
             for (int t = 0; t < area; t++) {
               auto z = *(shifted_start + t);
-              idx = t + m*area + h_*100*output_w;
+              idx = t + m*area + h_*LINE*output_w;
               Output[idx] += scalar * z;
             }
 #endif
           }
         }
       }
+
+      //remaining
+      LINE= input_h - mini_batch*LINE;
+      pr = extract100(pr.second, sliced_mat,input_h, input_w, {output_h, output_w}, channel);
+      int64_t area = pr.first;
+      for (int k = 0; k < Kh; k++) { // w1, w4, w7
+        auto shifted_start = sliced_mat + output_w * k; // sliding down
+        for (int64_t m = 0; m < Co; m++) {
+          int ix = k * Kw + i + channel * Kw * Kh + m*Kw*Kh*Ci;
+          float scalar = F[ix];
+          // scalar * (shifted_start: shifted_start+16)
+          for (int t = 0; t < area; t++) {
+            auto z = *(shifted_start + t);
+            idx = t + m*area + mini_batch*LINE*output_w;
+            Output[idx] += scalar * z;
+          }
+        }
+      }
+
     }
   }
   printf("idx: %ld\n", idx);
@@ -136,19 +156,21 @@ long long gme_conv(vector<float>& I,
 }
 
 void print_output(float* Output, int h, int w, int output_channel) {
-  for (int t = 0; t < min(32, output_channel*w*h); t++) {
-    printf("%.2f, ", Output[t]);
-    if (t % 32 == 31) printf("\n");
+  for (int t = 0; t < max(32, output_channel*w*h); t++) {
+    printf("%.2f\n", Output[t]);
+    //if (t % 32 == 31) printf("\n");
   }
   //printf("\n");
 }
 
 
 long long run(int run_flag, int input_height, int input_width, int input_channel, int filter_batch, int kernel_width=3, int kernel_height=3){
+  LINE = min(int(l1_cache_size/(input_width-kernel_width+1)), input_height); // TODO
   printf("input_height:%d,input_width:%d,input_channel:%d,filter_batch:%d\n",
          input_height, input_width, input_channel, filter_batch);
   const int output_height =input_height-kernel_height+1, output_width=input_width-kernel_width+1;
   float* O = new float[output_height*output_width*filter_batch]();
+  printf("output size: %ldB\n", output_height*output_width*filter_batch * sizeof(float));
 
   vector<float> I, F;
   get_input(I, 1, input_channel, input_width, input_height);
@@ -188,7 +210,7 @@ long long run(int run_flag, int input_height, int input_width, int input_channel
   if (run_flag & 0b10){
       //vector<float> sliced_mat(input_height * output_width, 0);
       //float* sliced_mat = (float*) _mm_malloc(sizeof(float) * input_height * output_width, 32);
-    float* sliced_mat = (float*) _mm_malloc(sizeof(float) * 100 * output_width, 32);
+    float* sliced_mat = (float*) _mm_malloc(sizeof(float) * LINE * output_width, 32);
       auto t = gme_conv(I, F, sliced_mat, O, kernel_height, kernel_width, input_channel, filter_batch,
                         input_height, input_width,output_height, output_width);
       print_output(O, output_height, output_width, filter_batch);

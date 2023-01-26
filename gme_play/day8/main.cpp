@@ -123,7 +123,7 @@ void print_output(float* Output, int h, int w, int output_channel) {
 }
 
 
-long long run(int input_height, int input_width, int input_channel, int filter_batch, int kernel_width=3, int kernel_height=3){
+long long run(int run_flag, int input_height, int input_width, int input_channel, int filter_batch, int kernel_width=3, int kernel_height=3){
   printf("input_height:%d,input_width:%d,input_channel:%d,filter_batch:%d\n",
          input_height, input_width, input_channel, filter_batch);
   const int output_height =input_height-kernel_height+1, output_width=input_width-kernel_width+1;
@@ -202,11 +202,24 @@ int main(int argc, char** argv) {
     cout << pr.second << ",";
   }
 #else
-  input_width=100, input_height=100, input_channel=1, filter_batch = 1, kernel_width=3, kernel_height=3;
-  if (argc==2){
+  input_width=100, input_height=900, input_channel=1, filter_batch = 1, kernel_width=3, kernel_height=3;
+  if (argc>=2){
     filter_batch = stoi(argv[1]);
   }
-  auto t = run(input_height, input_width, input_channel, filter_batch, kernel_width, kernel_height);
+  if (argc>=3){
+    input_channel = stoi(argv[2]);
+  }
+  if (argc>=4){
+    input_height = stoi(argv[3]);
+  }
+  if (argc>=5){
+    input_width = stoi(argv[4]);
+  }
+  int run_flag=2;
+  if (argc>=6){
+    run_flag = stoi(argv[5]);
+  }
+  auto t = run(run_flag, input_height, input_width, input_channel, filter_batch, kernel_width, kernel_height);
 #endif
   return 0;
 }
