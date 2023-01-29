@@ -61,3 +61,8 @@ compile_commands.json
 *.exe
 *.o
 *.s
+*.log
+*.png
+*.gdb_history
+*.history
+*.out

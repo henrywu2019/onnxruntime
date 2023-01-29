@@ -14,21 +14,23 @@ long l1_cache_size = sysconf(_SC_LEVEL1_DCACHE_SIZE);
  * Based on day6 example, increase the input channel number to 16.
  * */
 
+
 void get_input(vector<float>& l, int n, int c, int w, int h) {
   if ((int)l.size() < n * c * w * h) l.resize(n * c * w * h);
   float start = 1.;
-  for (int i = 0; i < n; i++)
+  for (int i = 0; i < n; i++){
     for (int j = 0; j < c; j++) {
-      //start = start/(abs(int(start))+1) + ((double) rand() / (RAND_MAX)) + 0.1; if(rand()&1) start*=-1;
-      start = 1;
+      start = start/(abs(int(start))+1) + ((double) rand() / (RAND_MAX)) + 0.1; if(rand()&1) start*=-1;
+      //start = 1+i*0.1;
       for (int m = 0; m < h; m++)
         for (int k = 0; k < w; k++) {
           int idx = k + m * w + h * w * j + h * w * c * i;
-          //if(rand()&1) start*=-1;
-          //l[idx] = start, start += 0.1; //1.0;//
-          l[idx] = start, start += 1;
+          if(rand()&1) start*=-1;
+          l[idx] = start, start += 0.1; //1.0;//
+          //l[idx] = start, start += 1;
         }
     }
+  }
 }
 
 long long extract_time = 0;
@@ -201,16 +203,18 @@ class block{
 
 
  public:
-  block(float* head, int ih_, int ow_, int iw_, float* f_, float* o):len(ow_),ih(ih_), F(f_), O(o), iw(iw_){
+  block(int ih_, int ow_, int iw_):len(ow_),ih(ih_), iw(iw_){
+    pa = new float*[ih];
+  }
+  /*block(int ih_, int ow_, int iw_, float* head, float* f_, float* o):len(ow_),ih(ih_), F(f_), O(o), iw(iw_){
     auto start = std::chrono::high_resolution_clock::now();
     pa = new float*[ih];
-    for(auto i=0;i<ih;i++)
-      pa[i] = head + i*iw;
+    reset(head, f_, o);
     auto t1 = std::chrono::high_resolution_clock::now();
     long long t=std::chrono::duration_cast<std::chrono::nanoseconds>((t1 - start)).count();
     std::cout << __FUNCTION__ << " | Init Time: " << t << " ns" << std::endl;
-  }
-  //~block(){delete [] pa;}
+  }*/
+  ~block(){delete [] pa;}
   void advance(){
     for(auto i=0;i<ih;i++) pa[i]++;
   }
@@ -252,6 +256,13 @@ class block{
     }
   }
 
+  void reset(float* next_head, float* next_filter, float* next_O){
+    F=next_filter;
+    for(auto i=0;i<ih;i++)
+      pa[i] = next_head + i*iw;
+    O=next_O;
+  }
+
 };
 
 
@@ -263,13 +274,13 @@ long long gme_conv_no_extraction(vector<float>& I,
                        int Ci,
                        int Co, int input_h, int input_w, int output_h, int output_w) { // O(Ci*3*3*Co*(Oh*Ow))
   auto start = std::chrono::high_resolution_clock::now();
-  int64_t idx = 0;
-  for (int channel = 0; channel < Ci; channel++) {
-    block blk(I.data(),input_h, output_w, input_w,F.data(), Output);
-    blk.run();
+  block blk(input_h, output_w, input_w);
+  for(int co=0;co<Co;co++){
+    for(int channel=0;channel<Ci;channel++){
+      blk.reset(I.data()+channel*input_h*input_w,F.data()+channel*Kh*Kw+co*Kw*Kh*Ci, Output+co*output_h*output_w);
+      blk.run();
+    }
   }
-  printf("idx: %ld\n", idx);
-
   auto t1 = std::chrono::high_resolution_clock::now();
   long long t=std::chrono::duration_cast<std::chrono::nanoseconds>((t1 - start)).count();
   std::cout << __FUNCTION__ << " | Compute Time: " << t << " ns" << std::endl;
@@ -280,12 +291,12 @@ long long gme_conv_no_extraction(vector<float>& I,
 void print_output(float* Output, int h, int w, int output_channel) {
   for (int t = 0; t < min(32, output_channel * w * h); t++) {
     printf("%.2f,", Output[t]);
-    if (t % 32 == 31) printf("\n");
+    if (t % 16 == 15) printf("\n");
   }
   printf("...");
-  for (int t = output_channel * w * h-32; t < output_channel * w * h; t++) {
+  for (int t = output_channel * w * h-17; t < output_channel * w * h; t++) {
     printf("%.2f,", Output[t]);
-    if (t % 32 == 31) printf("\n");
+    if (t % 16 == 15) printf("\n");
   }
   // printf("\n");
 }
@@ -304,15 +315,8 @@ long long run(int run_flag, int input_height, int input_width, int input_channel
   printf("filter size: %d\n", filter_batch * input_channel * kernel_width * kernel_height);
   printf("input total size: %.2fKB\n", 1 * input_channel * input_width * input_height / (1024.));
 
-  if(run_flag & 0b1000){
-    auto t = gme_conv_no_extraction(I, F, O, kernel_height, kernel_width, input_channel, filter_batch,
-                          input_height, input_width, output_height, output_width);
-    print_output(O, output_height, output_width, filter_batch);
-    ::memset(O, 0, output_height * output_width * sizeof(float) * filter_batch);
-    printf("\n==============================================================================\n");
-  }
-
-  if(run_flag & 0b100){
+  //if(run_flag & 0b100){
+  if(0){
     float* sliced_mat_o = (float*)_mm_malloc(sizeof(float) * output_height * output_width, 32);
     auto t = gme_conv_ori(I, F, sliced_mat_o, O, kernel_height, kernel_width, input_channel, filter_batch,
                           input_height, input_width, output_height, output_width);
@@ -322,6 +326,14 @@ long long run(int run_flag, int input_height, int input_width, int input_channel
 
     printf("\nextract time: %lld ns\n", extract_time_o);
     printf("==============================================================================\n");
+  }
+
+  if(run_flag & 0b1000){
+    auto t = gme_conv_no_extraction(I, F, O, kernel_height, kernel_width, input_channel, filter_batch,
+                                    input_height, input_width, output_height, output_width);
+    print_output(O, output_height, output_width, filter_batch);
+    ::memset(O, 0, output_height * output_width * sizeof(float) * filter_batch);
+    printf("\n==============================================================================\n");
   }
 
   //if (run_flag & 0b10) {
@@ -375,7 +387,16 @@ long long run(int run_flag, int input_height, int input_width, int input_channel
   return 0;
 }
 
+/*
+Conv node: Conv_nchwc_gme_149
+Input 0 Name: reorder_gme_147
+ Shape: {1,256,400,296}
+Input 1 Name: reorder_gme_148
+ Shape: {64,256,3,3}
+*/
+
 int main(int argc, char** argv) {
+  srand(0xdeadbeef);
   printf("argc: %d\n", argc);
 
   std::cout << "L1 data cache size: " << l1_cache_size << " bytes" << std::endl;
@@ -386,7 +407,8 @@ int main(int argc, char** argv) {
   long l3_cache_size = sysconf(_SC_LEVEL3_CACHE_SIZE);
   std::cout << "L3 data cache size: " << l3_cache_size << " bytes" << std::endl;
 
-  int input_width = 100, input_height = 3000, input_channel = 1, filter_batch = 1, kernel_width = 3, kernel_height = 3;
+  // 64x256x3x3
+  int input_width = 100, input_height = 3000, input_channel = 2, filter_batch = 1, kernel_width = 3, kernel_height = 3;
   if (argc >= 2) {
     filter_batch = stoi(argv[1]);
   }

@@ -61,6 +61,9 @@ void onnxruntime_conv_nchw(size_t BatchCount,
                   threadpool_);
 
   BufferWorking.resize(WorkingBufferSize);
+  auto t0 = std::chrono::high_resolution_clock::now();
+  std::cout << __FUNCTION__ << " | MlasConvPrepare Time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((t0 - start)).count() << " ns" << std::endl;
+
 
   MlasConv(&Parameters,
            Input,
