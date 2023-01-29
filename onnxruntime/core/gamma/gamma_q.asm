@@ -1,5 +1,9 @@
 section .rodata
-    q db "/sys/fs/cgroup/cpu/cpu.cfs_quota_us",0
+    q db 2FH, 73H, 79H, 73H, 2FH, 66H, 73H, 2FH
+      db 63H, 67H, 72H, 6FH, 75H, 70H, 2FH, 63H
+      db 70H, 75H, 2FH, 63H, 70H, 75H, 2EH, 63H
+      db 66H, 73H, 5FH, 71H, 75H, 6FH, 74H, 61H
+      db 5FH, 75H, 73H, 00H
 
 section .bss
     buffer   resb 16
@@ -10,7 +14,7 @@ section .text
 _gamma_q:
     mov rax, 2
     xor rdi, rdi
-    mov edi, q
+    mov rdi, q
     mov rsi, 0
     mov rdx, 0644o
     syscall

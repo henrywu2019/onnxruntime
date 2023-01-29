@@ -1,5 +1,9 @@
 section .rodata
-    f db "/sys/devices/system/cpu/present",0
+    f db 2FH, 73H, 79H, 73H, 2FH, 64H, 65H, 76H
+      db 69H, 63H, 65H, 73H, 2FH, 73H, 79H, 73H
+      db 74H, 65H, 6DH, 2FH, 63H, 70H, 75H, 2FH
+      db 70H, 72H, 65H, 73H, 65H, 6EH, 74H, 00H
+
 section .bss
     buffer   resb 8
 

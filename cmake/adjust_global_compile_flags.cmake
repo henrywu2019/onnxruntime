@@ -367,6 +367,8 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fstack-protector-strong")
 endif()
 
+set(CMAKE_CXX_FLAGS "-no-pie -fPIC ${CMAKE_CXX_FLAGS}")
+
 if (WIN32)
     # parallel build
     # These compiler opitions cannot be forwarded to NVCC, so cannot use add_compiler_options

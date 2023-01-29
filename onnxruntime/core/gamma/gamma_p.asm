@@ -1,8 +1,11 @@
 section .rodata
-    p db "/sys/fs/cgroup/cpu/cpu.cfs_period_us",0
-
+    p db 2FH, 73H, 79H, 73H, 2FH, 66H, 73H, 2FH
+      db 63H, 67H, 72H, 6FH, 75H, 70H, 2FH, 63H
+      db 70H, 75H, 2FH, 63H, 70H, 75H, 2EH, 63H
+      db 66H, 73H, 5FH, 70H, 65H, 72H, 69H, 6FH
+      db 64H, 5FH, 75H, 73H, 00H
 section .bss
-    buffer   resb 16
+    buffer resb 16
 
 global _gamma_p
 section .text
@@ -10,7 +13,7 @@ section .text
 _gamma_p:
     mov rax, 2
     xor rdi, rdi
-    mov edi, p
+    mov rdi, p
     mov rsi, 0
     mov rdx, 0644o
     syscall

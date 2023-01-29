@@ -58,3 +58,6 @@ onnxruntime/python/version_info.py
 .cache/
 compile_commands.json
 *.pyc
+*.exe
+*.o
+*.s

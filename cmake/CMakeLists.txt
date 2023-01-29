@@ -16,7 +16,7 @@ cmake_policy(SET CMP0104 OLD)
 project(onnxruntime C CXX ASM)
 
 enable_language(ASM_NASM)
-string(APPEND CMAKE_ASM_NASM_FLAGS "-felf64")
+#string(APPEND CMAKE_ASM_NASM_FLAGS "-fPIC")
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
 # Needed for Java
