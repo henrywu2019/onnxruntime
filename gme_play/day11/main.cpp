@@ -1,6 +1,6 @@
 #include <bits/stdc++.h>
 #include "immintrin.h"
-#include "fmaintrin.h"
+//#include "fmaintrin.h"
 #define ORTCONV
 #ifdef ORTCONV
 #include "ort_conv.h"
@@ -9,19 +9,6 @@
 using namespace std;
 
 long l1_cache_size = sysconf(_SC_LEVEL1_DCACHE_SIZE);
-
-class block{
-  float** pa;
-  int len;
- public:
-  block(float* head, int oh, int ow, int iw):len(ow){
-    pa = new float*[oh];
-    for(auto i=0;i<oh;i++)
-      pa[i] = head + i*iw;
-  }
- public:
-
-};
 
 /*
  * Based on day6 example, increase the input channel number to 16.
@@ -204,9 +191,68 @@ long long gme_conv_ori(vector<float>& I,
 }
 
 
+class block{
+  float** pa;
+  float* F;
+  float* O;
+  int len;
+  int ih;
+  int iw;
+
+
+ public:
+  block(float* head, int ih_, int ow_, int iw_, float* f_, float* o):len(ow_),ih(ih_), F(f_), O(o), iw(iw_){
+    pa = new float*[ih];
+    for(auto i=0;i<ih;i++)
+      pa[i] = head + i*iw;
+  }
+  //~block(){delete [] pa;}
+  void advance(){
+    for(auto i=0;i<ih;i++) pa[i]++;
+  }
+
+  void run(){
+    for(int k=0;k<3;k++){
+      // i == 0
+      for (int j = 0; j < len; j++)
+        O[j] += *(pa[0] + j) * F[k];
+      // i == 1
+      for (int j = 0; j < len; j++){
+        auto z1 = *(pa[1] + j);
+        O[len+j] += z1 * F[k];
+        O[j] += z1 * F[k + 3];
+      }
+      for(int i=2;i<ih-2;i++) {
+        for (int j = 0; j < len; j++) {
+          auto z1 = *(pa[i] + j);
+          auto idx = i * len + j;
+          O[idx] += z1 * F[k];
+          O[idx - len] += z1 * F[k + 3];
+          O[idx - 2 * len] += z1 * F[k + 6];
+        }
+      }
+      // i==ih-2
+      for (int j = 0; j < len; j++){
+        auto z1 = *(pa[ih-2] + j);
+        auto idx = (ih-2) * len + j;
+        O[idx - len] += z1 * F[k + 3];
+        O[idx - 2 * len] += z1 * F[k + 6];
+      }
+      // i == ih-1
+      for (int j = 0; j < len; j++){
+        auto z1 = *(pa[ih-1] + j);
+        auto idx = (ih-1) * len + j;
+        O[idx - 2 * len] += z1 * F[k + 6];
+      }
+      advance();
+    }
+  }
+
+};
+
+
 long long gme_conv_no_extraction(vector<float>& I,
                        vector<float>& F,
-                       float* sliced_mat,
                        float* Output,
                        int Kh,
                        int Kw,
@@ -215,34 +261,8 @@ long long gme_conv_no_extraction(vector<float>& I,
   auto start = std::chrono::high_resolution_clock::now();
   int64_t idx = 0;
   for (int channel = 0; channel < Ci; channel++) {
-
-    block blk(I.data(), );
-
-
-    for (int i = 0; i < Kw; i++) {
-      // auto t0 = std::chrono::high_resolution_clock::now();
-      extract_o(I, sliced_mat, i, input_h, input_w, {output_h, output_w}, channel);  //////
-      // t1 = std::chrono::high_resolution_clock::now();
-      // std::cout << __LINE__ << " | Compute Time: " << std::chrono::duration_cast< std::chrono::nanoseconds >((t1 - t0)).count() << " us" << std::endl; t0=t1;
-
-      int64_t area = output_h*output_w;
-      if (i==0 and channel==0)
-        printf("area:%ld,output_h:%d,output_w:%d,size:%ld Byte\n", area, output_h, output_w, (area*sizeof(float)));
-
-      for (int k = 0; k < Kh; k++) { // w1, w4, w7
-        auto shifted_start = sliced_mat + output_w * k; // sliding down
-        for (int64_t m = 0; m < Co; m++) {
-          idx = k * Kw + i + channel * Kw * Kh + m*Kw*Kh*Ci;
-          //::printf("%d\n", idx);
-          float scalar = F[idx];
-          for (int t = 0; t < area; t++) {
-            auto z = *(shifted_start + t);
-            idx = t+m*area;
-            Output[idx] += scalar * z;
-          }
-        }
-      }
-    }
+    block blk(I.data(),input_h, output_w, input_w,F.data(), Output);
+    blk.run();
   }
   printf("idx: %ld\n", idx);
 
@@ -280,6 +300,14 @@ long long run(int run_flag, int input_height, int input_width, int input_channel
   printf("filter size: %d\n", filter_batch * input_channel * kernel_width * kernel_height);
   printf("input total size: %.2fKB\n", 1 * input_channel * input_width * input_height / (1024.));
 
+  if(run_flag & 0b1000){
+    auto t = gme_conv_no_extraction(I, F, O, kernel_height, kernel_width, input_channel, filter_batch,
+                          input_height, input_width, output_height, output_width);
+    print_output(O, output_height, output_width, filter_batch);
+    ::memset(O, 0, output_height * output_width * sizeof(float) * filter_batch);
+    printf("\n==============================================================================\n");
+  }
+
   if(run_flag & 0b100){
     float* sliced_mat_o = (float*)_mm_malloc(sizeof(float) * output_height * output_width, 32);
     auto t = gme_conv_ori(I, F, sliced_mat_o, O, kernel_height, kernel_width, input_channel, filter_batch,
@@ -292,7 +320,8 @@ long long run(int run_flag, int input_height, int input_width, int input_channel
     printf("==============================================================================\n");
   }
 
-  if (run_flag & 0b10) {
+  //if (run_flag & 0b10) {
+  if (0) {
     // vector<float> sliced_mat(input_height * output_width, 0);
     // float* sliced_mat = (float*) _mm_malloc(sizeof(float) * input_height * output_width, 32);
     float* sliced_mat = (float*)_mm_malloc(sizeof(float) * LINE * output_width, 32);
@@ -353,7 +382,7 @@ int main(int argc, char** argv) {
   long l3_cache_size = sysconf(_SC_LEVEL3_CACHE_SIZE);
   std::cout << "L3 data cache size: " << l3_cache_size << " bytes" << std::endl;
 
-  int input_width = 100, input_height = 3000, input_channel = 1, filter_batch = 1, kernel_width = 1, kernel_height = 1;
+  int input_width = 100, input_height = 3000, input_channel = 1, filter_batch = 1, kernel_width = 3, kernel_height = 3;
   if (argc >= 2) {
     filter_batch = stoi(argv[1]);
   }

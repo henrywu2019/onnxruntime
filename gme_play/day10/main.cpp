@@ -290,7 +290,7 @@ int main(int argc, char** argv) {
   long l3_cache_size = sysconf(_SC_LEVEL3_CACHE_SIZE);
   std::cout << "L3 data cache size: " << l3_cache_size << " bytes" << std::endl;
 
-  int input_width = 100, input_height = 3000, input_channel = 1, filter_batch = 1, kernel_width = 1, kernel_height = 1;
+  int input_width = 100, input_height = 3000, input_channel = 1, filter_batch = 1, kernel_width = 3, kernel_height = 3;
   if (argc >= 2) {
     filter_batch = stoi(argv[1]);
   }
