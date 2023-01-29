@@ -153,12 +153,13 @@ void onnxruntime_conv_nchwc(
                 &Activation,
                 true,
                 nullptr);
-  auto t1 = std::chrono::high_resolution_clock::now();
-  std::cout << __FUNCTION__ << " | Compute Time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((t1 - start)).count() << " ns" << std::endl;
 
   //
   // Reorder the output buffer.
   //
 
   MlasReorderOutputNchw(OutputShape, NchwcOutput, Output);
+  auto t1 = std::chrono::high_resolution_clock::now();
+  std::cout << __FUNCTION__ << " | Compute Time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((t1 - start)).count() << " ns" << std::endl;
+
 }
