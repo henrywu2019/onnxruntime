@@ -137,7 +137,7 @@ if (onnxruntime_LINK_LIBATOMIC)
   list(APPEND onnxruntime_EXTERNAL_LIBRARIES atomic)
 endif()
 
-target_link_libraries(onnxruntime_common PRIVATE "-no-pie")
+#target_link_libraries(onnxruntime_common PRIVATE "-no-pie")
 
 if(APPLE)
   target_link_libraries(onnxruntime_common PRIVATE "-framework Foundation")

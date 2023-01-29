@@ -1,7 +1,6 @@
 extern _gamma_p
 extern _gamma_q
 extern _gamma_hc
-
 global _gamma_tn
 section .text
 

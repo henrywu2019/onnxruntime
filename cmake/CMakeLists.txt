@@ -17,6 +17,7 @@ project(onnxruntime C CXX ASM)
 
 enable_language(ASM_NASM)
 string(APPEND CMAKE_ASM_NASM_FLAGS "-felf64")
+set(CMAKE_VERBOSE_MAKEFILE ON)
 
 # Needed for Java
 set(CMAKE_C_STANDARD 99)

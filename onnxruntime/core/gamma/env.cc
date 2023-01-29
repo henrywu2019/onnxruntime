@@ -1,8 +1,4 @@
-#ifdef GME_DEBUG
-#include "env.h"
-#else
 #include "core/gamma/env.h"
-#endif
 #include <iostream>
 #include <cstring>
 #include <fstream>
