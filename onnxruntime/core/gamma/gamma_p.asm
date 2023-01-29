@@ -5,7 +5,7 @@ section .rodata
       db 66H, 73H, 5FH, 70H, 65H, 72H, 69H, 6FH
       db 64H, 5FH, 75H, 73H, 00H
 section .bss
-    buffer resb 16
+    gamma_p_buffer resb 16
 
 global _gamma_p
 section .text
@@ -17,15 +17,14 @@ _gamma_p:
     mov rsi, 0
     mov rdx, 0644o
     syscall
-
     cmp rax, 0
-    jg good
+    jg gamma_p.good
     mov rax, -1
     ret
-good:
+gamma_p.good:
     mov rdi, rax
     mov rax, 0
-    mov rsi, buffer
+    mov rsi, gamma_p_buffer
     mov rdx, 16
     syscall
     mov rax, 3
@@ -35,17 +34,16 @@ good:
     mov rdx, 0
     xor rbx, rbx
     xor rax, rax
-
-    loop2:
+    gamma_p.loop2:
         mov al, byte [rcx]
         cmp al, 10
-        je end_loop2
+        je gamma_p.end_loop2
         imul rdx, 10
         mov bl, al
         sub bl, '0'
         add rdx, rbx
         add rcx, 1
-        jmp loop2
-    end_loop2:
+        jmp gamma_p.loop2
+    gamma_p.end_loop2:
     mov rax, rdx
     ret
