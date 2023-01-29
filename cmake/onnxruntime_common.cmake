@@ -9,6 +9,7 @@ set(onnxruntime_common_src_patterns
     "${ONNXRUNTIME_ROOT}/core/common/*.cc"
     "${ONNXRUNTIME_ROOT}/core/gamma/*.h"
     "${ONNXRUNTIME_ROOT}/core/gamma/*.cc"
+    "${ONNXRUNTIME_ROOT}/core/gamma/*.asm"
     "${ONNXRUNTIME_ROOT}/core/common/logging/*.h"
     "${ONNXRUNTIME_ROOT}/core/common/logging/*.cc"
     "${ONNXRUNTIME_ROOT}/core/common/logging/sinks/*.h"
@@ -87,6 +88,7 @@ endif()
 
 source_group(TREE ${REPO_ROOT} FILES ${onnxruntime_common_src})
 
+#string(APPEND CMAKE_CXX_FLAGS " -no-pie -fPIC")
 onnxruntime_add_static_library(onnxruntime_common ${onnxruntime_common_src})
 
 if (onnxruntime_USE_TELEMETRY)
@@ -125,7 +127,6 @@ install(DIRECTORY ${PROJECT_SOURCE_DIR}/../include/onnxruntime/core/common  DEST
 set_target_properties(onnxruntime_common PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(onnxruntime_common PROPERTIES FOLDER "ONNXRuntime")
 
-
 if (onnxruntime_WINML_NAMESPACE_OVERRIDE STREQUAL "Windows")
   target_compile_definitions(onnxruntime_common PRIVATE "BUILD_INBOX=1")
 endif()
@@ -135,6 +136,8 @@ endif()
 if (onnxruntime_LINK_LIBATOMIC)
   list(APPEND onnxruntime_EXTERNAL_LIBRARIES atomic)
 endif()
+
+target_link_libraries(onnxruntime_common PRIVATE "-no-pie")
 
 if(APPLE)
   target_link_libraries(onnxruntime_common PRIVATE "-framework Foundation")

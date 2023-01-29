@@ -1,7 +1,7 @@
 #include <bits/stdc++.h>
 #include "immintrin.h"
 #include "fmaintrin.h"
-#define ORTCONV
+//#define ORTCONV
 #ifdef ORTCONV
 #include "ort_conv.h"
 #endif
@@ -119,13 +119,18 @@ void print_output(float* Output, int h, int w, int output_channel) {
     printf("%.2f, ", Output[t]);
     if (t % 32 == 31) printf("\n");
   }
+  printf("...");
+  for (int t = output_channel * w * h-32; t < output_channel * w * h; t++) {
+    printf("%.2f,", Output[t]);
+    if (t % 32 == 31) printf("\n");
+  }
   //printf("\n");
 }
 
 
 long long run(int run_flag, int input_height, int input_width, int input_channel, int filter_batch, int kernel_width=3, int kernel_height=3){
-  printf("input_height:%d,input_width:%d,input_channel:%d,filter_batch:%d\n",
-         input_height, input_width, input_channel, filter_batch);
+  printf("input_height:%d,input_width:%d,input_channel:%d,filter_batch:%d,kernel_width:%d,kernel_height:%d\n",
+         input_height, input_width, input_channel, filter_batch, kernel_width, kernel_height);
   const int output_height =input_height-kernel_height+1, output_width=input_width-kernel_width+1;
   float* O = new float[output_height*output_width*filter_batch]();
 
@@ -202,7 +207,7 @@ int main(int argc, char** argv) {
     cout << pr.second << ",";
   }
 #else
-  input_width=100, input_height=900, input_channel=1, filter_batch = 1, kernel_width=3, kernel_height=3;
+  input_width=100, input_height=900, input_channel=1, filter_batch = 1, kernel_width=3, kernel_height=1;
   if (argc>=2){
     filter_batch = stoi(argv[1]);
   }

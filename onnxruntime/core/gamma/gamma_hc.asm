@@ -1,34 +1,31 @@
-%include "h.inc"
-
 section .rodata
-    ;filename db "/sys/devices/system/cpu/present",0
-    filename db "test.txt",0
+    f db "/sys/devices/system/cpu/present",0
 section .bss
-    buffer   resb 20
+    buffer   resb 8
 
-global GammaHC
+global _gamma_hc
 section .text
 
-GammaHC:
-    ; Open the file
+_gamma_hc:
     mov rax, 2
-    mov rdi, filename
+    mov rdi, f
     mov rsi, 0
     mov rdx, 0644o
     syscall
 
-    mov rdi, rax ; Read the file
+    cmp rax, 0
+    jg good
+    mov rax, -1
+    ret
+good:
+    mov rdi, rax
     mov rax, 0
     mov rsi, buffer
-    mov rdx, 20
+    mov rdx, 8
     syscall
-
-    ; Close the file
     mov rax, 3
     mov rbx, rdi
     syscall
-
-    ; Parse the file contents to get the number of CPUs
     mov rcx, buffer
     mov rdx, 0
     xor rbx, rbx
@@ -46,7 +43,6 @@ GammaHC:
         mov al, byte [rcx]
         cmp al, 10
         je end_loop2
-
         imul rdx, 10
         mov bl, al
         sub bl, '0'
@@ -57,4 +53,3 @@ GammaHC:
     mov rax, rdx
     add rax, 1
     ret
-

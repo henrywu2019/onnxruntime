@@ -137,7 +137,7 @@ void onnxruntime_conv_nchwc(
   MLAS_ACTIVATION Activation;
   Activation.ActivationKind = MlasIdentityActivation;
   auto t0 = std::chrono::high_resolution_clock::now();
-  std::cout << __FUNCTION__ << " | Reorder Time: " << std::chrono::duration_cast<std::chrono::microseconds>((t0 - start)).count() << " us" << std::endl;
+  std::cout << __FUNCTION__ << " | Reorder Time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((t0 - start)).count() << " ns" << std::endl;
 
   MlasNchwcConv(InputShape,
                 KernelShape,
@@ -154,7 +154,7 @@ void onnxruntime_conv_nchwc(
                 true,
                 nullptr);
   auto t1 = std::chrono::high_resolution_clock::now();
-  std::cout << __FUNCTION__ << " | Compute Time: " << std::chrono::duration_cast<std::chrono::microseconds>((t1 - start)).count() << " us" << std::endl;
+  std::cout << __FUNCTION__ << " | Compute Time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((t1 - start)).count() << " ns" << std::endl;
 
   //
   // Reorder the output buffer.

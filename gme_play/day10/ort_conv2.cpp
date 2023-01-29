@@ -70,6 +70,6 @@ void onnxruntime_conv_nchw(size_t BatchCount,
            Output,
            threadpool_);
   auto t1 = std::chrono::high_resolution_clock::now();
-  std::cout << __FUNCTION__ << " | Compute Time: " << std::chrono::duration_cast<std::chrono::microseconds>((t1 - start)).count() << " us" << std::endl;
+  std::cout << __FUNCTION__ << " | Compute Time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((t1 - start)).count() << " ns" << std::endl;
 
 }
