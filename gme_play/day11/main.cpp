@@ -202,9 +202,13 @@ class block{
 
  public:
   block(float* head, int ih_, int ow_, int iw_, float* f_, float* o):len(ow_),ih(ih_), F(f_), O(o), iw(iw_){
+    auto start = std::chrono::high_resolution_clock::now();
     pa = new float*[ih];
     for(auto i=0;i<ih;i++)
       pa[i] = head + i*iw;
+    auto t1 = std::chrono::high_resolution_clock::now();
+    long long t=std::chrono::duration_cast<std::chrono::nanoseconds>((t1 - start)).count();
+    std::cout << __FUNCTION__ << " | Init Time: " << t << " ns" << std::endl;
   }
   //~block(){delete [] pa;}
   void advance(){
