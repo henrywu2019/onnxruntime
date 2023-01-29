@@ -30,7 +30,7 @@ gamma_p.good:
     mov rax, 3
     mov rbx, rdi
     syscall
-    mov rcx, buffer
+    mov rcx, gamma_p_buffer
     mov rdx, 0
     xor rbx, rbx
     xor rax, rax

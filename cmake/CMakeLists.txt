@@ -17,7 +17,7 @@ project(onnxruntime C CXX ASM)
 
 enable_language(ASM_NASM)
 #string(APPEND CMAKE_ASM_NASM_FLAGS "-fPIC")
-set(CMAKE_VERBOSE_MAKEFILE ON)
+set(CMAKE_VERBOSE_MAKEFILE OFF)
 
 # Needed for Java
 set(CMAKE_C_STANDARD 99)

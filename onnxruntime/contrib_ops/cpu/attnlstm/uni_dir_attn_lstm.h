@@ -12,7 +12,7 @@
 #include "core/framework/allocator.h"
 
 #include "core/common/gsl.h"
-#include "core/gamma/env.h"
+#include "core/gamma/gme.h"
 
 namespace onnxruntime {
 namespace contrib {

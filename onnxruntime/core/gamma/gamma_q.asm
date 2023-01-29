@@ -19,14 +19,14 @@ _gamma_q:
     jle _gamma_q_exception
     mov rdi, rax
     mov rax, 0
-    mov rsi, buffer
+    mov rsi, gamma_q_buffer
     mov rdx, 16
     syscall
 
     mov rax, 3
     mov rbx, rdi
     syscall
-    mov rcx, buffer
+    mov rcx, gamma_q_buffer
     mov rdx, 0
     xor rbx, rbx
     xor rax, rax

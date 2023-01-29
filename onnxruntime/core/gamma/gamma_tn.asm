@@ -6,7 +6,7 @@ section .text
 _gamma_tn:
     call _gamma_q
     cmp rax, -1
-    je fall_back
+    je gamma_tn.fall_back
     mov rbx, rax
     call _gamma_p
     cmp rax, -1
@@ -14,7 +14,6 @@ _gamma_tn:
     idiv rbx
     mov rax, rbx
     ret
-    
 gamma_tn.fall_back:
     call _gamma_hc
     ret
