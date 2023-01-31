@@ -379,7 +379,7 @@ long long run(int run_flag, int input_height, int input_width, int input_channel
                            F.data(),
                            nullptr,
                            O);
-    print_output(O, output_height, output_width, filter_batch, 1);
+    print_output(O, output_height, output_width, filter_batch, 0);
     ::memset(O, 0, output_height * output_width * sizeof(float)*filter_batch);
     printf("\n==============================================================================\n");
 #endif
@@ -393,7 +393,7 @@ long long run(int run_flag, int input_height, int input_width, int input_channel
                           1, 1,
                           1, 1,
                           output_height, output_width, I.data(), F.data(), nullptr, O);
-    print_output(O, output_height, output_width, filter_batch, 1);
+    print_output(O, output_height, output_width, filter_batch, 0);
     ::memset(O, 0, output_height * output_width * sizeof(float) * filter_batch);
     printf("\n==============================================================================\n");
 #endif
