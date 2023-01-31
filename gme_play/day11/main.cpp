@@ -2,6 +2,7 @@
 #include "immintrin.h"
 //#include "fmaintrin.h"
 #define ORTCONV
+//#define RANDDATA
 #ifdef ORTCONV
 #include "ort_conv.h"
 #endif
@@ -15,19 +16,25 @@ long l1_cache_size = sysconf(_SC_LEVEL1_DCACHE_SIZE);
  * */
 
 
-void get_input(vector<float>& l, int n, int c, int w, int h) {
+void get_input(vector<float>& l, int n, int c, int w, int h, float channel_delta=0, float cell_delta=1) {
   if ((int)l.size() < n * c * w * h) l.resize(n * c * w * h);
   float start = 1.;
   for (int i = 0; i < n; i++){
     for (int j = 0; j < c; j++) {
+#ifdef RANDDATA
       start = start/(abs(int(start))+1) + ((double) rand() / (RAND_MAX)) + 0.1; if(rand()&1) start*=-1;
-      //start = 1+i*0.1;
+#else
+      start = 1+i*0.1+j*channel_delta;
+#endif
       for (int m = 0; m < h; m++)
         for (int k = 0; k < w; k++) {
           int idx = k + m * w + h * w * j + h * w * c * i;
+#ifdef RANDDATA
           if(rand()&1) start*=-1;
-          l[idx] = start, start += 0.1; //1.0;//
-          //l[idx] = start, start += 1;
+          l[idx] = start, start += 0.01;
+#else
+          l[idx] = start, start += cell_delta;
+#endif
         }
     }
   }
@@ -310,7 +317,7 @@ long long run(int run_flag, int input_height, int input_width, int input_channel
   printf("output size: %ldB\n", output_height * output_width * filter_batch * sizeof(float));
 
   vector<float> I, F;
-  get_input(I, 1, input_channel, input_width, input_height);
+  get_input(I, 1, input_channel, input_width, input_height, 0.1, 1);
   get_input(F, filter_batch, input_channel, kernel_width, kernel_height);
   printf("filter size: %d\n", filter_batch * input_channel * kernel_width * kernel_height);
   printf("input total size: %.2fKB\n", 1 * input_channel * input_width * input_height / (1024.));
@@ -354,7 +361,6 @@ long long run(int run_flag, int input_height, int input_width, int input_channel
 
   if (run_flag & 0b1) {
 #ifdef ORTCONV
-#if 1
     onnxruntime_conv_nchwc(1, 1, input_channel, input_height, input_width,
                            filter_batch, kernel_height, kernel_width,
                            0, 0, 0, 0,
@@ -367,9 +373,12 @@ long long run(int run_flag, int input_height, int input_width, int input_channel
                            O);
     print_output(O, output_height, output_width, filter_batch);
     ::memset(O, 0, output_height * output_width * sizeof(float)*filter_batch);
-#endif
     printf("\n==============================================================================\n");
+#endif
+  }
 
+  if (run_flag & 0b10000) {
+#ifdef ORTCONV
     onnxruntime_conv_nchw(1, 1, input_channel, input_height, input_width,
                           filter_batch, kernel_height, kernel_width,
                           0, 0, 0, 0,
@@ -379,7 +388,6 @@ long long run(int run_flag, int input_height, int input_width, int input_channel
     print_output(O, output_height, output_width, filter_batch);
     ::memset(O, 0, output_height * output_width * sizeof(float) * filter_batch);
     printf("\n==============================================================================\n");
-
 #endif
   }
 
