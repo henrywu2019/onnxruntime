@@ -2,7 +2,7 @@
 #include "immintrin.h"
 //#include "fmaintrin.h"
 #define ORTCONV
-#define RANDDATA
+//#define RANDDATA
 #ifdef ORTCONV
 #include "ort_conv.h"
 #endif
@@ -295,15 +295,7 @@ long long gme_conv_no_extraction(vector<float>& I,
 }
 
 
-void print_output(float* Output, int h, int w, int output_channel, bool all=false) {
-  if(all){
-    for(int i=0;i<h;i++){
-      for(int j=0;j<w-1;j++)
-        printf("%.1f,",Output[i*w+j]);
-      printf("%.1f\n",Output[i*w+w-1]);
-    }
-    return;
-  }
+void print_output(float* Output, int h, int w, int output_channel) {
   for (int t = 0; t < min(32, output_channel * w * h); t++) {
     printf("%.2f,", Output[t]);
     if (t % 16 == 15) printf("\n");
@@ -379,7 +371,7 @@ long long run(int run_flag, int input_height, int input_width, int input_channel
                            F.data(),
                            nullptr,
                            O);
-    print_output(O, output_height, output_width, filter_batch, true);
+    print_output(O, output_height, output_width, filter_batch);
     ::memset(O, 0, output_height * output_width * sizeof(float)*filter_batch);
     printf("\n==============================================================================\n");
 #endif
@@ -393,7 +385,7 @@ long long run(int run_flag, int input_height, int input_width, int input_channel
                           1, 1,
                           1, 1,
                           output_height, output_width, I.data(), F.data(), nullptr, O);
-    print_output(O, output_height, output_width, filter_batch, true);
+    print_output(O, output_height, output_width, filter_batch);
     ::memset(O, 0, output_height * output_width * sizeof(float) * filter_batch);
     printf("\n==============================================================================\n");
 #endif
