@@ -1,12 +1,13 @@
 #include <bits/stdc++.h>
 #include "immintrin.h"
 #include "fmaintrin.h"
-#define RANDDATA
+//#define RANDDATA
 
 using namespace std;
 using namespace chrono;
 
-void get_input(float* l, int n, int c, int w, int h, float channel_delta=0, float cell_delta=1) {
+void get_input(vector<float>& l, int n, int c, int w, int h, float channel_delta=0, float cell_delta=1) {
+  if ((int)l.size() < n * c * w * h) l.resize(n * c * w * h);
   float start = 1.;
   for (int i = 0; i < n; i++){
     for (int j = 0; j < c; j++) {
@@ -36,7 +37,11 @@ struct conv_attr{
   int OH,OW;   // output
   conv_attr(int N_,int C_,int H_,int W_,int K_,int R_,int L_):N(N_),C(C_),H(H_),W(W_),K(K_),R(R_),L(L_){
     OH = H-R+1;
-    OW=W-L+1;
+    OW = W-L+1;
+  }
+  void pad(int x){
+    x*=2;
+    H+=x, W+=x, OH+=x, OW+=x;
   }
 };
 
@@ -59,6 +64,7 @@ struct conv_wfh{ // can refactor using inheritance
   float *input;
   float *kernel;
   float *output;
+  float *O;//final output
   // wfh Algo memory store
   float* core;
   float* o;
@@ -66,7 +72,11 @@ struct conv_wfh{ // can refactor using inheritance
   float* f;
 
 
-  conv_wfh(conv_attr ca_, float* input_, float* kernel_, float* output_):ca(ca_),input(input_), kernel(kernel_), output(output_){
+  conv_wfh(conv_attr ca_, float* input_, float* kernel_, float* output_):ca(ca_),input(input_), kernel(kernel_), O(output_){
+    int ori_h=ca.H, ori_w=ca.W;
+    // pad
+    ca.pad(2);
+
     core_h = ca.H-4;
     core_w = ca.W-4;
     core_c = ca.C;
@@ -79,31 +89,65 @@ struct conv_wfh{ // can refactor using inheritance
     filter_channel_stride = ca.R*ca.L;
     filter_batch_stride = ca.C*filter_channel_stride;
     filter_size = ca.K*filter_batch_stride;
+
+    // assuming n=1
+    float* tmp = new float[ca.H*ca.W*ca.C*ca.H]();
+    for(int c_=0;c_<ca.C;c_++){
+      for(int h_=2;h_<ca.H-2;h_++){
+        int base=2 + h_*ca.W + c_*ca.W*ca.H;
+        ::memcpy(tmp+base,input+(h_-2)*ori_w+c_*ori_w*ori_h,ori_w*sizeof(float));
+      }
+    }
+    input = tmp;
+    /*for(int i=0;i<ca.H;i++){
+      for(int j=0;j<ca.W-1;j++)
+        printf("%.1f,",input[i*ca.W+j+0*ca.H*ca.W]);
+      printf("%.1f\n",input[i*ca.W+ca.W-1+0*ca.H*ca.W]);
+    }*/
+
+    output = new float[ca.OH * ca.OW * ca.K]();
   }
 
   void reorder_input();
   void reorder_filter(){
     int idx;
-    f = (float*) _mm_malloc(sizeof(float) * filter_size, 32);
+    f = new float[filter_size]();
     int i=0;
     for(int k_=0;k_<ca.K;k_++){
-      for(int r_=ca.R-1;r_>=0;r_--){
-        for(int l_=ca.L-1;l_>=0;l_--){
+      for(int r_=0;r_<ca.R;r_++){
+        for(int l_=0;l_<ca.L;l_++){
           for(int c_=0;c_<ca.C;c_++){
             idx=k_*filter_batch_stride+c_*filter_channel_stride+r_*ca.L+l_;
-            float x=kernel[idx];
-            f[i++] = x;
+            f[i++] = kernel[idx];
           }
         }
       }
     }
   }
   void run();
-  void print(){
+
+  void print_output(){
     for(int i=0;i<ca.OH;i++){
       for(int j=0;j<ca.OW-1;j++)
-        printf("%.1f,",output[i*ca.OW+j]);
-      printf("%.1f\n",output[i*ca.OW+ca.OW-1]);
+        printf("%.1f,",O[i*(ca.OW)+j]);
+      printf("%.1f\n",O[i*(ca.OW)+(ca.OW)-1]);
+    }
+  }
+  void print(){
+    for(int i=0;i<ca.OH-4;i++){
+      for(int j=0;j<ca.OW-4-1;j++)
+        printf("%.1f,",O[i*(ca.OW-4)+j]);
+      printf("%.1f\n",O[i*(ca.OW-4)+(ca.OW-4)-1]);
+    }
+  }
+
+  void post_process(){
+    for(int c_=0;c_<ca.C;c_++){
+      for(int h_=2;h_<ca.OH-2;h_++){
+        int base=2+h_*ca.OW+c_*ca.OW*ca.OH;
+        //::memcpy(tmp+base,input+(h_-2)*ori_w,ori_w*sizeof(float));
+        ::memcpy(O+(h_-2)*(ca.OW-4), output+base,(ca.OW-4)*sizeof(float));
+      }
     }
   }
 };
@@ -112,7 +156,7 @@ struct conv_wfh{ // can refactor using inheritance
 void conv_wfh::reorder_input() {
   auto start = high_resolution_clock::now();
   // core
-  core = (float*) _mm_malloc(sizeof(float) * core_size, 32);
+  core = new float[core_size]();
   float *tmp=core;
   int safe_batch = core_padding>0?core_batch-1:core_batch;//
 
@@ -152,16 +196,16 @@ void conv_wfh::run() {
 
 
   for(int r_=0;r_<ca.R;r_++){
-    for(int l_=0;l_<ca.L;l_++){ // 9,8,7
+    for(int l_=0;l_<ca.L;l_++){
       int input_idx=0;
-      int offset_y= r_, offset_x=l_;
+      int offset_y= 2-r_, offset_x=2-l_;
       float* output_base = output + ca.OW*offset_y + offset_x;
-      for(int ch_=0;ch_< core_h;ch_++){ // h
+      for(int ch_=0;ch_<core_h;ch_++){ // h
         for(int cb_=0;cb_<safe_batch;cb_++){ // w
           output_src =output_base + ch_*ca.OW + cb_*VL;
           res = _mm256_loadu_ps(output_src);
           for(int c_=0;c_<ca.C;c_++){
-            x = _mm256_load_ps(core+input_idx++ * VL); // input
+            x = _mm256_loadu_ps(core+input_idx++ * VL); // input
             y = _mm256_set1_ps(*(f + c_ + l_*ca.C+ r_*ca.L*ca.C));     //kernel
             res = _mm256_fmadd_ps(x, y, res);
           }
@@ -171,7 +215,7 @@ void conv_wfh::run() {
           output_src = output_base + ch_*ca.OW + safe_batch*VL;
           res = _mm256_loadu_ps(output_src);
           for(int c_=0;c_<ca.C;c_++){
-            x = _mm256_load_ps(core+input_idx++ * VL); // input
+            x = _mm256_loadu_ps(core+input_idx++ * VL); // input
             y = _mm256_set1_ps(*(f + c_ + l_*ca.C+ r_*ca.L*ca.C));     //kernel
             res = _mm256_fmadd_ps(x, y, res);
           }
@@ -188,27 +232,26 @@ void conv_wfh::run() {
 
 int main(){
   srand(0xdeadbeef);
-  int input_height = 30, input_width = 30, input_channel = 2, filter_batch = 1, kernel_width = 3, kernel_height = 3;
-  input_channel = 256, input_height = 400, input_width = 296;
+  int input_height = 30, input_width = 30, input_channel = 256, filter_batch = 1, kernel_width = 3, kernel_height = 3;
+  //input_height = 400, input_width = 296, input_channel = 256;
 
   const int output_height = input_height - kernel_height + 1, output_width = input_width - kernel_width + 1;
   conv_attr ca(1, input_channel, input_height, input_width,filter_batch, kernel_height, kernel_width);
-  float* I = (float*) _mm_malloc(sizeof(float) * input_channel*input_width*input_height, 32);
-  float* F = (float*) _mm_malloc(sizeof(float) * filter_batch*input_channel*kernel_width*kernel_height, 32);
-
+  vector<float> I, F;
   get_input(I, 1, input_channel, input_width, input_height, 0.1, 1);
   get_input(F, filter_batch, input_channel, kernel_width, kernel_height, 0.1);
   printf("filter size: %d\n", filter_batch * input_channel * kernel_width * kernel_height);
   printf("input total size: %.2fKB\n", 1 * input_channel * input_width * input_height / (1024.));
-  float* O = (float*) _mm_malloc(sizeof(float) * output_height * output_width * filter_batch, 32);
+  float* O = new float[output_height * output_width * filter_batch]();
 
-  conv_wfh cw(ca,I,F, O);
+  conv_wfh cw(ca,I.data(),F.data(), O);
   auto start = high_resolution_clock::now();
   cw.reorder_input();
   cw.reorder_filter();
   cw.run();
+  cw.print_output();
+  cw.post_process();
   long long t=duration_cast<nanoseconds>((high_resolution_clock::now() - start)).count();cout << __FUNCTION__ << " | total algo Time: " << t << " ns" << endl;
-  cw.print();
-  _mm_free(I), _mm_free(F), _mm_free(O);
+  //cw.print();
   return 0;
 }
