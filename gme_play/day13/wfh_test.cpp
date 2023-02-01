@@ -1,7 +1,7 @@
 #include <bits/stdc++.h>
 #include "immintrin.h"
 #include "fmaintrin.h"
-#define RANDDATA
+//#define RANDDATA
 
 using namespace std;
 using namespace chrono;
@@ -146,38 +146,53 @@ void conv_wfh::reorder_input() {
 void conv_wfh::run() {
   auto start = high_resolution_clock::now();
   const int remaining_bytes = (VL - core_padding) * sizeof(float);
-  __m256 x1, y1, r1;
-  float* output_src = nullptr;
+  __m256 x={}, y={}, r={};
+  float* output_base[9]={}, *output_src[9]={};
   int safe_batch = core_padding > 0 ? core_batch - 1 : core_batch;  //
 
-  for (int r_ = 0; r_ < ca.R; r_++) {
-    for (int l_ = 0; l_ < ca.L; l_++) {  // 9,8,7
-      int input_idx = 0;
-      int offset_y = r_, offset_x = l_;
-      float* output_base = output + ca.OW * offset_y + offset_x;
-      for (int ch_ = 0; ch_ < core_h; ch_++) {        // h
-        for (int cb_ = 0; cb_ < safe_batch; cb_++) {  // w
-          output_src = output_base + ch_ * ca.OW + cb_ * VL;
-          r1 = _mm256_loadu_ps(output_src);
+
+  for (int r_ = 0; r_ < ca.R; r_++)
+    for (int l_ = 0; l_ < ca.L; l_++)
+      output_base[l_+r_*ca.L] = output + ca.OW * r_ + l_;
+
+  for (int ch_ = 0; ch_ < core_h; ch_++) {        // h
+    for (int cb_ = 0; cb_ < safe_batch; cb_++) {  // w
+      ////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+      for (int r_ = 0; r_ < ca.R; r_++){
+        for (int l_ = 0; l_ < ca.L; l_++){
+          int ri = l_+r_*ca.L;
+          output_src[ri] = output_base[ri] + ch_ * ca.OW + (cb_<<3);
+          r = _mm256_loadu_ps(output_src[ri]);
+
           for (int c_ = 0; c_ < ca.C; c_++) {
-            x1 = _mm256_load_ps(core + input_idx++ * VL);                   // input
-            y1 = _mm256_set1_ps(*(f + c_ + l_ * ca.C + r_ * ca.L * ca.C));  // kernel
-            r1 = _mm256_fmadd_ps(x1, y1, r1);
+            int y_idx=c_ + ri * ca.C;
+            // input is unrelated to r_ and l_, but related to channel
+            x = _mm256_load_ps(core + ((ch_*core_batch*core_c+cb_*core_c)<<3) + c_*8);
+            y = _mm256_set1_ps(f[y_idx]);  // kernel
+            r = _mm256_fmadd_ps(x, y, r);
           }
-          _mm256_storeu_ps(output_src, r1);
+          _mm256_storeu_ps(output_src[ri], r);
         }
-        if (core_padding > 0) {
-          output_src = output_base + ch_ * ca.OW + safe_batch * VL;
-          r1 = _mm256_loadu_ps(output_src);
+      }
+    }
+    if (core_padding > 0) {       /* last line to handle padding */
+      for (int r_ = 0; r_ < ca.R; r_++){
+        for (int l_ = 0; l_ < ca.L; l_++){
+          int ri = l_+r_*ca.L; //  register index
+          output_src[ri] = output_base[ri] + ch_ * ca.OW + (safe_batch<<3);
+          r = _mm256_loadu_ps(output_src[ri]);
           for (int c_ = 0; c_ < ca.C; c_++) {
-            x1 = _mm256_load_ps(core + input_idx++ * VL);                   // input
-            y1 = _mm256_set1_ps(*(f + c_ + l_ * ca.C + r_ * ca.L * ca.C));  // kernel
-            r1 = _mm256_fmadd_ps(x1, y1, r1);
+            x = _mm256_load_ps(core + ((ch_*core_batch*core_c+safe_batch*core_c)<<3) + c_*8);// input is unrelated to r_ and l_
+            int y_idx=c_ + ri * ca.C;
+            y = _mm256_set1_ps(f[y_idx]);  // kernel
+            r = _mm256_fmadd_ps(x, y, r);
           }
-          // inline void extract_float_less_VL(){}
-          float t[8] = {};
-          _mm256_storeu_ps(t, r1);
-          ::memcpy(output_src, t, remaining_bytes);
+          float t[8] = {};             // inline void extract_float_less_VL(){}
+          _mm256_storeu_ps(t, r);
+          ::memcpy(output_src[ri], t, remaining_bytes);
         }
       }
     }
@@ -189,7 +204,7 @@ void conv_wfh::run() {
 int main() {
   srand(0xdeadbeef);
   int input_height = 30, input_width = 30, input_channel = 2, filter_batch = 1, kernel_width = 3, kernel_height = 3;
-  input_channel = 256, input_height = 400, input_width = 296;
+  //input_channel = 256, input_height = 400, input_width = 296;
 
   const int output_height = input_height - kernel_height + 1, output_width = input_width - kernel_width + 1;
   conv_attr ca(1, input_channel, input_height, input_width, filter_batch, kernel_height, kernel_width);
@@ -209,7 +224,7 @@ int main() {
   cw.run();
   long long t = duration_cast<nanoseconds>((high_resolution_clock::now() - start)).count();
   cout << __FUNCTION__ << " | total algo Time: " << t << " ns" << endl;
-  // cw.print();
+  cw.print();
   _mm_free(I), _mm_free(F), _mm_free(O);
   return 0;
 }

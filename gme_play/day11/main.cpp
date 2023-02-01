@@ -325,7 +325,7 @@ long long run(int run_flag, int input_height, int input_width, int input_channel
   printf("output size: %ldB\n", output_height * output_width * filter_batch * sizeof(float));
 
   vector<float> I, F;
-  get_input(I, 1, input_channel, input_width, input_height, 0.1, 1);
+  get_input(I, 1, input_channel, input_width, input_height, 0, 1);
   get_input(F, filter_batch, input_channel, kernel_width, kernel_height);
   printf("filter size: %d\n", filter_batch * input_channel * kernel_width * kernel_height);
   printf("input total size: %.2fKB\n", 1 * input_channel * input_width * input_height / (1024.));
@@ -379,7 +379,7 @@ long long run(int run_flag, int input_height, int input_width, int input_channel
                            F.data(),
                            nullptr,
                            O);
-    print_output(O, output_height, output_width, filter_batch, 0);
+    print_output(O, output_height, output_width, filter_batch, 1);
     ::memset(O, 0, output_height * output_width * sizeof(float)*filter_batch);
     printf("\n==============================================================================\n");
 #endif
@@ -393,7 +393,7 @@ long long run(int run_flag, int input_height, int input_width, int input_channel
                           1, 1,
                           1, 1,
                           output_height, output_width, I.data(), F.data(), nullptr, O);
-    print_output(O, output_height, output_width, filter_batch, 0);
+    print_output(O, output_height, output_width, filter_batch, 1);
     ::memset(O, 0, output_height * output_width * sizeof(float) * filter_batch);
     printf("\n==============================================================================\n");
 #endif
