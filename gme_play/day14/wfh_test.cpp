@@ -172,6 +172,8 @@ void conv_wfh::run() {
         output_base[l_ + r_ * ca.L + filter_channel_stride * k_] = output + ca.OW * r_ + l_ + out_channel_stride * k_;
   }
 
+  auto tmp_out = (float*)_mm_malloc(sizeof(float) * core_size*9, 32);
+
 
   long long called=0;
   for (int ch_ = 0; ch_ < core_h; ch_++) {        // h
@@ -182,18 +184,19 @@ void conv_wfh::run() {
             int ri = l_ + r_ * ca.L + k_ * filter_channel_stride;
             output_src[ri] = output_base[ri] + ch_ * ca.OW + (cb_ << 3);
             r = _mm256_loadu_ps(output_src[ri]);
+            //r = _mm256_set1_ps(0);
             for (int c_ = 0; c_ < ca.C; c_++) {
               x = _mm256_load_ps(core + ((ch_ * core_batch * core_c + cb_ * core_c) << 3) + c_ * 8);// input is unrelated to r_ and l_, but related to channel
               y = _mm256_set1_ps(f[c_ + ri * ca.C]);  // kernel
               r = _mm256_fmadd_ps(x, y, r);
-              called++;
+              //called++;
               /*printf("%lld,xid=%d,yid=%d,ri=%d\n",
                      called,
                      ((ch_ * core_batch * core_c + cb_ * core_c) << 3) + c_ * 8,
                      ri * ca.C,
                      ri);*/
             }
-            printf("%lld,ri=%d\n",called, ri);
+            //printf("%lld,ri=%d\n",called, ri);
             _mm256_storeu_ps(output_src[ri], r);
             /*for (int c_ = 0; c_ < ca.C; c_++) {
               for(int v=0;v<8;v++){
@@ -219,7 +222,7 @@ void conv_wfh::run() {
               r = _mm256_fmadd_ps(x, y, r);
             }
             float t[8] = {};  // inline void extract_float_less_VL(){}
-            _mm256_storeu_ps(t, r);
+            //_mm256_storeu_ps(t, r);
             ::memcpy(output_src[ri], t, remaining_bytes);
           }
         }
