@@ -189,7 +189,7 @@ void conv_wfh::run() {
 int main() {
   srand(0xdeadbeef);
   int input_height = 30, input_width = 30, input_channel = 2, filter_batch = 1, kernel_width = 3, kernel_height = 3;
-  //input_channel = 256, input_height = 400, input_width = 296;
+  input_channel = 256, input_height = 400, input_width = 296;
 
   const int output_height = input_height - kernel_height + 1, output_width = input_width - kernel_width + 1;
   conv_attr ca(1, input_channel, input_height, input_width, filter_batch, kernel_height, kernel_width);
@@ -209,7 +209,7 @@ int main() {
   cw.run();
   long long t = duration_cast<nanoseconds>((high_resolution_clock::now() - start)).count();
   cout << __FUNCTION__ << " | total algo Time: " << t << " ns" << endl;
-  cw.print();
+  //cw.print();
   _mm_free(I), _mm_free(F), _mm_free(O);
   return 0;
 }

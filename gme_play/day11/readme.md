@@ -39,7 +39,7 @@ onnxruntime_conv_nchw | Compute Time: 67836117 ns
 
 ```
 
-64 filter batch(2-3faster):
+64 filter batch:
 ```angular2html
 (ocr-py38) ✔ ~/wendy/git.repo/onnxruntime/gme_play/day11 [gme_research|✚ 5…36] 
 11:32 $ ./run_release.sh  && ./main_release.exe 64 256 400 296 15 8
@@ -79,7 +79,6 @@ onnxruntime_conv_nchw | Compute Time: 407762235 ns
 -379.44,-2822.85,2906.91,1379.32,-2813.61,-3597.17,1024.90,-821.29,-1296.09,-752.32,3325.90,2426.19,424.70,887.35,1518.40,-651.12,
 
 ==============================================================================
-
 ```
 
 cache:
