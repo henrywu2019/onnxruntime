@@ -172,7 +172,8 @@ void conv_wfh::run() {
         output_base[l_ + r_ * ca.L + filter_channel_stride * k_] = output + ca.OW * r_ + l_ + out_channel_stride * k_;
   }
 
-  auto tmp_out = (float*)_mm_malloc(sizeof(float) * core_size*9, 32);
+  float *tmp_out = (float*)_mm_malloc(sizeof(float) * 32, 32), *to=tmp_out;
+  //alignas(32)  float tmp_out[8];
 
 
   long long called=0;
@@ -189,7 +190,6 @@ void conv_wfh::run() {
               x = _mm256_load_ps(core + ((ch_ * core_batch * core_c + cb_ * core_c) << 3) + c_ * 8);// input is unrelated to r_ and l_, but related to channel
               y = _mm256_set1_ps(f[c_ + ri * ca.C]);  // kernel
               r = _mm256_fmadd_ps(x, y, r);
-              //called++;
               /*printf("%lld,xid=%d,yid=%d,ri=%d\n",
                      called,
                      ((ch_ * core_batch * core_c + cb_ * core_c) << 3) + c_ * 8,
@@ -197,7 +197,9 @@ void conv_wfh::run() {
                      ri);*/
             }
             //printf("%lld,ri=%d\n",called, ri);
-            _mm256_storeu_ps(output_src[ri], r);
+            //_mm256_storeu_ps(output_src[ri], r);
+            called++;
+            _mm256_store_ps(tmp_out, r);
             /*for (int c_ = 0; c_ < ca.C; c_++) {
               for(int v=0;v<8;v++){
                 output_src[ri][v] += core[((ch_ * core_batch * core_c + cb_ * core_c) << 3) + c_ * 8+v]*f[c_ + ri * ca.C];// input is unrelated to r_ and l_, but related to channel
@@ -229,7 +231,8 @@ void conv_wfh::run() {
       }
     }
   }
-  long long t = duration_cast<nanoseconds>((high_resolution_clock::now() - start)).count(); cout << __FUNCTION__ << " | algo run Time: " << t << " ns" << endl;
+  printf("called:%lld\n",called);
+  long long t = duration_cast<milliseconds>((high_resolution_clock::now() - start)).count(); cout << __FUNCTION__ << " | algo run Time: " << t << " ms" << endl;
 }
 
 int main(int argc, char** argv) {
