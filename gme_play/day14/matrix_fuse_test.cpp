@@ -102,7 +102,7 @@ matrix_fuse2 | matrix fuse time: 6141563 ns
        0.019282000 seconds user
        0.030851000 seconds sys
  * */
-void matrix_fuse2(float* dest, int h, int w, float *delta, int h2, int w2){ // 1.57us
+void matrix_fuse_direct(float* dest, int h, int w, float *delta, int h2, int w2){ // 1.57us
   auto start = high_resolution_clock::now();
   __m256 x={}, y={}, z={};
   for(int i=0;i<h2*w2;i+=8){
@@ -123,7 +123,7 @@ void matrix_fuse_by_memcpy(float* dest, int h, int w, float *delta, int h2, int 
   long long t = duration_cast<nanoseconds>((high_resolution_clock::now() - start)).count(); cout << __FUNCTION__ << " | memcpy time: " << t << " ns" << endl;
 }
 
-void test_matrix_fuse(int h=3400, int w=3400){
+void test_matrix_fuse(int h=34, int w=34){
   int h2=h-2, w2=w-2;
   float* dest=(float*)_mm_malloc(sizeof(float) * (h*w), 32);
   float* delta=(float*)_mm_malloc(sizeof(float) * (h2*w2), 32);
@@ -136,7 +136,7 @@ void test_matrix_fuse(int h=3400, int w=3400){
     for (int j = 0; j < w2; j++)
       delta[i*w2+j] = 2; //i*w2+j-1;
   matrix_fuse(dest,h,w,delta,h2,w2,tmp);
-  matrix_fuse2(dest,h,w,delta,h2,w2);
+  matrix_fuse_direct(dest,h,w,delta,h2,w2);
   matrix_fuse_by_memcpy(dest,h,w,delta,h2,w2);
   print_matrix(dest, h, w);
   _mm_free(dest), _mm_free(delta), _mm_free(tmp);
