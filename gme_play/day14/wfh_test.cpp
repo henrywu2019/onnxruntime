@@ -160,6 +160,9 @@ void conv_wfh::reorder_input() {
  * locality, it's best to have a pattern of access that spreads out the memory accesses across multiple cache lines, so that the cache can store as much of the data as possible.
  * */
 void conv_wfh::run() {
+  //float *tmp_out = (float*)_mm_malloc(sizeof(float) * 32, 32), *to=tmp_out;
+
+  int reg_idx=0;
   auto start = high_resolution_clock::now();
   const int remaining_bytes = (VL - core_padding) * sizeof(float);
   __m256 x = {}, y = {}, r = {};
@@ -172,34 +175,32 @@ void conv_wfh::run() {
         output_base[l_ + r_ * ca.L + filter_channel_stride * k_] = output + ca.OW * r_ + l_ + out_channel_stride * k_;
   }
 
-  float *tmp_out = (float*)_mm_malloc(sizeof(float) * 32, 32), *to=tmp_out;
-  //alignas(32)  float tmp_out[8];
-
 
   long long called=0;
   for (int ch_ = 0; ch_ < core_h; ch_++) {        // h
     for (int cb_ = 0; cb_ < safe_batch; cb_++) {  // w
       for (int k_ = 0; k_ < ca.K; k_++) {  // k
         for (int r_ = 0; r_ < ca.R; r_++) {
+          alignas(32)  float tmp_out[8*8]={};
           for (int l_ = 0; l_ < ca.L; l_++) {
             int ri = l_ + r_ * ca.L + k_ * filter_channel_stride;
             output_src[ri] = output_base[ri] + ch_ * ca.OW + (cb_ << 3);
+            //__asm__("vfmadd231ps $ymm0, %2, %0");
             r = _mm256_loadu_ps(output_src[ri]);
             //r = _mm256_set1_ps(0);
             for (int c_ = 0; c_ < ca.C; c_++) {
-              x = _mm256_load_ps(core + ((ch_ * core_batch * core_c + cb_ * core_c) << 3) + c_ * 8);// input is unrelated to r_ and l_, but related to channel
-              y = _mm256_set1_ps(f[c_ + ri * ca.C]);  // kernel
+              int x_of = ((ch_ * core_batch * core_c + cb_ * core_c) << 3) + c_ * 8;
+              int y_of = c_ + ri * ca.C;
+              x = _mm256_load_ps(core + x_of);// input is unrelated to r_ and l_, but related to channel
+              y = _mm256_set1_ps(f[y_of]);  // kernel
               r = _mm256_fmadd_ps(x, y, r);
-              /*printf("%lld,xid=%d,yid=%d,ri=%d\n",
-                     called,
-                     ((ch_ * core_batch * core_c + cb_ * core_c) << 3) + c_ * 8,
-                     ri * ca.C,
-                     ri);*/
+              //printf("%lld,xid=%d,yid=%d,ri=%d\n", called, x_of, y_of, ri);
             }
             //printf("%lld,ri=%d\n",called, ri);
             //_mm256_storeu_ps(output_src[ri], r);
             called++;
-            _mm256_store_ps(tmp_out, r);
+            // vmovups YMMWORD PTR [r8],ymm0
+            //_mm256_store_ps(tmp_out+(reg_idx++<<3), r), reg_idx=reg_idx%8;
             /*for (int c_ = 0; c_ < ca.C; c_++) {
               for(int v=0;v<8;v++){
                 output_src[ri][v] += core[((ch_ * core_batch * core_c + cb_ * core_c) << 3) + c_ * 8+v]*f[c_ + ri * ca.C];// input is unrelated to r_ and l_, but related to channel
@@ -231,8 +232,8 @@ void conv_wfh::run() {
       }
     }
   }
-  printf("called:%lld\n",called);
-  long long t = duration_cast<milliseconds>((high_resolution_clock::now() - start)).count(); cout << __FUNCTION__ << " | algo run Time: " << t << " ms" << endl;
+  printf("called: %lld\n",called);
+  long long t = duration_cast<nanoseconds>((high_resolution_clock::now() - start)).count(); cout << __FUNCTION__ << " | algo run Time: " << t << " ns" << endl;
 }
 
 int main(int argc, char** argv) {
