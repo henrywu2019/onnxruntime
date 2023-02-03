@@ -253,6 +253,12 @@ gme_conv_no_extraction | Compute Time: 83837 ns
        0.002258000 seconds user
        0.000000000 seconds sys
    * */
+/*
+  * ./main_release.exe 1 1 66 6402 8 8
+  is faster than:
+    ./main_release.exe 1 1 6402 66 8 8
+  by 10%
+*/
   void run() {
     //_compute(pa, O, F, ih, len);
     for (int k = 0; k < 3; k++) {
