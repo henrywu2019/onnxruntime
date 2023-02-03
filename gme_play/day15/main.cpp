@@ -197,7 +197,7 @@ long long gme_conv_ori(vector<float>& I,
   std::cout << __FUNCTION__ << " | Compute Time: " << t << " ns" << std::endl;
   return t;
 }
-
+extern "C" int _compute(float **pa, float*O, float* F, int ih, int len);
 class block {
   float** pa;
   float* F;
@@ -216,6 +216,46 @@ class block {
   }
 
   void run() {
+    //_compute(pa, O, F, ih, len);
+    for (int k = 0; k < 3; k++) {
+      float f0=F[k], f3=F[k+3], f6=F[k+6];
+      // i == 0
+      for (int j = 0; j < len; j++)
+        O[j] += pa[0][j] * f0;
+
+      // i == 1
+      for (int j = 0; j < len; j++) {
+        O[j] += pa[1][j] * f3;
+        O[len + j] += pa[1][j] * f0;
+      }
+      // compute_3
+      for (int i = 2; i < ih - 2; i++) {
+        for (int j = 0; j < len; j++) {
+          auto z1 = pa[i][j];
+          auto idx = (i-2)*len+j;
+          O[idx] += z1 * f6;
+          O[idx + len] += z1 * f3;
+          O[idx + 2*len] += z1 * f0;
+        }
+      }
+      // i==ih-2
+      for (int j = 0; j < len; j++) {
+        auto z1 = pa[ih - 2][j];
+        auto idx = (ih - 4) * len + j;
+        O[idx] += z1 * f6;
+        O[idx+len] += z1 * f3;
+      }
+      // i == ih-1
+      for (int j = 0; j < len; j++) {
+        auto z1 = *(pa[ih - 1] + j);
+        auto idx = (ih - 3) * len + j;
+        O[idx] += z1 * f6;
+      }
+      advance();
+    }
+  }
+
+  void run2() {
     for (int k = 0; k < 3; k++) {
       // i == 0
       for (int j = 0; j < len; j++)
@@ -231,13 +271,18 @@ class block {
           auto z1 = *(pa[i] + j);
           auto idx = i * len + j;
           O[idx - 2 * len] += z1 * F[k + 6];
+        }
+        for (int j = 0; j < len; j++) {
+          auto z1 = *(pa[i] + j);
+          auto idx = i * len + j;
           O[idx - len] += z1 * F[k + 3];
+        }
+        for (int j = 0; j < len; j++) {
+          auto z1 = *(pa[i] + j);
+          auto idx = i * len + j;
           O[idx] += z1 * F[k];
         }
       }
-
-      
-
       // i==ih-2
       for (int j = 0; j < len; j++) {
         auto z1 = *(pa[ih - 2] + j);
@@ -247,9 +292,9 @@ class block {
       }
       // i == ih-1
       for (int j = 0; j < len; j++) {
-        auto z1 = *(pa[ih - 1] + j);
-        auto idx = (ih - 1) * len + j;
-        O[idx - 2 * len] += z1 * F[k + 6];
+        auto z1 = pa[ih - 1][j];
+        auto idx = (ih - 3) * len + j;
+        O[idx] += z1 * F[k + 6];
       }
       advance();
     }
@@ -398,7 +443,6 @@ Input 0 Name: reorder_gme_147
 Input 1 Name: reorder_gme_148
  Shape: {64,256,3,3}
 */
-
 int main(int argc, char** argv) {
   srand(0xdeadbeef);
   printf("argc: %d\n", argc);
