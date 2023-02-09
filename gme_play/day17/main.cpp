@@ -197,7 +197,7 @@ long long gme_conv_ori(vector<float>& I,
   std::cout << __FUNCTION__ << " | Compute Time: " << t << " ns" << std::endl;
   return t;
 }
-
+extern "C" int _compute(float **pa, float*O, float* F, int ih, int len);
 class block {
   float** pa;
   float* F;
@@ -205,53 +205,110 @@ class block {
   int len;
   int ih;
   int iw;
+  float** fs; //filter by filter_batch
+  float** os; //output by filter_batch
 
  public:
   block(int ih_, int ow_, int iw_) : len(ow_), ih(ih_), iw(iw_) {
     pa = new float*[ih];
   }
   ~block() { delete[] pa; }
-  void advance() {
-    for (auto i = 0; i < ih; i++) pa[i]++;
-  }
+  /*
+   * 23:55 $ sudo perf stat -d ./main_release.exe 1 1 400 296 8 8
+argc: 7
+L1 data cache size: 32768 bytes
+L1 data cache line: 64 bytes
+L2 data cache size: 262144 bytes
+L3 data cache size: 8388608 bytes
+input_height:400,input_width:296,input_channel:1,filter_batch:1,kernel_width:3,kernel_height:3,LINE:13
+output size: 468048B
+filter size: 9
+input total size: 115.62KB
+gme_conv_no_extraction | Compute Time: 83837 ns
+18744.00,18789.00,18834.00,18879.00,18924.00,18969.00,19014.00,19059.00,19104.00,19149.00,19194.00,19239.00,19284.00,19329.00,19374.00,19419.00,
+19464.00,19509.00,19554.00,19599.00,19644.00,19689.00,19734.00,19779.00,19824.00,19869.00,19914.00,19959.00,20004.00,20049.00,20094.00,20139.00,
+...5319249.00,5319294.00,5319339.00,5319384.00,5319429.00,5319474.00,5319519.00,5319564.00,5319609.00,5319654.00,5319699.00,5319744.00,5319789.00,
+5319834.00,5319879.00,5319924.00,5319969.00,
+==============================================================================
 
-  void run() {
+ Performance counter stats for './main_release.exe 1 1 400 296 8 8':
+
+              1.80 msec task-clock                #    0.824 CPUs utilized
+                 0      context-switches          #    0.000 /sec
+                 0      cpu-migrations            #    0.000 /sec
+               369      page-faults               #  204.937 K/sec
+         6,999,525      cycles                    #    3.887 GHz
+         6,249,387      instructions              #    0.89  insn per cycle
+         1,041,547      branches                  #  578.460 M/sec
+            24,983      branch-misses             #    2.40% of all branches
+         1,499,735      L1-dcache-loads           #  832.931 M/sec
+           132,483      L1-dcache-load-misses     #    8.83% of all L1-dcache accesses
+     <not counted>      LLC-loads                                                     (0.00%)
+     <not counted>      LLC-load-misses                                               (0.00%)
+
+       0.002184749 seconds time elapsed
+
+       0.002258000 seconds user
+       0.000000000 seconds sys
+=====================================================================================================
+    ./main_release.exe 1 1 66 6402 8 8
+  is faster than:
+    ./main_release.exe 1 1 6402 66 8 8
+  by 10%
+
+It is even slower than that when Co is outside!
+*/
+  //
+  void run(int output_h, int output_w, int Co, int Ci) {
+    //_compute(pa, O, F, ih, len);
     for (int k = 0; k < 3; k++) {
-      // i == 0
-      for (int j = 0; j < len; j++)
-        O[j] += *(pa[0] + j) * F[k];
+      //float f0=F[k], f3=F[k+3], f6=F[k+6];
+      for (int j = 0; j < len; j++){
+        for(int co=0;co<Co;co++)
+          *(O+j+output_h * output_w*co) += pa[0][j] * *(F+k+co*9*Ci);
+      }
       // i == 1
       for (int j = 0; j < len; j++) {
-        auto z1 = *(pa[1] + j);
-        O[j] += z1 * F[k + 3];
-        O[len + j] += z1 * F[k];
-      }
-      for (int i = 2; i < ih - 2; i++) {
-        for (int j = 0; j < len; j++) {
-          auto z1 = *(pa[i] + j);
-          auto idx = i * len + j;
-          O[idx - 2 * len] += z1 * F[k + 6];
-          O[idx - len] += z1 * F[k + 3];
-          O[idx] += z1 * F[k];
+        for(int co=0;co<Co;co++){
+          *(O+j+output_h * output_w*co) += pa[1][j] * *(F+k+3+co*9*Ci);
+          *(O+j+output_h * output_w*co+len) += pa[1][j] * *(F+k+co*9*Ci);
         }
       }
-      // i==ih-2
+      // compute_3
+      for (int i = 2; i < ih - 2; i++) {
+        for (int j = 0; j < len; j++) {
+          for(int co=0;co<Co;co++){
+            auto z1 = pa[i][j];
+            auto idx = (i-2)*len+j;
+            *(O+idx+output_h*output_w*co) += pa[1][j] * *(F+k+6+co*9*Ci);
+            *(O+idx+len+output_h*output_w*co) += pa[1][j] * *(F+k+3+co*9*Ci);
+            *(O+idx+2*len+output_h*output_w*co) += pa[1][j] * *(F+k+co*9*Ci);
+          }
+        }
+      }
+      // i == ih-2
       for (int j = 0; j < len; j++) {
-        auto z1 = *(pa[ih - 2] + j);
-        auto idx = (ih - 2) * len + j;
-        O[idx - 2 * len] += z1 * F[k + 6];
-        O[idx - len] += z1 * F[k + 3];
+        for(int co=0;co<Co;co++){
+          auto z1 = pa[ih - 2][j];
+          auto idx = (ih - 4) * len + j;
+          *(O+idx+output_h*output_w*co) += pa[1][j] * *(F+k+6+co*9*Ci);
+          *(O+idx+len+output_h*output_w*co) += pa[1][j] * *(F+k+3+co*9*Ci);
+        }
       }
       // i == ih-1
       for (int j = 0; j < len; j++) {
-        auto z1 = *(pa[ih - 1] + j);
-        auto idx = (ih - 1) * len + j;
-        O[idx - 2 * len] += z1 * F[k + 6];
+        for(int co=0;co<Co;co++){
+          auto z1 = *(pa[ih - 1] + j);
+          auto idx = (ih - 3) * len + j;
+          *(O+idx+output_h*output_w*co) += pa[1][j] * *(F+k+6+co*9*Ci);
+        }
       }
       advance();
     }
   }
-
+  void advance() {
+    for (auto i = 0; i < ih; i++) pa[i]++;
+  }
   void reset(float* next_head, float* next_filter, float* next_O) {
     F = next_filter;
     for (auto i = 0; i < ih; i++)
@@ -269,12 +326,14 @@ long long gme_conv_no_extraction(vector<float>& I,
                                  int Co, int input_h, int input_w, int output_h, int output_w) {  // O(Ci*3*3*Co*(Oh*Ow))
   auto start = std::chrono::high_resolution_clock::now();
   block blk(input_h, output_w, input_w);
-  for (int co = 0; co < Co; co++) {
-    for (int channel = 0; channel < Ci; channel++) {
-      blk.reset(I.data() + channel * input_h * input_w, F.data() + channel * Kh * Kw + co * Kw * Kh * Ci, Output + co * output_h * output_w);
-      blk.run();
-    }
+  blk.reset(I.data(), F.data(), Output);
+  for (int channel = 0; channel < Ci; channel++) {
+      //blk.reset(I.data() + channel * input_h * input_w,
+      //          F.data() + channel * Kh * Kw + co * Kw * Kh * Ci,
+      //          Output + co * output_h * output_w);
+      blk.run(output_h, output_w, Co, Ci);
   }
+
   auto t1 = std::chrono::high_resolution_clock::now();
   long long t = std::chrono::duration_cast<std::chrono::nanoseconds>((t1 - start)).count();
   std::cout << __FUNCTION__ << " | Compute Time: " << t << " ns" << std::endl;
@@ -282,7 +341,7 @@ long long gme_conv_no_extraction(vector<float>& I,
 }
 
 void print_output(float* Output, int h, int w, int output_channel, bool all = false) {
-  if (all or h * w < 50 * 50) {
+  if (all or h * w < 10 * 10) {
     for (int i = 0; i < h; i++) {
       for (int j = 0; j < w - 1; j++)
         printf("%.1f,", Output[i * w + j]);
@@ -395,7 +454,6 @@ Input 0 Name: reorder_gme_147
 Input 1 Name: reorder_gme_148
  Shape: {64,256,3,3}
 */
-
 int main(int argc, char** argv) {
   srand(0xdeadbeef);
   printf("argc: %d\n", argc);

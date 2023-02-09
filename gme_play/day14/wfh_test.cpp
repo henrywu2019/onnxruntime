@@ -177,11 +177,11 @@ void conv_wfh::run() {
 
 
   long long called=0;
+  alignas(32)  float tmp_out[8*2]={};
   for (int ch_ = 0; ch_ < core_h; ch_++) {        // h
     for (int cb_ = 0; cb_ < safe_batch; cb_++) {  // w
       for (int k_ = 0; k_ < ca.K; k_++) {  // k
         for (int r_ = 0; r_ < ca.R; r_++) {
-          alignas(32)  float tmp_out[8*8]={};
           for (int l_ = 0; l_ < ca.L; l_++) {
             int ri = l_ + r_ * ca.L + k_ * filter_channel_stride;
             output_src[ri] = output_base[ri] + ch_ * ca.OW + (cb_ << 3);
@@ -201,6 +201,10 @@ void conv_wfh::run() {
             called++;
             // vmovups YMMWORD PTR [r8],ymm0
             //_mm256_store_ps(tmp_out+(reg_idx++<<3), r), reg_idx=reg_idx%8;
+            reg_idx=reg_idx%2;
+            _mm256_store_ps(tmp_out+(reg_idx&1)*8, r);
+            //_mm256_store_ps(tmp_out, r);
+            ++reg_idx;
             /*for (int c_ = 0; c_ < ca.C; c_++) {
               for(int v=0;v<8;v++){
                 output_src[ri][v] += core[((ch_ * core_batch * core_c + cb_ * core_c) << 3) + c_ * 8+v]*f[c_ + ri * ca.C];// input is unrelated to r_ and l_, but related to channel

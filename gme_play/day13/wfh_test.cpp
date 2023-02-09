@@ -7,7 +7,7 @@ using namespace std;
 using namespace chrono;
 
 void print_matrix(float* m, int h, int w) {
-  if (h*w>10000) return;
+  if (h*w>100) return;
   for (int i = 0; i < h; i++) {
     for (int j = 0; j < w - 1; j++)
       printf("%.1f,", m[i * w + j]);
@@ -193,7 +193,7 @@ void conv_wfh::run() {
                      ri * ca.C,
                      ri);*/
             }
-            printf("%lld,ri=%d\n",called, ri);
+            //printf("%lld,ri=%d\n",called, ri);
             _mm256_storeu_ps(output_src[ri], r);
             /*for (int c_ = 0; c_ < ca.C; c_++) {
               for(int v=0;v<8;v++){

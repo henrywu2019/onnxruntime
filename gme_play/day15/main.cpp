@@ -254,7 +254,9 @@ gme_conv_no_extraction | Compute Time: 83837 ns
        0.000000000 seconds sys
    * */
   void run() {
-    //_compute(pa, O, F, ih, len);
+#if 0
+    _compute(pa, O, F, ih, len);
+#else
     for (int k = 0; k < 3; k++) {
       float f0=F[k], f3=F[k+3], f6=F[k+6];
       // i == 0
@@ -291,6 +293,7 @@ gme_conv_no_extraction | Compute Time: 83837 ns
       }
       advance();
     }
+#endif
   }
 
   void run2() {
