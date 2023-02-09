@@ -255,7 +255,10 @@ gme_conv_no_extraction | Compute Time: 83837 ns
   is faster than:
     ./main_release.exe 1 1 6402 66 8 8
   by 10%
+
+It is even slower than that when Co is outside!
 */
+  //
   void run(int output_h, int output_w, int Co, int Ci) {
     //_compute(pa, O, F, ih, len);
     for (int k = 0; k < 3; k++) {
