@@ -205,16 +205,14 @@ class block {
   int len;
   int ih;
   int iw;
+  float** fs; //filter by filter_batch
+  float** os; //output by filter_batch
 
  public:
   block(int ih_, int ow_, int iw_) : len(ow_), ih(ih_), iw(iw_) {
     pa = new float*[ih];
   }
   ~block() { delete[] pa; }
-  void advance() {
-    for (auto i = 0; i < ih; i++) pa[i]++;
-  }
-
   /*
    * 23:55 $ sudo perf stat -d ./main_release.exe 1 1 400 296 8 8
 argc: 7
@@ -252,98 +250,62 @@ gme_conv_no_extraction | Compute Time: 83837 ns
 
        0.002258000 seconds user
        0.000000000 seconds sys
-   * */
-/*
-  * ./main_release.exe 1 1 66 6402 8 8
+=====================================================================================================
+    ./main_release.exe 1 1 66 6402 8 8
   is faster than:
     ./main_release.exe 1 1 6402 66 8 8
   by 10%
 */
-  void run() {
+  void run(int output_h, int output_w, int Co, int Ci) {
     //_compute(pa, O, F, ih, len);
     for (int k = 0; k < 3; k++) {
-      float f0=F[k], f3=F[k+3], f6=F[k+6];
-      // i == 0
-      for (int j = 0; j < len; j++)
-        O[j] += pa[0][j] * f0;
-
+      //float f0=F[k], f3=F[k+3], f6=F[k+6];
+      for (int j = 0; j < len; j++){
+        for(int co=0;co<Co;co++)
+          *(O+j+output_h * output_w*co) += pa[0][j] * *(F+k+co*9*Ci);
+      }
       // i == 1
       for (int j = 0; j < len; j++) {
-        O[j] += pa[1][j] * f3;
-        O[len + j] += pa[1][j] * f0;
+        for(int co=0;co<Co;co++){
+          *(O+j+output_h * output_w*co) += pa[1][j] * *(F+k+3+co*9*Ci);
+          *(O+j+output_h * output_w*co+len) += pa[1][j] * *(F+k+co*9*Ci);
+        }
       }
       // compute_3
       for (int i = 2; i < ih - 2; i++) {
         for (int j = 0; j < len; j++) {
-          auto z1 = pa[i][j];
-          auto idx = (i-2)*len+j;
-          O[idx] += z1 * f6;
-          O[idx + len] += z1 * f3;
-          O[idx + 2*len] += z1 * f0;
+          for(int co=0;co<Co;co++){
+            auto z1 = pa[i][j];
+            auto idx = (i-2)*len+j;
+            *(O+idx+output_h*output_w*co) += pa[1][j] * *(F+k+6+co*9*Ci);
+            *(O+idx+len+output_h*output_w*co) += pa[1][j] * *(F+k+3+co*9*Ci);
+            *(O+idx+2*len+output_h*output_w*co) += pa[1][j] * *(F+k+co*9*Ci);
+          }
         }
       }
-      // i==ih-2
+      // i == ih-2
       for (int j = 0; j < len; j++) {
-        auto z1 = pa[ih - 2][j];
-        auto idx = (ih - 4) * len + j;
-        O[idx] += z1 * f6;
-        O[idx+len] += z1 * f3;
+        for(int co=0;co<Co;co++){
+          auto z1 = pa[ih - 2][j];
+          auto idx = (ih - 4) * len + j;
+          *(O+idx+output_h*output_w*co) += pa[1][j] * *(F+k+6+co*9*Ci);
+          *(O+idx+len+output_h*output_w*co) += pa[1][j] * *(F+k+3+co*9*Ci);
+        }
       }
       // i == ih-1
       for (int j = 0; j < len; j++) {
-        auto z1 = *(pa[ih - 1] + j);
-        auto idx = (ih - 3) * len + j;
-        O[idx] += z1 * f6;
+        for(int co=0;co<Co;co++){
+          auto z1 = *(pa[ih - 1] + j);
+          auto idx = (ih - 3) * len + j;
+          *(O+idx+output_h*output_w*co) += pa[1][j] * *(F+k+6+co*9*Ci);
+        }
       }
       advance();
     }
   }
-
-  void run2() {
-    for (int k = 0; k < 3; k++) {
-      // i == 0
-      for (int j = 0; j < len; j++)
-        O[j] += *(pa[0] + j) * F[k];
-      // i == 1
-      for (int j = 0; j < len; j++) {
-        auto z1 = *(pa[1] + j);
-        O[j] += z1 * F[k + 3];
-        O[len + j] += z1 * F[k];
-      }
-      for (int i = 2; i < ih - 2; i++) {
-        for (int j = 0; j < len; j++) {
-          auto z1 = *(pa[i] + j);
-          auto idx = i * len + j;
-          O[idx - 2 * len] += z1 * F[k + 6];
-        }
-        for (int j = 0; j < len; j++) {
-          auto z1 = *(pa[i] + j);
-          auto idx = i * len + j;
-          O[idx - len] += z1 * F[k + 3];
-        }
-        for (int j = 0; j < len; j++) {
-          auto z1 = *(pa[i] + j);
-          auto idx = i * len + j;
-          O[idx] += z1 * F[k];
-        }
-      }
-      // i==ih-2
-      for (int j = 0; j < len; j++) {
-        auto z1 = *(pa[ih - 2] + j);
-        auto idx = (ih - 2) * len + j;
-        O[idx - 2 * len] += z1 * F[k + 6];
-        O[idx - len] += z1 * F[k + 3];
-      }
-      // i == ih-1
-      for (int j = 0; j < len; j++) {
-        auto z1 = pa[ih - 1][j];
-        auto idx = (ih - 3) * len + j;
-        O[idx] += z1 * F[k + 6];
-      }
-      advance();
-    }
+  void advance() {
+    for (auto i = 0; i < ih; i++) pa[i]++;
   }
-
   void reset(float* next_head, float* next_filter, float* next_O) {
     F = next_filter;
     for (auto i = 0; i < ih; i++)
@@ -361,12 +323,14 @@ long long gme_conv_no_extraction(vector<float>& I,
                                  int Co, int input_h, int input_w, int output_h, int output_w) {  // O(Ci*3*3*Co*(Oh*Ow))
   auto start = std::chrono::high_resolution_clock::now();
   block blk(input_h, output_w, input_w);
-  for (int co = 0; co < Co; co++) {
-    for (int channel = 0; channel < Ci; channel++) {
-      blk.reset(I.data() + channel * input_h * input_w, F.data() + channel * Kh * Kw + co * Kw * Kh * Ci, Output + co * output_h * output_w);
-      blk.run();
-    }
+  blk.reset(I.data(), F.data(), Output);
+  for (int channel = 0; channel < Ci; channel++) {
+      //blk.reset(I.data() + channel * input_h * input_w,
+      //          F.data() + channel * Kh * Kw + co * Kw * Kh * Ci,
+      //          Output + co * output_h * output_w);
+      blk.run(output_h, output_w, Co, Ci);
   }
+
   auto t1 = std::chrono::high_resolution_clock::now();
   long long t = std::chrono::duration_cast<std::chrono::nanoseconds>((t1 - start)).count();
   std::cout << __FUNCTION__ << " | Compute Time: " << t << " ns" << std::endl;
@@ -374,7 +338,7 @@ long long gme_conv_no_extraction(vector<float>& I,
 }
 
 void print_output(float* Output, int h, int w, int output_channel, bool all = false) {
-  if (all or h * w < 50 * 50) {
+  if (all or h * w < 10 * 10) {
     for (int i = 0; i < h; i++) {
       for (int j = 0; j < w - 1; j++)
         printf("%.1f,", Output[i * w + j]);
