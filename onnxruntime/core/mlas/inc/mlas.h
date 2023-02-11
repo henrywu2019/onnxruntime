@@ -1122,6 +1122,13 @@ MlasNchwcGetBlockSize(
     void
     );
 
+size_t
+    MLASCALL
+    MlasNchwcGetBlockSizeCi(
+        void
+    );
+
+
 void
 MLASCALL
 MlasNchwcConv(

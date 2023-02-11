@@ -240,7 +240,7 @@ class MlasDirectShortExecuteTests : public MlasTestFixture<TMlasTester> {
 
 inline
 void ReorderInputNchw(const int64_t* input_shape, const float* S, float* D) {
-  const int64_t nchwc_block_size = static_cast<int64_t>(MlasNchwcGetBlockSize());
+  const int64_t nchwc_block_size = static_cast<int64_t>(MlasNchwcGetBlockSizeCi());
   int64_t batch_count = input_shape[0];
   int64_t channel_count = input_shape[1];
   int64_t nchwc_channel_count = (channel_count + nchwc_block_size - 1) & ~(nchwc_block_size - 1);

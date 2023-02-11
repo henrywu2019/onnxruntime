@@ -221,7 +221,7 @@ Return Value:
 
 --*/
 {
-    const size_t BlockSize = MlasNchwcGetBlockSize();
+    const size_t BlockSize = MlasNchwcGetBlockSizeCi();
 
     const MLAS_FLOAT32X4 ZeroFloat32x4 = MlasZeroFloat32x4();
 

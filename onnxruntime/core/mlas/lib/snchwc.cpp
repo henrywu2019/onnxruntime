@@ -108,6 +108,19 @@ Return Value:
 #endif
 }
 
+size_t
+MLASCALL
+MlasNchwcGetBlockSizeCi(
+    void
+    )
+{
+#if defined(MLAS_TARGET_AMD64)
+    return GetMlasPlatform().NchwcBlockSize * 1;
+#else
+    return 1;
+#endif
+}
+
 void
 MlasNchwcPrepareWorkBlock(
     MLAS_NCHWC_WORK_BLOCK* WorkBlock,
@@ -286,6 +299,7 @@ struct MLAS_NCHWC_NN_ALGORITHM
     static constexpr size_t WidthShapeIndex = 1;
 
     const size_t BlockSize = MlasNchwcGetBlockSize();
+    const size_t BlockSizeCi = MlasNchwcGetBlockSizeCi();
 
     //
     // Capture these values from the work block for use as local constants.
