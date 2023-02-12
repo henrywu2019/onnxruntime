@@ -708,7 +708,7 @@ struct MLAS_NCHWC_CONV_NCHWC_ALGORITHM : MLAS_NCHWC_GROUPED_CONV_ALGORITHM
             // Walk over each input image organized as a set of NCHWc blocks.
             //
 
-            for (size_t ic = 0; ic < InputChannels; ic += BlockSize) {
+            for (size_t ic = 0; ic < InputChannels; ic += BlockSize) { // C/8
 
                 unsigned KernelFlags = ComputeKernelFlags(ic, BlockSize);
 
@@ -719,7 +719,7 @@ struct MLAS_NCHWC_CONV_NCHWC_ALGORITHM : MLAS_NCHWC_GROUPED_CONV_ALGORITHM
                 const float* input = Input + ic * InputSize;
                 float* output = Output + ph * BlockedOutputWidth;
 
-                for (size_t work = 0; work < WorkThisIteration; work++) {
+                for (size_t work = 0; work < WorkThisIteration; work++) { // H
 
                     //
                     // Constrain the effective kernel parameters if the output row

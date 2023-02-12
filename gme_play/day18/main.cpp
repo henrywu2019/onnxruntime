@@ -1,7 +1,7 @@
 #include <bits/stdc++.h>
 #include "immintrin.h"
 // #include "fmaintrin.h"
-#define ORTCONV
+//#define ORTCONV
 // #define RANDDATA
 #ifdef ORTCONV
 #include "ort_conv.h"
@@ -15,7 +15,7 @@ long l1_cache_size = sysconf(_SC_LEVEL1_DCACHE_SIZE);
  * Based on day6 example, increase the input channel number to 16.
  * */
 
-void get_input(vector<float>& l, int n, int c, int w, int h, float channel_delta = 0, float cell_delta = 1, float batch_delta=0.2) {
+void get_input(vector<float>& l, int n, int c, int w, int h, float channel_delta = 0.1, float cell_delta = 1, float batch_delta=0.2) {
   if ((int)l.size() < n * c * w * h) l.resize(n * c * w * h);
   float start = 1.;
   for (int i = 0; i < n; i++) {
@@ -376,7 +376,7 @@ long long run(int run_flag, int input_height, int input_width, int input_channel
 
   vector<float> I, F;
   get_input(I, 1, input_channel, input_width, input_height, 0.1, 1);
-  get_input(F, filter_batch, input_channel, kernel_width, kernel_height, 0.1, 1);
+  get_input(F, filter_batch, input_channel, kernel_width, kernel_height, 0.1, 1, 0.2);
   printf("filter size: %d\n", filter_batch * input_channel * kernel_width * kernel_height);
   printf("input total size: %.2fKB\n", 1 * input_channel * input_width * input_height / (1024.));
 
