@@ -1,7 +1,7 @@
 #include <bits/stdc++.h>
 #include "immintrin.h"
 // #include "fmaintrin.h"
-//#define ORTCONV
+#define ORTCONV
 // #define RANDDATA
 #ifdef ORTCONV
 #include "ort_conv.h"

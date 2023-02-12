@@ -23,12 +23,17 @@ struct conv_attr {
 struct tunable_conv {  // can refactor using inheritance
   conv_attr ca;
   // core attr
-  int tunable_x = 4;
+  int tunable_x = 8; // must be multiple of VEC_LEN
 
   int input_size;
   int input_batch_stride;
   int input_block_stride;
   int input_channel_stride;
+
+  int output_size;
+  int output_batch_stride;
+  int output_block_stride;
+  int output_channel_stride;
 
   int filter_size;
   int filter_channel_stride;
@@ -37,13 +42,13 @@ struct tunable_conv {  // can refactor using inheritance
   int filter_block_stride_batch_dim=-1;
   int filter_block_stride;
   int filter_chunk_stride;
+  int filter_hunk_stride;
 
   int slice_number_in_channel_dim;
   int slice_number_in_batch_dim;
 
-
   int out_channel_stride;
-
+  int reg_n=4;
   // original memory store
   float* input;
   float* kernel;
@@ -58,6 +63,11 @@ struct tunable_conv {  // can refactor using inheritance
     input_batch_stride = input_channel_stride*ca.C;
     input_size = input_channel_stride*ca.C*ca.N; // NCHW
 
+    output_channel_stride = ca.OH * ca.OW;
+    output_block_stride = output_channel_stride * tunable_x;
+    output_batch_stride = output_channel_stride*ca.K;
+    output_size = output_channel_stride*ca.K; // there is no such thing as output_batch
+
     slice_number_in_channel_dim = ceil_int(ca.C, tunable_x);
     slice_number_in_batch_dim = ceil_int(ca.K, VEC_LEN);
 
@@ -68,6 +78,7 @@ struct tunable_conv {  // can refactor using inheritance
     //filter_block_stride_channel_dim = filter_channel_stride*tunable_x;
     filter_block_stride = ca.L*ca.R*tunable_x*VEC_LEN;
     filter_chunk_stride = filter_block_stride*slice_number_in_channel_dim;
+    filter_hunk_stride = filter_chunk_stride*reg_n;
 
     out_channel_stride = ca.OH * ca.OW;  // NKHW
   }
@@ -75,8 +86,15 @@ struct tunable_conv {  // can refactor using inheritance
   void reorder_input();
   void reorder_filter();
   void run();
+  void set_x(int x){tunable_x=x;}
   void print() {
     print_matrix(output,ca.OH, ca.OW);
+  }
+  int input_index_new(int N, int C_, int H, int w, int c){
+    return N*input_batch_stride + C_*input_block_stride + H*ca.W*tunable_x + w*tunable_x + c;
+  }
+  int output_index_nchwc(int C_, int H, int w, int c){ // n always == 1
+    return C_*output_block_stride + H*ca.OW*tunable_x + w*tunable_x + c;
   }
 };
 
