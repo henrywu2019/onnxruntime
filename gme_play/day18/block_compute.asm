@@ -4,6 +4,7 @@ global _compute
 ;$1 = 1
 ;>>> p *(float*)($r15)
 ;$2 = 1
+; _compute(pa, O, F, ih, len);
 
 
 section .text
