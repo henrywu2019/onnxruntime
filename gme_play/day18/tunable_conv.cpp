@@ -8,7 +8,9 @@
 int ceil_int(int x, int y){
   return int(ceil((float)x/y));
 }
-
+int floor_int(int x, int y){
+  return int(floor((float)x/y));
+}
 
 void print_matrix(float* m, int h, int w) {
   if (h*w>100) return;
@@ -18,6 +20,28 @@ void print_matrix(float* m, int h, int w) {
     printf("%.1f\n", m[i * w + w - 1]);
   }
 }
+
+void print_output(float* Output, int h, int w, int output_channel, bool all) {
+  if (all or h * w < 10 * 10) {
+    for (int i = 0; i < h; i++) {
+      for (int j = 0; j < w - 1; j++)
+        printf("%.1f,", Output[i * w + j]);
+      printf("%.1f\n", Output[i * w + w - 1]);
+    }
+    return;
+  }
+  for (int t = 0; t < min(32, output_channel * w * h); t++) {
+    printf("%.2f,", Output[t]);
+    if (t % 16 == 15) printf("\n");
+  }
+  printf("...");
+  for (int t = output_channel * w * h - 17; t < output_channel * w * h; t++) {
+    printf("%.2f,", Output[t]);
+    if (t % 16 == 15) printf("\n");
+  }
+  // printf("\n");
+}
+
 
 
 #define input_index_ori(N,C,H,w) (N*input_batch_stride + C*input_channel_stride + H*ca.W + w)
@@ -52,6 +76,26 @@ void tunable_conv::reorder_input() {
   assert(new_idx+1 == input_size);
 #endif
   auto t = duration_cast<nanoseconds>((high_resolution_clock::now() - start)).count();cout << __FUNCTION__ << ": " << t << " ns" << endl;
+}
+
+void tunable_conv::restore_output(){
+  auto start = high_resolution_clock::now();
+  output_nchw = (float*)_mm_malloc(sizeof(float) * output_size, 32);
+  int ori_idx=0, new_idx=0;
+  // N is always 1
+  REP(i,0,ca.K){ // C
+    int C_= floor_int(i, tunable_x);
+    REP(k,0,ca.OH){ // H
+      REP(l,0,ca.OW){ // W
+        int c = i - tunable_x*C_;
+        ori_idx = output_index_nchwc(C_,k,l, c);
+        output_nchw[new_idx++] = output[ori_idx];
+      }
+    }
+  }
+  assert(new_idx == output_size);
+  auto t = duration_cast<nanoseconds>((high_resolution_clock::now() - start)).count();cout << __FUNCTION__ << ": " << t << " ns" << endl;
+
 }
 
 void tunable_conv::reorder_filter() {
@@ -96,32 +140,38 @@ void tunable_conv::run() {
 
 #ifdef ALGO_KERNL_AS_OUTER_LOOP
   // not consider reg_n=4 in batch dim
-  REP(i,0,slice_number_in_batch_dim){ // N(K_)
+  auto pr = new __m256[reg_n]();
+  REP(i,0,hunk_number_in_batch_dim){ // N(K_)
     REP(k,0,ca.OH){
       REP(j,0,slice_number_in_channel_dim){
         REP(l,0,ca.OW){
-          auto r = _mm256_set1_ps(0);
+          REP(t,0,reg_n) pr[t]=_mm256_xor_ps(pr[t],pr[t]);
           __m256 x{}, y{};
           REP(n,0,ca.R){
             REP(o,0,ca.L){
               REP(m,0,tunable_x){ // channel dim
                 int i_offset = input_index_new(0,j,k+n,l+o,m);
-                int f_offset = filter_index_new(i,j,n,o,m,0);
                 x = _mm256_set1_ps(core[i_offset]);
-                y = _mm256_load_ps(f+f_offset);
-                r = _mm256_fmadd_ps(x, y, r);
+                REP(p,0,reg_n){
+                  int f_offset = filter_index_new((i*reg_n+p),j,n,o,m,0);
+                  y = _mm256_load_ps(f+f_offset);
+                  pr[p] = _mm256_fmadd_ps(x, y, pr[p]);
+                }
               }
             }
           }
-          int o_offset = output_index_nchwc(i,k,l,0);
-          auto tmp = _mm256_loadu_ps(output+o_offset);
-          r = _mm256_add_ps(r, tmp);
-          _mm256_storeu_ps(output+o_offset, r);
-          output;
+          REP(q,0,reg_n){
+            int o_offset = output_index_nchwc(i,k,l,q*VEC_LEN);
+            auto tmp = _mm256_loadu_ps(output+o_offset);
+            pr[q] = _mm256_add_ps(pr[q], tmp);
+            _mm256_storeu_ps(output+o_offset, pr[q]);
+          }
+
         }
       }
     }
   }
+  delete [] pr;
 #endif
   printf("called: %lld\n",called);
   long long t = duration_cast<nanoseconds>((high_resolution_clock::now() - start)).count(); cout << __FUNCTION__ << " | algo run Time: " << t << " ns" << endl;

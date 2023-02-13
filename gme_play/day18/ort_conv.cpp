@@ -44,7 +44,7 @@ void onnxruntime_conv_nchwc(
     const float* Filter,
     const float* Bias,
     float* Output) {
-  auto start = std::chrono::high_resolution_clock::now();
+  auto start = chrono::high_resolution_clock::now();
   int64_t InputShape[] = {int64_t(BatchCount), int64_t(GroupCount) * int64_t(InputChannels), int64_t(InputHeight), int64_t(InputWidth)};
   int64_t FilterShape[] = {int64_t(GroupCount) * int64_t(FilterCount), int64_t(InputChannels), int64_t(KernelHeight), int64_t(KernelWidth)};
   int64_t OutputShape[] = {int64_t(BatchCount), int64_t(GroupCount) * int64_t(FilterCount), int64_t(OutputHeight), int64_t(OutputWidth)};
@@ -136,8 +136,8 @@ void onnxruntime_conv_nchwc(
 
   MLAS_ACTIVATION Activation;
   Activation.ActivationKind = MlasIdentityActivation;
-  auto t0 = std::chrono::high_resolution_clock::now();
-  std::cout << __FUNCTION__ << " | Reorder Time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((t0 - start)).count() << " ns" << std::endl;
+  auto t0 = chrono::high_resolution_clock::now();
+  cout << __FUNCTION__ << " | Reorder Time: " << chrono::duration_cast<chrono::nanoseconds>((t0 - start)).count() << " ns" << endl;
 
   MlasNchwcConv(InputShape,
                 KernelShape,
@@ -153,15 +153,16 @@ void onnxruntime_conv_nchwc(
                 &Activation,
                 true,
                 nullptr);
-  auto t1 = std::chrono::high_resolution_clock::now();
-  std::cout << __FUNCTION__ << " | Algo Time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((t1 - t0)).count() << " ns" << std::endl;
+  auto t1 = chrono::high_resolution_clock::now();
+  cout << __FUNCTION__ << " | Algo Time: " << chrono::duration_cast<chrono::nanoseconds>((t1 - t0)).count() << " ns" << endl;
 
   //
   // Reorder the output buffer.
   //
-
+  auto t_before_reorder = chrono::high_resolution_clock::now();
   MlasReorderOutputNchw(OutputShape, NchwcOutput, Output);
-  t1 = std::chrono::high_resolution_clock::now();
-  std::cout << __FUNCTION__ << " | Compute Time: " << std::chrono::duration_cast<std::chrono::nanoseconds>((t1 - start)).count() << " ns" << std::endl;
+  t1 = chrono::high_resolution_clock::now();
+  cout << __FUNCTION__ << " | restore MlasReorderOutputNchw: " << chrono::duration_cast<chrono::nanoseconds>((t1 - t_before_reorder)).count() << " ns" << endl;
+  cout << __FUNCTION__ << " | entire Algo Time: " << chrono::duration_cast<chrono::nanoseconds>((t1 - start)).count() << " ns" << endl;
 
 }

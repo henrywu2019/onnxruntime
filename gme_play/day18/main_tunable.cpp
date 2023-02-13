@@ -79,6 +79,7 @@ int main(int argc, char** argv) {
   cw.reorder_input();
   cw.reorder_filter();
   cw.run();
+  cw.restore_output();
   long long t = duration_cast<nanoseconds>((high_resolution_clock::now() - start)).count();
   cout << __FUNCTION__ << " | total algo Time: " << t << " ns" << endl;
   cw.print();
