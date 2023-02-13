@@ -96,18 +96,23 @@ struct tunable_conv {  // can refactor using inheritance
   void restore_output();
   void reorder_filter();
   void run();
-  void run_asm();
+  void run_32_32();
+  void run_64_64();
   //void set_x(int x){tunable_x=x;}
   void print() {
     //print_matrix(output,ca.OH, ca.OW);
     print_output(output_nchw,ca.OH, ca.OW,ca.K);
   }
-  int input_index_new(int N, int C_, int H, int w, int c){
+  inline int input_index_new(int N, int C_, int H, int w, int c){
     return N*input_batch_stride + C_*input_block_stride + H*ca.W*tunable_x + w*tunable_x + c;
   }
-  int output_index_nchwc(int C_, int H, int w, int c){ // n always == 1
+  inline int output_index_nchwc(int C_, int H, int w, int c){ // n always == 1
     return C_*output_block_stride + H*ca.OW*tunable_y + w*tunable_y + c;
   }
+  inline int filter_index_new(int K_, int C_, int R, int l, int c, int k) {
+    return K_ * filter_chunk_stride + C_ * filter_block_stride + R * ca.L * tunable_x * VEC_LEN + l * tunable_x * VEC_LEN + c * VEC_LEN + k;
+  }
+
 };
 /* Why tunable_y equals to reg_n * VEC_LEN?
  * Because reg_n * VEC_LEN is the length of calculated results in channel dimension in the output, it is more convenient to make them equal.
