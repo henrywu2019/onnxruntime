@@ -74,7 +74,7 @@ int main(int argc, char** argv) {
   printf("input total size: %.2fKB\n", 1 * input_channel * input_width * input_height / (1024.));
   float* O = (float*)_mm_malloc(sizeof(float) * output_height * output_width * filter_batch, 32);
 
-  tunable_conv cw(ca, I, F, O);
+  tunable_conv cw(ca, I, F, O, 32, 32);
   auto start = high_resolution_clock::now();
   cw.reorder_input();
   cw.reorder_filter();
