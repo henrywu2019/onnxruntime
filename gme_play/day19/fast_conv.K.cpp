@@ -18,7 +18,7 @@ void print_m256(const __m256& v){
 void fast_conv::run() {
   __m256 y00{}, y01{}, y02{}, y03{};
   __m256 y04{}, y05{}, y06{}, y07{}, y08{}, y09{}, y10{}, y11{}, y12{}, y13{}, y14{}, y15{}; // 8*12
-  int k=0;
+  int k=0, kbase=0;
   for(int w_=0;w_ < ca.OW; w_+=8){
     REP(h_,0,ca.H){
       REP(c_,0,ca.C){
@@ -38,9 +38,9 @@ void fast_conv::run() {
 
           y00 = _mm256_loadu_ps(input + i_offset++);
           k=0,y01 = _mm256_set1_ps(kernel[filter_index(k,c_,0,2)]); y04 = _mm256_fmadd_ps(y00, y01, y04); //K=0
-          k=1,y01 = _mm256_set1_ps(kernel[filter_index(k,c_,0,2)]); y07 = _mm256_fmadd_ps(y00, y01, y07); //K=0
-          k=2,y01 = _mm256_set1_ps(kernel[filter_index(k,c_,0,2)]); y10 = _mm256_fmadd_ps(y00, y01, y10); //K=0
-          k=3,y01 = _mm256_set1_ps(kernel[filter_index(k,c_,0,2)]); y13 = _mm256_fmadd_ps(y00, y01, y13); //K=0
+          k=1,y01 = _mm256_set1_ps(kernel[filter_index(k,c_,0,2)]); y07 = _mm256_fmadd_ps(y00, y01, y07); //K=1
+          k=2,y01 = _mm256_set1_ps(kernel[filter_index(k,c_,0,2)]); y10 = _mm256_fmadd_ps(y00, y01, y10); //K=2
+          k=3,y01 = _mm256_set1_ps(kernel[filter_index(k,c_,0,2)]); y13 = _mm256_fmadd_ps(y00, y01, y13); //K=3
         }
         else if(h_==1)
         {
@@ -85,12 +85,15 @@ void fast_conv::run() {
             k=2,y01 = _mm256_set1_ps(kernel[filter_index(k,c_,0,2)]); y02 = _mm256_set1_ps(kernel[filter_index(k,c_,1,2)]); y03 = _mm256_set1_ps(kernel[filter_index(k,c_,2,2)]); y12 = _mm256_fmadd_ps(y00, y01, y12); y11 = _mm256_fmadd_ps(y00, y02, y05); y10 = _mm256_fmadd_ps(y00, y03, y10);
             k=3,y01 = _mm256_set1_ps(kernel[filter_index(k,c_,0,2)]); y02 = _mm256_set1_ps(kernel[filter_index(k,c_,1,2)]); y03 = _mm256_set1_ps(kernel[filter_index(k,c_,2,2)]); y15 = _mm256_fmadd_ps(y00, y01, y15); y14 = _mm256_fmadd_ps(y00, y02, y05); y13 = _mm256_fmadd_ps(y00, y03, y13);
           }
-          // write y04, y07, y10, y11 to output
-          //print_m256(y04);
-          k=0,_mm256_storeu_ps(output+output_index(k,h_-2,w_), y04); _mm256_storeu_ps((float*)&y04,y05); _mm256_storeu_ps((float*)&y05,y06); y06 = _mm256_setzero_ps(); // k=0
-          k=1,_mm256_storeu_ps(output+output_index(k,h_-2,w_), y07); _mm256_storeu_ps((float*)&y07,y08); _mm256_storeu_ps((float*)&y08,y09); y09 = _mm256_setzero_ps(); // k=1
-          k=2,_mm256_storeu_ps(output+output_index(k,h_-2,w_), y10); _mm256_storeu_ps((float*)&y10,y11); _mm256_storeu_ps((float*)&y11,y12); y12 = _mm256_setzero_ps(); // k=2
-          k=3,_mm256_storeu_ps(output+output_index(k,h_-2,w_), y13); _mm256_storeu_ps((float*)&y13,y14); _mm256_storeu_ps((float*)&y14,y15); y15 = _mm256_setzero_ps(); // k=3
+
+          if (c_+1==ca.C){
+            // write y04, y07, y10, y11 to output
+            //print_m256(y04);
+            k=0,_mm256_storeu_ps(output+output_index(k,h_-2,w_), y04); _mm256_storeu_ps((float*)&y04,y05); _mm256_storeu_ps((float*)&y05,y06); y06 = _mm256_setzero_ps(); // k=0
+            k=1,_mm256_storeu_ps(output+output_index(k,h_-2,w_), y07); _mm256_storeu_ps((float*)&y07,y08); _mm256_storeu_ps((float*)&y08,y09); y09 = _mm256_setzero_ps(); // k=1
+            k=2,_mm256_storeu_ps(output+output_index(k,h_-2,w_), y10); _mm256_storeu_ps((float*)&y10,y11); _mm256_storeu_ps((float*)&y11,y12); y12 = _mm256_setzero_ps(); // k=2
+            k=3,_mm256_storeu_ps(output+output_index(k,h_-2,w_), y13); _mm256_storeu_ps((float*)&y13,y14); _mm256_storeu_ps((float*)&y14,y15); y15 = _mm256_setzero_ps(); // k=3
+          }
         }
         else if(h_==ca.H-2)
         {
@@ -112,12 +115,14 @@ void fast_conv::run() {
           k=2,y02 = _mm256_set1_ps(kernel[filter_index(k,c_,1,2)]); y03 = _mm256_set1_ps(kernel[filter_index(k,c_,2,2)]); y11 = _mm256_fmadd_ps(y00, y02, y11); y10 = _mm256_fmadd_ps(y00, y03, y10);
           k=3,y02 = _mm256_set1_ps(kernel[filter_index(k,c_,1,2)]); y03 = _mm256_set1_ps(kernel[filter_index(k,c_,2,2)]); y14 = _mm256_fmadd_ps(y00, y02, y14); y13 = _mm256_fmadd_ps(y00, y03, y13);
 
-          // write y04, y07, y10, y11 to output
-          //print_m256(y04);
-          k=0,_mm256_storeu_ps(output+output_index(k,h_-2,w_), y04); _mm256_storeu_ps((float*)&y04,y05); y05 = _mm256_setzero_ps();
-          k=1,_mm256_storeu_ps(output+output_index(k,h_-2,w_), y07); _mm256_storeu_ps((float*)&y07,y08); y08 = _mm256_setzero_ps();
-          k=2,_mm256_storeu_ps(output+output_index(k,h_-2,w_), y10); _mm256_storeu_ps((float*)&y10,y11); y11 = _mm256_setzero_ps();
-          k=3,_mm256_storeu_ps(output+output_index(k,h_-2,w_), y13); _mm256_storeu_ps((float*)&y13,y14); y14 = _mm256_setzero_ps();
+          if (c_+1==ca.C){
+            // write y04, y07, y10, y11 to output
+            //print_m256(y04);
+            k=0,_mm256_storeu_ps(output+output_index(k,h_-2,w_), y04); _mm256_storeu_ps((float*)&y04,y05); y05 = _mm256_setzero_ps();
+            k=1,_mm256_storeu_ps(output+output_index(k,h_-2,w_), y07); _mm256_storeu_ps((float*)&y07,y08); y08 = _mm256_setzero_ps();
+            k=2,_mm256_storeu_ps(output+output_index(k,h_-2,w_), y10); _mm256_storeu_ps((float*)&y10,y11); y11 = _mm256_setzero_ps();
+            k=3,_mm256_storeu_ps(output+output_index(k,h_-2,w_), y13); _mm256_storeu_ps((float*)&y13,y14); y14 = _mm256_setzero_ps();
+          }
         }else{ //(h_==ca.OH-1)
           y00 = _mm256_loadu_ps(input + i_offset++);
           k=0,y03 = _mm256_set1_ps(kernel[filter_index(k,c_,2,0)]); y04 = _mm256_fmadd_ps(y00, y03, y04);
@@ -137,15 +142,18 @@ void fast_conv::run() {
           k=1,y03 = _mm256_set1_ps(kernel[filter_index(k,c_,2,2)]); y07 = _mm256_fmadd_ps(y00, y03, y07);
           k=2,y03 = _mm256_set1_ps(kernel[filter_index(k,c_,2,2)]); y10 = _mm256_fmadd_ps(y00, y03, y10);
           k=3,y03 = _mm256_set1_ps(kernel[filter_index(k,c_,2,2)]); y13 = _mm256_fmadd_ps(y00, y03, y13);
-          //print_m256(y04);
-          k=0,_mm256_storeu_ps(output+output_index(k,h_-2,w_), y04);
-          k=1,_mm256_storeu_ps(output+output_index(k,h_-2,w_), y07);
-          k=2,_mm256_storeu_ps(output+output_index(k,h_-2,w_), y10);
-          k=3,_mm256_storeu_ps(output+output_index(k,h_-2,w_), y13);
-          y04 = _mm256_setzero_ps();
-          y07 = _mm256_setzero_ps();
-          y10 = _mm256_setzero_ps();
-          y13 = _mm256_setzero_ps();
+
+          if (c_+1==ca.C){
+            //print_m256(y04);
+            k=0,_mm256_storeu_ps(output+output_index(k,h_-2,w_), y04);
+            k=1,_mm256_storeu_ps(output+output_index(k,h_-2,w_), y07);
+            k=2,_mm256_storeu_ps(output+output_index(k,h_-2,w_), y10);
+            k=3,_mm256_storeu_ps(output+output_index(k,h_-2,w_), y13);
+            y04 = _mm256_setzero_ps();
+            y07 = _mm256_setzero_ps();
+            y10 = _mm256_setzero_ps();
+            y13 = _mm256_setzero_ps();
+          }
         }
       }
     }
@@ -180,7 +188,7 @@ void get_input(float* l, int n, int c, int w, int h, float channel_delta = 0.1, 
 
 int main(int argc, char** argv) {
   srand(0xdeadbeef);
-  int input_height = 10, input_width = 10, input_channel = 1, filter_batch = 4, kernel_width = 3, kernel_height = 3;
+  int input_height = 10, input_width = 10, input_channel = 256, filter_batch = 4, kernel_width = 3, kernel_height = 3;
   // input_channel = 256, input_height = 400, input_width = 296;
 
   if (argc >= 2) {

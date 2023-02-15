@@ -15,8 +15,8 @@ long l1_cache_size = sysconf(_SC_LEVEL1_DCACHE_SIZE);
  * Based on day6 example, increase the input channel number to 16.
  * */
 
-void get_input(vector<float>& l, int n, int c, int w, int h, float channel_delta = 0, float cell_delta = 1) {
-  if ((int)l.size() < n * c * w * h) l.resize(n * c * w * h);
+void get_input(float* l, int n, int c, int w, int h, float channel_delta = 0.1, float cell_delta = 1, float batch_delta=0.2) {
+  //if ((int)l.size() < n * c * w * h) l.resize(n * c * w * h);
   float start = 1.;
   for (int i = 0; i < n; i++) {
     for (int j = 0; j < c; j++) {
@@ -24,7 +24,7 @@ void get_input(vector<float>& l, int n, int c, int w, int h, float channel_delta
       start = start / (abs(int(start)) + 1) + ((double)rand() / (RAND_MAX)) + 0.1;
       if (rand() & 1) start *= -1;
 #else
-      start = 1 + i * 0.1 + j * channel_delta;
+      start = 1 + i * batch_delta + j * channel_delta;
 #endif
       for (int m = 0; m < h; m++)
         for (int k = 0; k < w; k++) {
@@ -310,9 +310,9 @@ long long run(int run_flag, int input_height, int input_width, int input_channel
   float* O = new float[output_height * output_width * filter_batch]();
   printf("output size: %ldB\n", output_height * output_width * filter_batch * sizeof(float));
 
-  vector<float> I, F;
-  get_input(I, 1, input_channel, input_width, input_height, 0, 1);
-  get_input(F, filter_batch, input_channel, kernel_width, kernel_height);
+  vector<float> I(input_channel * input_width * input_height,0.0), F(filter_batch * input_channel * kernel_width * kernel_height,0.0);
+  get_input(I.data(), 1, input_channel, input_width, input_height, 0.1, 1);
+  get_input(F.data(), filter_batch, input_channel, kernel_width, kernel_height, 0.1, 1, 0.2);
   printf("filter size: %d\n", filter_batch * input_channel * kernel_width * kernel_height);
   printf("input total size: %.2fKB\n", 1 * input_channel * input_width * input_height / (1024.));
 
