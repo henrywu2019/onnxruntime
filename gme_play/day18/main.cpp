@@ -1,5 +1,6 @@
 #include <bits/stdc++.h>
 #include "immintrin.h"
+#include <sein.hpp>
 // #include "fmaintrin.h"
 #define ORTCONV
 // #define RANDDATA
@@ -347,12 +348,14 @@ long long gme_conv_no_extraction(vector<float>& I,
 
 void print_output(float* Output, int h, int w, int output_channel, bool all = false) {
   if (all or h * w < 10 * 10) {
-    for (int i = 0; i < h; i++) {
-      for (int j = 0; j < w - 1; j++)
-        printf("%.1f,", Output[i * w + j]);
-      printf("%.1f\n", Output[i * w + w - 1]);
-    }
-    return;
+      REP(c,0,output_channel){
+      for (int i = 0; i < h; i++) {
+        for (int j = 0; j < w - 1; j++)
+          printf("%.1f,", Output[c*(h*w)+i * w + j]);
+        printf("%.1f\n", Output[c*(h*w)+i * w + w - 1]);
+      }
+      }
+      return;
   }
   for (int t = 0; t < min(32, output_channel * w * h); t++) {
     printf("%.2f,", Output[t]);
