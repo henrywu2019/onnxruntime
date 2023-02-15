@@ -32,31 +32,16 @@ void fast_conv::run() {
         int i_offset=input_index(c_,h_,w_);
         if(h_==0){
           y0 = _mm256_loadu_ps(input + i_offset++);
-          // K=0
           y1 = _mm256_set1_ps(kernel[filter_index(0,c_,0,0)]);
           y4 = _mm256_fmadd_ps(y0, y1, y4);
-          //// K=1
-          //y1 = _mm256_set1_ps(kernel[filter_index(0,c_,0,0)]);
-          //y7 = _mm256_fmadd_ps(y0, y1, y4);
-
-
-          //MACRO1(0, 4); //MACRO1(1, 5); MACRO1(2, 6); MACRO1(3, 7);
-          //MACRO1( 4, 8); MACRO1( 5, 9); MACRO1(6,10); MACRO1(7,11);
-          //MACRO1(8,12); MACRO1(9,13); MACRO1(10,14); MACRO1(11,15);
 
           y0 = _mm256_loadu_ps(input + i_offset++);
           y1 = _mm256_set1_ps(kernel[filter_index(0,c_,0,1)]);
           y4 = _mm256_fmadd_ps(y0, y1, y4);
-          //MACRO2(0, 4); //MACRO2(1, 5); MACRO2(2, 6); MACRO2(3, 7);
-          //MACRO2( 4, 8); MACRO2( 5, 9); MACRO2(6,10); MACRO2(7,11);
-          //MACRO2(8,12); MACRO2(9,13); MACRO2(10,14); MACRO2(11,15);
 
           y0 = _mm256_loadu_ps(input + i_offset++);
           y1 = _mm256_set1_ps(kernel[filter_index(0,c_,0,2)]);
           y4 = _mm256_fmadd_ps(y0, y1, y4);
-          //MACRO3(0, 4); //MACRO3(1, 5); MACRO3(2, 6); MACRO3(3, 7);
-          //MACRO3( 4, 8); MACRO3( 5, 9); MACRO3(6,10); MACRO3(7,11);
-          //MACRO3(8,12); MACRO3(9,13); MACRO3(10,14); MACRO3(11,15);
         }
         else if(h_==1)
         {
@@ -66,23 +51,17 @@ void fast_conv::run() {
           y5 = _mm256_fmadd_ps(y0, y1, y5);
           y4 = _mm256_fmadd_ps(y0, y2, y4);
 
-          //MACRO1(0, 4); MACRO1(1, 5); MACRO1(2, 6); MACRO1(3, 7);
-
           y0 = _mm256_loadu_ps(input + i_offset++);
           y1 = _mm256_set1_ps(kernel[filter_index(0,c_,0,1)]);
           y2 = _mm256_set1_ps(kernel[filter_index(0,c_,1,1)]);
           y5 = _mm256_fmadd_ps(y0, y1, y5);
           y4 = _mm256_fmadd_ps(y0, y2, y4);
-          //MACRO2(0, 4); MACRO2(1, 5); MACRO2(2, 6); MACRO2(3, 7);
 
           y0 = _mm256_loadu_ps(input + i_offset++);
           y1 = _mm256_set1_ps(kernel[filter_index(0,c_,0,2)]);
           y2 = _mm256_set1_ps(kernel[filter_index(0,c_,1,2)]);
           y5 = _mm256_fmadd_ps(y0, y1, y5);
           y4 = _mm256_fmadd_ps(y0, y2, y4);
-          //MACRO3(0, 4); //MACRO3(1, 5); MACRO3(2, 6); MACRO3(3, 7);
-          //MACRO3( 4, 8); MACRO3( 5, 9); MACRO3(6,10); MACRO3(7,11);
-          //MACRO3(8,12); MACRO3(9,13); MACRO3(10,14); MACRO3(11,15);
         }
         else if(h_<ca.H-2)
         {
@@ -94,7 +73,6 @@ void fast_conv::run() {
             y6 = _mm256_fmadd_ps(y0, y1, y6);
             y5 = _mm256_fmadd_ps(y0, y2, y5);
             y4 = _mm256_fmadd_ps(y0, y3, y4);
-            //MACRO1(0, 4); MACRO1(1, 5); MACRO1(2, 6); MACRO1(3, 7);
           }
           {
             y0 = _mm256_loadu_ps(input + i_offset++);
@@ -104,10 +82,7 @@ void fast_conv::run() {
             y6 = _mm256_fmadd_ps(y0, y1, y6);
             y5 = _mm256_fmadd_ps(y0, y2, y5);
             y4 = _mm256_fmadd_ps(y0, y3, y4);
-            //MACRO2(0, 4); MACRO2(1, 5); MACRO2(2, 6); MACRO2(3, 7);
           }
-
-
           {
             y0 = _mm256_loadu_ps(input + i_offset++);
             y1 = _mm256_set1_ps(kernel[filter_index(0,c_,0,2)]);
@@ -116,16 +91,15 @@ void fast_conv::run() {
             y6 = _mm256_fmadd_ps(y0, y1, y6);
             y5 = _mm256_fmadd_ps(y0, y2, y5);
             y4 = _mm256_fmadd_ps(y0, y3, y4);
-            //MACRO3(0, 4); //MACRO3(1, 5); MACRO3(2, 6); MACRO3(3, 7);
-            //MACRO3( 4, 8); MACRO3( 5, 9); MACRO3(6,10); MACRO3(7,11);
-            //MACRO3(8,12); MACRO3(9,13); MACRO3(10,14); MACRO3(11,15);
           }
           // write y4 to output
           //print_m256(y4);
-          _mm256_storeu_ps(output+output_index(0,h_-2,w_), y4);
-          _mm256_storeu_ps((float*)&y4,y5);
-          _mm256_storeu_ps((float*)&y5,y6);
-          y6 = _mm256_setzero_ps();
+          if(c_+1==ca.C){
+            _mm256_storeu_ps(output+output_index(0,h_-2,w_), y4);
+            _mm256_storeu_ps((float*)&y4,y5);
+            _mm256_storeu_ps((float*)&y5,y6);
+            y6 = _mm256_setzero_ps();
+          }
         }
         else if(h_==ca.H-2)
         {
@@ -134,72 +108,44 @@ void fast_conv::run() {
           y3 = _mm256_set1_ps(kernel[filter_index(0,c_,2,0)]);
           y5 = _mm256_fmadd_ps(y0, y2, y5);
           y4 = _mm256_fmadd_ps(y0, y3, y4);
-          //MACRO1(0, 4); MACRO1(1, 5); MACRO1(2, 6); MACRO1(3, 7);
 
           y0 = _mm256_loadu_ps(input + i_offset++);
           y2 = _mm256_set1_ps(kernel[filter_index(0,c_,1,1)]);
           y3 = _mm256_set1_ps(kernel[filter_index(0,c_,2,1)]);
           y5 = _mm256_fmadd_ps(y0, y2, y5);
           y4 = _mm256_fmadd_ps(y0, y3, y4);
-          //MACRO2(0, 4); MACRO2(1, 5); MACRO2(2, 6); MACRO2(3, 7);
 
           y0 = _mm256_loadu_ps(input + i_offset++);
           y2 = _mm256_set1_ps(kernel[filter_index(0,c_,1,2)]);
           y3 = _mm256_set1_ps(kernel[filter_index(0,c_,2,2)]);
           y5 = _mm256_fmadd_ps(y0, y2, y5);
           y4 = _mm256_fmadd_ps(y0, y3, y4);
-          _mm256_storeu_ps(output+output_index(0,h_-2,w_), y4);
-          //print_m256(y4);
-          _mm256_storeu_ps((float*)&y4,y5);
-          y5 = _mm256_setzero_ps();
+          if(c_+1==ca.C){
+            _mm256_storeu_ps(output+output_index(0,h_-2,w_), y4);
+            //print_m256(y4);
+            _mm256_storeu_ps((float*)&y4,y5);
+            y5 = _mm256_setzero_ps();
+          }
         }else{ //(h_==ca.OH-1)
           y0 = _mm256_loadu_ps(input + i_offset++);
           y3 = _mm256_set1_ps(kernel[filter_index(0,c_,2,0)]);
           y4 = _mm256_fmadd_ps(y0, y3, y4);
-          //MACRO1(0, 4); MACRO1(1, 5); MACRO1(2, 6); MACRO1(3, 7);
 
           y0 = _mm256_loadu_ps(input + i_offset++);
           y3 = _mm256_set1_ps(kernel[filter_index(0,c_,2,1)]);
           y4 = _mm256_fmadd_ps(y0, y3, y4);
-          //MACRO2(0, 4); MACRO2(1, 5); MACRO2(2, 6); MACRO2(3, 7);
 
           y0 = _mm256_loadu_ps(input + i_offset++);
           y3 = _mm256_set1_ps(kernel[filter_index(0,c_,2,2)]);
           y4 = _mm256_fmadd_ps(y0, y3, y4);
-          _mm256_storeu_ps(output+output_index(0,h_-2,w_), y4);
-          //print_m256(y4);
-          y4 = _mm256_setzero_ps();
+          if(c_+1==ca.C){
+            _mm256_storeu_ps(output+output_index(0,h_-2,w_), y4);
+            //print_m256(y4);
+            y4 = _mm256_setzero_ps();
+          }
         }
-
-
-        /////////////////////////////////////////////////////////////////////////////////////
-        /*i_offset=input_index(c_,h_+1,w_);
-        y0 = _mm256_loadu_ps(input + i_offset++);
-        MACRO4(0, 4); MACRO4(1, 5); MACRO4(2, 6); MACRO4(3, 7); MACRO4( 4, 8); MACRO4( 5, 9);
-        MACRO4(6,10); MACRO4(7,11); MACRO4(8,12); MACRO4(9,13); MACRO4(10,14); MACRO4(11,15);
-
-        y0 = _mm256_loadu_ps(input + i_offset++);
-        MACRO5(0, 4); MACRO5(1, 5); MACRO5(2, 6); MACRO5(3, 7); MACRO5( 4, 8); MACRO5( 5, 9);
-        MACRO5(6,10); MACRO5(7,11); MACRO5(8,12); MACRO5(9,13); MACRO5(10,14); MACRO5(11,15);
-
-        y0 = _mm256_loadu_ps(input + i_offset++);
-        MACRO6(0, 4); MACRO6(1, 5); MACRO6(2, 6); MACRO6(3, 7); MACRO6( 4, 8); MACRO6( 5, 9);
-        MACRO6(6,10); MACRO6(7,11); MACRO6(8,12); MACRO6(9,13); MACRO6(10,14); MACRO6(11,15);
-
-        /////////////////////////////////////////////////////////////////////////////////////
-        i_offset=input_index(c_,h_+2,w_);
-        y0 = _mm256_loadu_ps(input + i_offset++);
-        MACRO4(0, 4); MACRO4(1, 5); MACRO4(2, 6); MACRO4(3, 7); MACRO4( 4, 8); MACRO4( 5, 9);
-        MACRO4(6,10); MACRO4(7,11); MACRO4(8,12); MACRO4(9,13); MACRO4(10,14); MACRO4(11,15);
-
-        y0 = _mm256_loadu_ps(input + i_offset++);
-        MACRO5(0, 4); MACRO5(1, 5); MACRO5(2, 6); MACRO5(3, 7); MACRO5( 4, 8); MACRO5( 5, 9);
-        MACRO5(6,10); MACRO5(7,11); MACRO5(8,12); MACRO5(9,13); MACRO5(10,14); MACRO5(11,15);
-
-        y0 = _mm256_loadu_ps(input + i_offset++);
-        MACRO6(0, 4); MACRO6(1, 5); MACRO6(2, 6); MACRO6(3, 7); MACRO6( 4, 8); MACRO6( 5, 9);
-        MACRO6(6,10); MACRO6(7,11); MACRO6(8,12); MACRO6(9,13); MACRO6(10,14); MACRO6(11,15);*/
       }
+      ///////////////////////////////////////////
     }
     printf("write to output\n");
   }
@@ -232,7 +178,7 @@ void get_input(float* l, int n, int c, int w, int h, float channel_delta = 0.1, 
 
 int main(int argc, char** argv) {
   srand(0xdeadbeef);
-  int input_height = 10, input_width = 10, input_channel = 1, filter_batch = 1, kernel_width = 3, kernel_height = 3;
+  int input_height = 10, input_width = 10, input_channel = 256, filter_batch = 1, kernel_width = 3, kernel_height = 3;
   // input_channel = 256, input_height = 400, input_width = 296;
 
   if (argc >= 2) {
