@@ -1,7 +1,7 @@
 set -x
 
 
-g++ wfh_test.cpp -o wfh_test.exe -O3 -std=c++11 -mavx2 -march=native
+g++ wfh_test.cpp -o wfh_test.exe -O3 -std=c++20 -mavx2 -march=native
 
 # DegreeOfParallelism
 

@@ -227,6 +227,7 @@ class block{
   }
 
   void run(){
+    // unroll!!!
     for(int k=0;k<3;k++){
       // i == 0
       for (int j = 0; j < len; j++)

@@ -177,6 +177,7 @@ void conv_wfh::run() {
   for (int ch_ = 0; ch_ < core_h; ch_++) {        // h
     for (int cb_ = 0; cb_ < safe_batch; cb_++) {  // w
       for (int k_ = 0; k_ < ca.K; k_++) {  // k
+        // unroll!!!!
         for (int r_ = 0; r_ < ca.R; r_++) {
           for (int l_ = 0; l_ < ca.L; l_++) {
             int ri = l_ + r_ * ca.L + k_ * filter_channel_stride;
