@@ -63,29 +63,7 @@ void fast_conv::run(float* output_, int cbase, int cstop) {
       // TC: O(9*32*H=288H)
       {
         const int h_=0;
-        REP(c_,cbase,cstop-1){
-          int i_offset=input_index(c_,h_,w_);
-          y00 = _mm256_loadu_ps(input + i_offset++);
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,0,0)]); y04 = _mm256_fmadd_ps(y00, y01, y04);
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,0,1)]); y07 = _mm256_fmadd_ps(y00, y01, y07);
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,0,2)]); y10 = _mm256_fmadd_ps(y00, y01, y10);
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,0,3)]); y13 = _mm256_fmadd_ps(y00, y01, y13);
-
-          y00 = _mm256_loadu_ps(input + i_offset++);
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,1,0)]); y04 = _mm256_fmadd_ps(y00, y01, y04);
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,1,1)]); y07 = _mm256_fmadd_ps(y00, y01, y07);
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,1,2)]); y10 = _mm256_fmadd_ps(y00, y01, y10);
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,1,3)]); y13 = _mm256_fmadd_ps(y00, y01, y13);
-
-          y00 = _mm256_loadu_ps(input + i_offset++);
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,2,0)]); y04 = _mm256_fmadd_ps(y00, y01, y04);
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,2,1)]); y07 = _mm256_fmadd_ps(y00, y01, y07);
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,2,2)]); y10 = _mm256_fmadd_ps(y00, y01, y10);
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,2,3)]); y13 = _mm256_fmadd_ps(y00, y01, y13);
-        }
-        // when c_=cstop-1
-        {
-          int c_=cstop-1;
+        REP(c_,cbase,cstop){
           int i_offset=input_index(c_,h_,w_);
           y00 = _mm256_loadu_ps(input + i_offset++);
           y01 = _mm256_set1_ps(fr[kid(k,c_,0,0,0)]); y04 = _mm256_fmadd_ps(y00, y01, y04);
@@ -109,30 +87,7 @@ void fast_conv::run(float* output_, int cbase, int cstop) {
 
       {
         const int h_=1;
-        REP(c_,cbase,cstop-1){
-          int i_offset=input_index(c_,h_,w_);
-          y00 = _mm256_loadu_ps(input + i_offset++);
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,0,0)]); y02 = _mm256_set1_ps(fr[kid(k,c_,1,0,0)]); y05 = _mm256_fmadd_ps(y00, y01, y05); y04 = _mm256_fmadd_ps(y00, y02, y04); // k=kbase
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,0,1)]); y02 = _mm256_set1_ps(fr[kid(k,c_,1,0,1)]); y08 = _mm256_fmadd_ps(y00, y01, y08); y07 = _mm256_fmadd_ps(y00, y02, y07); // k=kbase+1
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,0,2)]); y02 = _mm256_set1_ps(fr[kid(k,c_,1,0,2)]); y11 = _mm256_fmadd_ps(y00, y01, y11); y10 = _mm256_fmadd_ps(y00, y02, y10); // k=kbase+2
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,0,3)]); y02 = _mm256_set1_ps(fr[kid(k,c_,1,0,3)]); y14 = _mm256_fmadd_ps(y00, y01, y14); y13 = _mm256_fmadd_ps(y00, y02, y13); // k=kbase+3
-
-          y00 = _mm256_loadu_ps(input + i_offset++);
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,1,0)]); y02 = _mm256_set1_ps(fr[kid(k,c_,1,1,0)]); y05 = _mm256_fmadd_ps(y00, y01, y05); y04 = _mm256_fmadd_ps(y00, y02, y04); // k=kbase
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,1,1)]); y02 = _mm256_set1_ps(fr[kid(k,c_,1,1,1)]); y08 = _mm256_fmadd_ps(y00, y01, y08); y07 = _mm256_fmadd_ps(y00, y02, y07); // k=kbase+1
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,1,2)]); y02 = _mm256_set1_ps(fr[kid(k,c_,1,1,2)]); y11 = _mm256_fmadd_ps(y00, y01, y11); y10 = _mm256_fmadd_ps(y00, y02, y10); // k=kbase+2
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,1,3)]); y02 = _mm256_set1_ps(fr[kid(k,c_,1,1,3)]); y14 = _mm256_fmadd_ps(y00, y01, y14); y13 = _mm256_fmadd_ps(y00, y02, y13); // k=kbase+3
-
-          y00 = _mm256_loadu_ps(input + i_offset++);
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,2,0)]); y02 = _mm256_set1_ps(fr[kid(k,c_,1,2,0)]); y05 = _mm256_fmadd_ps(y00, y01, y05); y04 = _mm256_fmadd_ps(y00, y02, y04);// k=kbase
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,2,1)]); y02 = _mm256_set1_ps(fr[kid(k,c_,1,2,1)]); y08 = _mm256_fmadd_ps(y00, y01, y08); y07 = _mm256_fmadd_ps(y00, y02, y07);// k=kbase+1
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,2,2)]); y02 = _mm256_set1_ps(fr[kid(k,c_,1,2,2)]); y11 = _mm256_fmadd_ps(y00, y01, y11); y10 = _mm256_fmadd_ps(y00, y02, y10);// k=kbase+2
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,2,3)]); y02 = _mm256_set1_ps(fr[kid(k,c_,1,2,3)]); y14 = _mm256_fmadd_ps(y00, y01, y14); y13 = _mm256_fmadd_ps(y00, y02, y13);// k=kbase+3
-        }
-
-        // when c_=cstop-1
-        {
-          int c_=cstop-1;
+        REP(c_,cbase,cstop){
           int i_offset=input_index(c_,h_,w_);
           y00 = _mm256_loadu_ps(input + i_offset++);
           y01 = _mm256_set1_ps(fr[kid(k,c_,0,0,0)]); y02 = _mm256_set1_ps(fr[kid(k,c_,1,0,0)]); y05 = _mm256_fmadd_ps(y00, y01, y05); y04 = _mm256_fmadd_ps(y00, y02, y04); // k=kbase
@@ -155,50 +110,28 @@ void fast_conv::run(float* output_, int cbase, int cstop) {
       }
 
       REP(h_,2,ca.H-2){
-        REP(c_,cbase,cstop-1){
+        REP(c_,cbase,cstop){
           int i_offset=input_index(c_,h_,w_);
-          y00 = _mm256_loadu_ps(input + i_offset++);
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,0,0)]); y02 = _mm256_set1_ps(fr[kid(k,c_,1,0,0)]); y03 = _mm256_set1_ps(fr[kid(k,c_,2,0,0)]); y06 = _mm256_fmadd_ps(y00, y01, y06); y05 = _mm256_fmadd_ps(y00, y02, y05); y04 = _mm256_fmadd_ps(y00, y03, y04); // k=kbase
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,0,1)]); y02 = _mm256_set1_ps(fr[kid(k,c_,1,0,1)]); y03 = _mm256_set1_ps(fr[kid(k,c_,2,0,1)]); y09 = _mm256_fmadd_ps(y00, y01, y09); y08 = _mm256_fmadd_ps(y00, y02, y08); y07 = _mm256_fmadd_ps(y00, y03, y07); // k=kbase+1
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,0,2)]); y02 = _mm256_set1_ps(fr[kid(k,c_,1,0,2)]); y03 = _mm256_set1_ps(fr[kid(k,c_,2,0,2)]); y12 = _mm256_fmadd_ps(y00, y01, y12); y11 = _mm256_fmadd_ps(y00, y02, y11); y10 = _mm256_fmadd_ps(y00, y03, y10); // k=kbase+2
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,0,3)]); y02 = _mm256_set1_ps(fr[kid(k,c_,1,0,3)]); y03 = _mm256_set1_ps(fr[kid(k,c_,2,0,3)]); y15 = _mm256_fmadd_ps(y00, y01, y15); y14 = _mm256_fmadd_ps(y00, y02, y14); y13 = _mm256_fmadd_ps(y00, y03, y13); // k=kbase+3
+          y00 = _mm256_loadu_ps(input + i_offset++); y01 = _mm256_loadu_ps(input + i_offset++); y02 = _mm256_loadu_ps(input + i_offset++);
 
-          y00 = _mm256_loadu_ps(input + i_offset++);
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,1,0)]); y02 = _mm256_set1_ps(fr[kid(k,c_,1,1,0)]); y03 = _mm256_set1_ps(fr[kid(k,c_,2,1,0)]); y06 = _mm256_fmadd_ps(y00, y01, y06); y05 = _mm256_fmadd_ps(y00, y02, y05); y04 = _mm256_fmadd_ps(y00, y03, y04);
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,1,1)]); y02 = _mm256_set1_ps(fr[kid(k,c_,1,1,1)]); y03 = _mm256_set1_ps(fr[kid(k,c_,2,1,1)]); y09 = _mm256_fmadd_ps(y00, y01, y09); y08 = _mm256_fmadd_ps(y00, y02, y08); y07 = _mm256_fmadd_ps(y00, y03, y07);
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,1,2)]); y02 = _mm256_set1_ps(fr[kid(k,c_,1,1,2)]); y03 = _mm256_set1_ps(fr[kid(k,c_,2,1,2)]); y12 = _mm256_fmadd_ps(y00, y01, y12); y11 = _mm256_fmadd_ps(y00, y02, y11); y10 = _mm256_fmadd_ps(y00, y03, y10);
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,1,3)]); y02 = _mm256_set1_ps(fr[kid(k,c_,1,1,3)]); y03 = _mm256_set1_ps(fr[kid(k,c_,2,1,3)]); y15 = _mm256_fmadd_ps(y00, y01, y15); y14 = _mm256_fmadd_ps(y00, y02, y14); y13 = _mm256_fmadd_ps(y00, y03, y13);
+          y03 = _mm256_set1_ps(fr[kid(k,c_,0,0,0)]); y06 = _mm256_fmadd_ps(y00, y03, y06); y03 = _mm256_set1_ps(fr[kid(k,c_,1,0,0)]); y05 = _mm256_fmadd_ps(y00, y03, y05); y03 = _mm256_set1_ps(fr[kid(k,c_,2,0,0)]); y04 = _mm256_fmadd_ps(y00, y03, y04);
+          y03 = _mm256_set1_ps(fr[kid(k,c_,0,0,1)]); y09 = _mm256_fmadd_ps(y00, y03, y09); y03 = _mm256_set1_ps(fr[kid(k,c_,1,0,1)]); y08 = _mm256_fmadd_ps(y00, y03, y08); y03 = _mm256_set1_ps(fr[kid(k,c_,2,0,1)]); y07 = _mm256_fmadd_ps(y00, y03, y07);
+          y03 = _mm256_set1_ps(fr[kid(k,c_,0,0,2)]); y12 = _mm256_fmadd_ps(y00, y03, y12); y03 = _mm256_set1_ps(fr[kid(k,c_,1,0,2)]); y11 = _mm256_fmadd_ps(y00, y03, y11); y03 = _mm256_set1_ps(fr[kid(k,c_,2,0,2)]); y10 = _mm256_fmadd_ps(y00, y03, y10);
+          y03 = _mm256_set1_ps(fr[kid(k,c_,0,0,3)]); y15 = _mm256_fmadd_ps(y00, y03, y15); y03 = _mm256_set1_ps(fr[kid(k,c_,1,0,3)]); y14 = _mm256_fmadd_ps(y00, y03, y14); y03 = _mm256_set1_ps(fr[kid(k,c_,2,0,3)]); y13 = _mm256_fmadd_ps(y00, y03, y13);
 
-          y00 = _mm256_loadu_ps(input + i_offset++);
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,2,0)]); y02 = _mm256_set1_ps(fr[kid(k,c_,1,2,0)]); y03 = _mm256_set1_ps(fr[kid(k,c_,2,2,0)]); y06 = _mm256_fmadd_ps(y00, y01, y06); y05 = _mm256_fmadd_ps(y00, y02, y05); y04 = _mm256_fmadd_ps(y00, y03, y04);
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,2,1)]); y02 = _mm256_set1_ps(fr[kid(k,c_,1,2,1)]); y03 = _mm256_set1_ps(fr[kid(k,c_,2,2,1)]); y09 = _mm256_fmadd_ps(y00, y01, y09); y08 = _mm256_fmadd_ps(y00, y02, y05); y07 = _mm256_fmadd_ps(y00, y03, y07);
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,2,2)]); y02 = _mm256_set1_ps(fr[kid(k,c_,1,2,2)]); y03 = _mm256_set1_ps(fr[kid(k,c_,2,2,2)]); y12 = _mm256_fmadd_ps(y00, y01, y12); y11 = _mm256_fmadd_ps(y00, y02, y05); y10 = _mm256_fmadd_ps(y00, y03, y10);
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,2,3)]); y02 = _mm256_set1_ps(fr[kid(k,c_,1,2,3)]); y03 = _mm256_set1_ps(fr[kid(k,c_,2,2,3)]); y15 = _mm256_fmadd_ps(y00, y01, y15); y14 = _mm256_fmadd_ps(y00, y02, y05); y13 = _mm256_fmadd_ps(y00, y03, y13);
+          y03 = _mm256_set1_ps(fr[kid(k,c_,0,1,0)]); y06 = _mm256_fmadd_ps(y01, y03, y06); y03 = _mm256_set1_ps(fr[kid(k,c_,1,1,0)]); y05 = _mm256_fmadd_ps(y01, y03, y05); y03 = _mm256_set1_ps(fr[kid(k,c_,2,1,0)]); y04 = _mm256_fmadd_ps(y01, y03, y04);
+          y03 = _mm256_set1_ps(fr[kid(k,c_,0,1,1)]); y09 = _mm256_fmadd_ps(y01, y03, y09); y03 = _mm256_set1_ps(fr[kid(k,c_,1,1,1)]); y08 = _mm256_fmadd_ps(y01, y03, y08); y03 = _mm256_set1_ps(fr[kid(k,c_,2,1,1)]); y07 = _mm256_fmadd_ps(y01, y03, y07);
+          y03 = _mm256_set1_ps(fr[kid(k,c_,0,1,2)]); y12 = _mm256_fmadd_ps(y01, y03, y12); y03 = _mm256_set1_ps(fr[kid(k,c_,1,1,2)]); y11 = _mm256_fmadd_ps(y01, y03, y11); y03 = _mm256_set1_ps(fr[kid(k,c_,2,1,2)]); y10 = _mm256_fmadd_ps(y01, y03, y10);
+          y03 = _mm256_set1_ps(fr[kid(k,c_,0,1,3)]); y15 = _mm256_fmadd_ps(y01, y03, y15); y03 = _mm256_set1_ps(fr[kid(k,c_,1,1,3)]); y14 = _mm256_fmadd_ps(y01, y03, y14); y03 = _mm256_set1_ps(fr[kid(k,c_,2,1,3)]); y13 = _mm256_fmadd_ps(y01, y03, y13);
+
+          y03 = _mm256_set1_ps(fr[kid(k,c_,0,2,0)]); y06 = _mm256_fmadd_ps(y02, y03, y06); y03 = _mm256_set1_ps(fr[kid(k,c_,1,2,0)]); y05 = _mm256_fmadd_ps(y02, y03, y05); y03 = _mm256_set1_ps(fr[kid(k,c_,2,2,0)]); y04 = _mm256_fmadd_ps(y02, y03, y04);
+          y03 = _mm256_set1_ps(fr[kid(k,c_,0,2,1)]); y09 = _mm256_fmadd_ps(y02, y03, y09); y03 = _mm256_set1_ps(fr[kid(k,c_,1,2,1)]); y08 = _mm256_fmadd_ps(y02, y03, y08); y03 = _mm256_set1_ps(fr[kid(k,c_,2,2,1)]); y07 = _mm256_fmadd_ps(y02, y03, y07);
+          y03 = _mm256_set1_ps(fr[kid(k,c_,0,2,2)]); y12 = _mm256_fmadd_ps(y02, y03, y12); y03 = _mm256_set1_ps(fr[kid(k,c_,1,2,2)]); y11 = _mm256_fmadd_ps(y02, y03, y11); y03 = _mm256_set1_ps(fr[kid(k,c_,2,2,2)]); y10 = _mm256_fmadd_ps(y02, y03, y10);
+          y03 = _mm256_set1_ps(fr[kid(k,c_,0,2,3)]); y15 = _mm256_fmadd_ps(y02, y03, y15); y03 = _mm256_set1_ps(fr[kid(k,c_,1,2,3)]); y14 = _mm256_fmadd_ps(y02, y03, y14); y03 = _mm256_set1_ps(fr[kid(k,c_,2,2,3)]); y13 = _mm256_fmadd_ps(y02, y03, y13);
         }
 
         // when c_=cstop-1
         {
-          int c_=cstop-1;
-          int i_offset=input_index(c_,h_,w_);
-
-          y00 = _mm256_loadu_ps(input + i_offset++);
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,0,0)]); y02 = _mm256_set1_ps(fr[kid(k,c_,1,0,0)]); y03 = _mm256_set1_ps(fr[kid(k,c_,2,0,0)]); y06 = _mm256_fmadd_ps(y00, y01, y06); y05 = _mm256_fmadd_ps(y00, y02, y05); y04 = _mm256_fmadd_ps(y00, y03, y04); // k=kbase
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,0,1)]); y02 = _mm256_set1_ps(fr[kid(k,c_,1,0,1)]); y03 = _mm256_set1_ps(fr[kid(k,c_,2,0,1)]); y09 = _mm256_fmadd_ps(y00, y01, y09); y08 = _mm256_fmadd_ps(y00, y02, y08); y07 = _mm256_fmadd_ps(y00, y03, y07); // k=kbase+1
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,0,2)]); y02 = _mm256_set1_ps(fr[kid(k,c_,1,0,2)]); y03 = _mm256_set1_ps(fr[kid(k,c_,2,0,2)]); y12 = _mm256_fmadd_ps(y00, y01, y12); y11 = _mm256_fmadd_ps(y00, y02, y11); y10 = _mm256_fmadd_ps(y00, y03, y10); // k=kbase+2
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,0,3)]); y02 = _mm256_set1_ps(fr[kid(k,c_,1,0,3)]); y03 = _mm256_set1_ps(fr[kid(k,c_,2,0,3)]); y15 = _mm256_fmadd_ps(y00, y01, y15); y14 = _mm256_fmadd_ps(y00, y02, y14); y13 = _mm256_fmadd_ps(y00, y03, y13); // k=kbase+3
-
-          y00 = _mm256_loadu_ps(input + i_offset++);
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,1,0)]); y02 = _mm256_set1_ps(fr[kid(k,c_,1,1,0)]); y03 = _mm256_set1_ps(fr[kid(k,c_,2,1,0)]); y06 = _mm256_fmadd_ps(y00, y01, y06); y05 = _mm256_fmadd_ps(y00, y02, y05); y04 = _mm256_fmadd_ps(y00, y03, y04);
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,1,1)]); y02 = _mm256_set1_ps(fr[kid(k,c_,1,1,1)]); y03 = _mm256_set1_ps(fr[kid(k,c_,2,1,1)]); y09 = _mm256_fmadd_ps(y00, y01, y09); y08 = _mm256_fmadd_ps(y00, y02, y08); y07 = _mm256_fmadd_ps(y00, y03, y07);
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,1,2)]); y02 = _mm256_set1_ps(fr[kid(k,c_,1,1,2)]); y03 = _mm256_set1_ps(fr[kid(k,c_,2,1,2)]); y12 = _mm256_fmadd_ps(y00, y01, y12); y11 = _mm256_fmadd_ps(y00, y02, y11); y10 = _mm256_fmadd_ps(y00, y03, y10);
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,1,3)]); y02 = _mm256_set1_ps(fr[kid(k,c_,1,1,3)]); y03 = _mm256_set1_ps(fr[kid(k,c_,2,1,3)]); y15 = _mm256_fmadd_ps(y00, y01, y15); y14 = _mm256_fmadd_ps(y00, y02, y14); y13 = _mm256_fmadd_ps(y00, y03, y13);
-
-          y00 = _mm256_loadu_ps(input + i_offset++);
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,2,0)]); y02 = _mm256_set1_ps(fr[kid(k,c_,1,2,0)]); y03 = _mm256_set1_ps(fr[kid(k,c_,2,2,0)]); y06 = _mm256_fmadd_ps(y00, y01, y06); y05 = _mm256_fmadd_ps(y00, y02, y05); y04 = _mm256_fmadd_ps(y00, y03, y04);
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,2,1)]); y02 = _mm256_set1_ps(fr[kid(k,c_,1,2,1)]); y03 = _mm256_set1_ps(fr[kid(k,c_,2,2,1)]); y09 = _mm256_fmadd_ps(y00, y01, y09); y08 = _mm256_fmadd_ps(y00, y02, y05); y07 = _mm256_fmadd_ps(y00, y03, y07);
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,2,2)]); y02 = _mm256_set1_ps(fr[kid(k,c_,1,2,2)]); y03 = _mm256_set1_ps(fr[kid(k,c_,2,2,2)]); y12 = _mm256_fmadd_ps(y00, y01, y12); y11 = _mm256_fmadd_ps(y00, y02, y05); y10 = _mm256_fmadd_ps(y00, y03, y10);
-          y01 = _mm256_set1_ps(fr[kid(k,c_,0,2,3)]); y02 = _mm256_set1_ps(fr[kid(k,c_,1,2,3)]); y03 = _mm256_set1_ps(fr[kid(k,c_,2,2,3)]); y15 = _mm256_fmadd_ps(y00, y01, y15); y14 = _mm256_fmadd_ps(y00, y02, y05); y13 = _mm256_fmadd_ps(y00, y03, y13);
-
           // write y04, y07, y10, y13 to output_
           //print_m256(y04);
           _mm256_storeu_ps(output_+output_index(k*4+0,h_-2,w_), y04); _mm256_storeu_ps((float*)&y04,y05); _mm256_storeu_ps((float*)&y05,y06); y06 = _mm256_setzero_ps(); // k=kbase
@@ -210,7 +143,7 @@ void fast_conv::run(float* output_, int cbase, int cstop) {
 
       {
         const int h_=ca.H-2;
-        REP(c_,cbase,cstop-1){
+        REP(c_,cbase,cstop){
           int i_offset=input_index(c_,h_,w_);
           y00 = _mm256_loadu_ps(input + i_offset++);
           y02 = _mm256_set1_ps(fr[kid(k,c_,1,0,0)]); y03 = _mm256_set1_ps(fr[kid(k,c_,2,0,0)]); y05 = _mm256_fmadd_ps(y00, y02, y05); y04 = _mm256_fmadd_ps(y00, y03, y04);
@@ -233,26 +166,6 @@ void fast_conv::run(float* output_, int cbase, int cstop) {
 
         // when c_=cstop-1
         {
-          int c_=cstop-1;
-          int i_offset=input_index(c_,h_,w_);
-          y00 = _mm256_loadu_ps(input + i_offset++);
-          y02 = _mm256_set1_ps(fr[kid(k,c_,1,0,0)]); y03 = _mm256_set1_ps(fr[kid(k,c_,2,0,0)]); y05 = _mm256_fmadd_ps(y00, y02, y05); y04 = _mm256_fmadd_ps(y00, y03, y04);
-          y02 = _mm256_set1_ps(fr[kid(k,c_,1,0,1)]); y03 = _mm256_set1_ps(fr[kid(k,c_,2,0,1)]); y08 = _mm256_fmadd_ps(y00, y02, y08); y07 = _mm256_fmadd_ps(y00, y03, y07);
-          y02 = _mm256_set1_ps(fr[kid(k,c_,1,0,2)]); y03 = _mm256_set1_ps(fr[kid(k,c_,2,0,2)]); y11 = _mm256_fmadd_ps(y00, y02, y11); y10 = _mm256_fmadd_ps(y00, y03, y10);
-          y02 = _mm256_set1_ps(fr[kid(k,c_,1,0,3)]); y03 = _mm256_set1_ps(fr[kid(k,c_,2,0,3)]); y14 = _mm256_fmadd_ps(y00, y02, y14); y13 = _mm256_fmadd_ps(y00, y03, y13);
-
-          y00 = _mm256_loadu_ps(input + i_offset++);
-          y02 = _mm256_set1_ps(fr[kid(k,c_,1,1,0)]); y03 = _mm256_set1_ps(fr[kid(k,c_,2,1,0)]); y05 = _mm256_fmadd_ps(y00, y02, y05); y04 = _mm256_fmadd_ps(y00, y03, y04);
-          y02 = _mm256_set1_ps(fr[kid(k,c_,1,1,1)]); y03 = _mm256_set1_ps(fr[kid(k,c_,2,1,1)]); y08 = _mm256_fmadd_ps(y00, y02, y08); y07 = _mm256_fmadd_ps(y00, y03, y07);
-          y02 = _mm256_set1_ps(fr[kid(k,c_,1,1,2)]); y03 = _mm256_set1_ps(fr[kid(k,c_,2,1,2)]); y11 = _mm256_fmadd_ps(y00, y02, y11); y10 = _mm256_fmadd_ps(y00, y03, y10);
-          y02 = _mm256_set1_ps(fr[kid(k,c_,1,1,3)]); y03 = _mm256_set1_ps(fr[kid(k,c_,2,1,3)]); y14 = _mm256_fmadd_ps(y00, y02, y14); y13 = _mm256_fmadd_ps(y00, y03, y13);
-
-          y00 = _mm256_loadu_ps(input + i_offset++);
-          y02 = _mm256_set1_ps(fr[kid(k,c_,1,2,0)]); y03 = _mm256_set1_ps(fr[kid(k,c_,2,2,0)]); y05 = _mm256_fmadd_ps(y00, y02, y05); y04 = _mm256_fmadd_ps(y00, y03, y04);
-          y02 = _mm256_set1_ps(fr[kid(k,c_,1,2,1)]); y03 = _mm256_set1_ps(fr[kid(k,c_,2,2,1)]); y08 = _mm256_fmadd_ps(y00, y02, y08); y07 = _mm256_fmadd_ps(y00, y03, y07);
-          y02 = _mm256_set1_ps(fr[kid(k,c_,1,2,2)]); y03 = _mm256_set1_ps(fr[kid(k,c_,2,2,2)]); y11 = _mm256_fmadd_ps(y00, y02, y11); y10 = _mm256_fmadd_ps(y00, y03, y10);
-          y02 = _mm256_set1_ps(fr[kid(k,c_,1,2,3)]); y03 = _mm256_set1_ps(fr[kid(k,c_,2,2,3)]); y14 = _mm256_fmadd_ps(y00, y02, y14); y13 = _mm256_fmadd_ps(y00, y03, y13);
-
           // write y04, y07, y10, y13 to output_
           //print_m256(y04);
           _mm256_storeu_ps(output_+output_index(k*4+0,h_-2,w_), y04); _mm256_storeu_ps((float*)&y04,y05); y05 = _mm256_setzero_ps();
@@ -264,7 +177,7 @@ void fast_conv::run(float* output_, int cbase, int cstop) {
 
       {
         const int h_=ca.H-1;
-        REP(c_,cbase,cstop-1){
+        REP(c_,cbase,cstop){
           int i_offset=input_index(c_,h_,w_);
           y00 = _mm256_loadu_ps(input + i_offset++);
           y03 = _mm256_set1_ps(fr[kid(k,c_,2,0,0)]); y04 = _mm256_fmadd_ps(y00, y03, y04);
@@ -287,26 +200,6 @@ void fast_conv::run(float* output_, int cbase, int cstop) {
 
         // when c_=cstop-1
         {
-          int c_=cstop-1;
-          int i_offset=input_index(c_,h_,w_);
-          y00 = _mm256_loadu_ps(input + i_offset++);
-          y03 = _mm256_set1_ps(fr[kid(k,c_,2,0,0)]); y04 = _mm256_fmadd_ps(y00, y03, y04);
-          y03 = _mm256_set1_ps(fr[kid(k,c_,2,0,1)]); y07 = _mm256_fmadd_ps(y00, y03, y07);
-          y03 = _mm256_set1_ps(fr[kid(k,c_,2,0,2)]); y10 = _mm256_fmadd_ps(y00, y03, y10);
-          y03 = _mm256_set1_ps(fr[kid(k,c_,2,0,3)]); y13 = _mm256_fmadd_ps(y00, y03, y13);
-
-          y00 = _mm256_loadu_ps(input + i_offset++);
-          y03 = _mm256_set1_ps(fr[kid(k,c_,2,1,0)]); y04 = _mm256_fmadd_ps(y00, y03, y04);
-          y03 = _mm256_set1_ps(fr[kid(k,c_,2,1,1)]); y07 = _mm256_fmadd_ps(y00, y03, y07);
-          y03 = _mm256_set1_ps(fr[kid(k,c_,2,1,2)]); y10 = _mm256_fmadd_ps(y00, y03, y10);
-          y03 = _mm256_set1_ps(fr[kid(k,c_,2,1,3)]); y13 = _mm256_fmadd_ps(y00, y03, y13);
-
-          y00 = _mm256_loadu_ps(input + i_offset++);
-          y03 = _mm256_set1_ps(fr[kid(k,c_,2,2,0)]); y04 = _mm256_fmadd_ps(y00, y03, y04);
-          y03 = _mm256_set1_ps(fr[kid(k,c_,2,2,1)]); y07 = _mm256_fmadd_ps(y00, y03, y07);
-          y03 = _mm256_set1_ps(fr[kid(k,c_,2,2,2)]); y10 = _mm256_fmadd_ps(y00, y03, y10);
-          y03 = _mm256_set1_ps(fr[kid(k,c_,2,2,3)]); y13 = _mm256_fmadd_ps(y00, y03, y13);
-
           //print_m256(y04);
           _mm256_storeu_ps(output_+output_index(k*4+0,h_-2,w_), y04);
           _mm256_storeu_ps(output_+output_index(k*4+1,h_-2,w_), y07);
@@ -318,7 +211,6 @@ void fast_conv::run(float* output_, int cbase, int cstop) {
           y13 = _mm256_setzero_ps();
         }
       }
-
     }
     //printf("write to output_\n");
   }
