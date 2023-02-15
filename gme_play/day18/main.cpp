@@ -1,6 +1,7 @@
 #include <bits/stdc++.h>
 #include "immintrin.h"
 #include <sein.hpp>
+#include <unistd.h>
 // #include "fmaintrin.h"
 #define ORTCONV
 // #define RANDDATA
