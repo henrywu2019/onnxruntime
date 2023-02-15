@@ -5,7 +5,7 @@
 #ifndef TUNABLE_ALGO_FAST_CONV_H
 #define TUNABLE_ALGO_FAST_CONV_H
 #include "immintrin.h"
-
+#include <sein.hpp>
 
 const int VEC_LEN = 8;  // vectorization length
 
@@ -22,6 +22,13 @@ struct conv_attr {
     OW = W - L + 1;
   }
 };
+
+int ceil_int(int x, int y) {
+  return int(ceil((float)x / y));
+}
+int floor_int(int x, int y) {
+  return int(floor((float)x / y));
+}
 
 struct fast_conv {  // can refactor using inheritance
   conv_attr ca;
@@ -44,6 +51,9 @@ struct fast_conv {  // can refactor using inheritance
   float* kernel;
   float* output;
 
+  float** out_buff = nullptr;
+  int out_buff_num=0;
+
   fast_conv(conv_attr ca_, float* input_, float* kernel_, float* output_)
       :ca(ca_), input(input_), kernel(kernel_), output(output_){
     input_channel_stride = ca.H * ca.W;
@@ -60,10 +70,17 @@ struct fast_conv {  // can refactor using inheritance
 
     if (output == nullptr)
       output = (float*)_mm_malloc(sizeof(float) * output_size, 32);
+    if (ca.C>32){
+      out_buff_num = ceil_int(ca.C,32)-1;
+      out_buff = new float*[out_buff_num](); // TODO
+      REP(x,0,out_buff_num){
+        out_buff[x] = new float[output_size](); // TODO
+      }
+    }
   }
 
-  void run();
-
+  void run(float* output_, int cbase=0, int cstop=32);
+  void run_full();
 
   void print() {
     //print_matrix(output,ca.OH, ca.OW);

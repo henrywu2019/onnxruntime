@@ -5,6 +5,12 @@
 #include <sein.hpp>
 #define SIMPLE_INDEX
 
+void matrix_fuse(float* dest, float* src, int sz){
+  REP(i,0,sz){
+    dest[i] += src[i];
+  }
+}
+
 #define MACRO1(i,z) {y01 = _mm256_set1_ps(kernel[filter_index(i,c_,0,0)]);y##z = _mm256_fmadd_ps(y00, y01, y##z);}
 #define MACRO2(i,z) {y01 = _mm256_set1_ps(kernel[filter_index(i,c_,1,0)]);y##z = _mm256_fmadd_ps(y00, y01, y##z);}
 #define MACRO3(i,z) {y01 = _mm256_set1_ps(kernel[filter_index(i,c_,2,0)]);y##z = _mm256_fmadd_ps(y00, y01, y##z);}
@@ -15,7 +21,17 @@ void print_m256(const __m256& v){
 
 }
 
-void fast_conv::run() {
+void fast_conv::run_full(){
+  run(output, 0, min(ca.C, 32));
+  REP2(cbase,32,ca.C,32){
+    run(out_buff[cbase/32-1], cbase, min(cbase+32, ca.C));
+  }
+  REP(i,0,out_buff_num){
+    matrix_fuse(output, out_buff[i], output_size);
+  }
+}
+
+void fast_conv::run(float* output_, int cbase, int cstop) {
   __m256 y00{}, y01{}, y02{}, y03{};
   __m256 y04{}, y05{}, y06{}, y07{}, y08{}, y09{}, y10{}, y11{}, y12{}, y13{}, y14{}, y15{}; // 8*12
   int k=0;
@@ -24,7 +40,7 @@ void fast_conv::run() {
 
       {
         const int h_=0;
-        REP(c_,0,ca.C-1){
+        REP(c_,cbase,cstop-1){
           int i_offset=input_index(c_,h_,w_);
           y00 = _mm256_loadu_ps(input + i_offset++);
           k=kbase+0,y01 = _mm256_set1_ps(kernel[filter_index(k,c_,0,0)]); y04 = _mm256_fmadd_ps(y00, y01, y04); // k=kbase
@@ -44,9 +60,9 @@ void fast_conv::run() {
           k=kbase+2,y01 = _mm256_set1_ps(kernel[filter_index(k,c_,0,2)]); y10 = _mm256_fmadd_ps(y00, y01, y10); //k=kbase+2
           k=kbase+3,y01 = _mm256_set1_ps(kernel[filter_index(k,c_,0,2)]); y13 = _mm256_fmadd_ps(y00, y01, y13); //k=kbase+3
         }
-        // when c_=ca.C-1
+        // when c_=cstop-1
         {
-          int c_=ca.C-1;
+          int c_=cstop-1;
           int i_offset=input_index(c_,h_,w_);
           y00 = _mm256_loadu_ps(input + i_offset++);
           k=kbase+0,y01 = _mm256_set1_ps(kernel[filter_index(k,c_,0,0)]); y04 = _mm256_fmadd_ps(y00, y01, y04); // k=kbase
@@ -70,7 +86,7 @@ void fast_conv::run() {
 
       {
         const int h_=1;
-        REP(c_,0,ca.C-1){
+        REP(c_,cbase,cstop-1){
           int i_offset=input_index(c_,h_,w_);
           y00 = _mm256_loadu_ps(input + i_offset++);
           k=kbase+0,y01 = _mm256_set1_ps(kernel[filter_index(k,c_,0,0)]); y02 = _mm256_set1_ps(kernel[filter_index(k,c_,1,0)]); y05 = _mm256_fmadd_ps(y00, y01, y05); y04 = _mm256_fmadd_ps(y00, y02, y04); // k=kbase
@@ -91,9 +107,9 @@ void fast_conv::run() {
           k=kbase+3,y01 = _mm256_set1_ps(kernel[filter_index(k,c_,0,2)]); y02 = _mm256_set1_ps(kernel[filter_index(k,c_,1,2)]); y14 = _mm256_fmadd_ps(y00, y01, y14); y13 = _mm256_fmadd_ps(y00, y02, y13);// k=kbase+3
         }
 
-        // when c_=ca.C-1
+        // when c_=cstop-1
         {
-          int c_=ca.C-1;
+          int c_=cstop-1;
           int i_offset=input_index(c_,h_,w_);
           y00 = _mm256_loadu_ps(input + i_offset++);
           k=kbase+0,y01 = _mm256_set1_ps(kernel[filter_index(k,c_,0,0)]); y02 = _mm256_set1_ps(kernel[filter_index(k,c_,1,0)]); y05 = _mm256_fmadd_ps(y00, y01, y05); y04 = _mm256_fmadd_ps(y00, y02, y04); // k=kbase
@@ -116,7 +132,7 @@ void fast_conv::run() {
       }
 
       REP(h_,2,ca.H-2){
-        REP(c_,0,ca.C-1){
+        REP(c_,cbase,cstop-1){
           int i_offset=input_index(c_,h_,w_);
           y00 = _mm256_loadu_ps(input + i_offset++);
           k=kbase+0,y01 = _mm256_set1_ps(kernel[filter_index(k,c_,0,0)]); y02 = _mm256_set1_ps(kernel[filter_index(k,c_,1,0)]); y03 = _mm256_set1_ps(kernel[filter_index(k,c_,2,0)]); y06 = _mm256_fmadd_ps(y00, y01, y06); y05 = _mm256_fmadd_ps(y00, y02, y05); y04 = _mm256_fmadd_ps(y00, y03, y04); // k=kbase
@@ -137,9 +153,9 @@ void fast_conv::run() {
           k=kbase+3,y01 = _mm256_set1_ps(kernel[filter_index(k,c_,0,2)]); y02 = _mm256_set1_ps(kernel[filter_index(k,c_,1,2)]); y03 = _mm256_set1_ps(kernel[filter_index(k,c_,2,2)]); y15 = _mm256_fmadd_ps(y00, y01, y15); y14 = _mm256_fmadd_ps(y00, y02, y05); y13 = _mm256_fmadd_ps(y00, y03, y13);
         }
 
-        // when c_=ca.C-1
+        // when c_=cstop-1
         {
-          int c_=ca.C-1;
+          int c_=cstop-1;
           int i_offset=input_index(c_,h_,w_);
 
           y00 = _mm256_loadu_ps(input + i_offset++);
@@ -160,18 +176,18 @@ void fast_conv::run() {
           k=kbase+2,y01 = _mm256_set1_ps(kernel[filter_index(k,c_,0,2)]); y02 = _mm256_set1_ps(kernel[filter_index(k,c_,1,2)]); y03 = _mm256_set1_ps(kernel[filter_index(k,c_,2,2)]); y12 = _mm256_fmadd_ps(y00, y01, y12); y11 = _mm256_fmadd_ps(y00, y02, y05); y10 = _mm256_fmadd_ps(y00, y03, y10);
           k=kbase+3,y01 = _mm256_set1_ps(kernel[filter_index(k,c_,0,2)]); y02 = _mm256_set1_ps(kernel[filter_index(k,c_,1,2)]); y03 = _mm256_set1_ps(kernel[filter_index(k,c_,2,2)]); y15 = _mm256_fmadd_ps(y00, y01, y15); y14 = _mm256_fmadd_ps(y00, y02, y05); y13 = _mm256_fmadd_ps(y00, y03, y13);
 
-          // write y04, y07, y10, y11 to output
+          // write y04, y07, y10, y11 to output_
           //print_m256(y04);
-          k=kbase+0,_mm256_storeu_ps(output+output_index(k,h_-2,w_), y04); _mm256_storeu_ps((float*)&y04,y05); _mm256_storeu_ps((float*)&y05,y06); y06 = _mm256_setzero_ps(); // k=kbase
-          k=kbase+1,_mm256_storeu_ps(output+output_index(k,h_-2,w_), y07); _mm256_storeu_ps((float*)&y07,y08); _mm256_storeu_ps((float*)&y08,y09); y09 = _mm256_setzero_ps(); // k=kbase+1
-          k=kbase+2,_mm256_storeu_ps(output+output_index(k,h_-2,w_), y10); _mm256_storeu_ps((float*)&y10,y11); _mm256_storeu_ps((float*)&y11,y12); y12 = _mm256_setzero_ps(); // k=kbase+2
-          k=kbase+3,_mm256_storeu_ps(output+output_index(k,h_-2,w_), y13); _mm256_storeu_ps((float*)&y13,y14); _mm256_storeu_ps((float*)&y14,y15); y15 = _mm256_setzero_ps(); // k=kbase+3
+          k=kbase+0,_mm256_storeu_ps(output_+output_index(k,h_-2,w_), y04); _mm256_storeu_ps((float*)&y04,y05); _mm256_storeu_ps((float*)&y05,y06); y06 = _mm256_setzero_ps(); // k=kbase
+          k=kbase+1,_mm256_storeu_ps(output_+output_index(k,h_-2,w_), y07); _mm256_storeu_ps((float*)&y07,y08); _mm256_storeu_ps((float*)&y08,y09); y09 = _mm256_setzero_ps(); // k=kbase+1
+          k=kbase+2,_mm256_storeu_ps(output_+output_index(k,h_-2,w_), y10); _mm256_storeu_ps((float*)&y10,y11); _mm256_storeu_ps((float*)&y11,y12); y12 = _mm256_setzero_ps(); // k=kbase+2
+          k=kbase+3,_mm256_storeu_ps(output_+output_index(k,h_-2,w_), y13); _mm256_storeu_ps((float*)&y13,y14); _mm256_storeu_ps((float*)&y14,y15); y15 = _mm256_setzero_ps(); // k=kbase+3
         }
       }
 
       {
         const int h_=ca.H-2;
-        REP(c_,0,ca.C-1){
+        REP(c_,cbase,cstop-1){
           int i_offset=input_index(c_,h_,w_);
           y00 = _mm256_loadu_ps(input + i_offset++);
           k=kbase+0,y02 = _mm256_set1_ps(kernel[filter_index(k,c_,1,0)]); y03 = _mm256_set1_ps(kernel[filter_index(k,c_,2,0)]); y05 = _mm256_fmadd_ps(y00, y02, y05); y04 = _mm256_fmadd_ps(y00, y03, y04);
@@ -192,9 +208,9 @@ void fast_conv::run() {
           k=kbase+3,y02 = _mm256_set1_ps(kernel[filter_index(k,c_,1,2)]); y03 = _mm256_set1_ps(kernel[filter_index(k,c_,2,2)]); y14 = _mm256_fmadd_ps(y00, y02, y14); y13 = _mm256_fmadd_ps(y00, y03, y13);
         }
 
-        // when c_=ca.C-1
+        // when c_=cstop-1
         {
-          int c_=ca.C-1;
+          int c_=cstop-1;
           int i_offset=input_index(c_,h_,w_);
           y00 = _mm256_loadu_ps(input + i_offset++);
           k=kbase+0,y02 = _mm256_set1_ps(kernel[filter_index(k,c_,1,0)]); y03 = _mm256_set1_ps(kernel[filter_index(k,c_,2,0)]); y05 = _mm256_fmadd_ps(y00, y02, y05); y04 = _mm256_fmadd_ps(y00, y03, y04);
@@ -214,18 +230,18 @@ void fast_conv::run() {
           k=kbase+2,y02 = _mm256_set1_ps(kernel[filter_index(k,c_,1,2)]); y03 = _mm256_set1_ps(kernel[filter_index(k,c_,2,2)]); y11 = _mm256_fmadd_ps(y00, y02, y11); y10 = _mm256_fmadd_ps(y00, y03, y10);
           k=kbase+3,y02 = _mm256_set1_ps(kernel[filter_index(k,c_,1,2)]); y03 = _mm256_set1_ps(kernel[filter_index(k,c_,2,2)]); y14 = _mm256_fmadd_ps(y00, y02, y14); y13 = _mm256_fmadd_ps(y00, y03, y13);
 
-          // write y04, y07, y10, y11 to output
+          // write y04, y07, y10, y11 to output_
           //print_m256(y04);
-          k=kbase+0,_mm256_storeu_ps(output+output_index(k,h_-2,w_), y04); _mm256_storeu_ps((float*)&y04,y05); y05 = _mm256_setzero_ps();
-          k=kbase+1,_mm256_storeu_ps(output+output_index(k,h_-2,w_), y07); _mm256_storeu_ps((float*)&y07,y08); y08 = _mm256_setzero_ps();
-          k=kbase+2,_mm256_storeu_ps(output+output_index(k,h_-2,w_), y10); _mm256_storeu_ps((float*)&y10,y11); y11 = _mm256_setzero_ps();
-          k=kbase+3,_mm256_storeu_ps(output+output_index(k,h_-2,w_), y13); _mm256_storeu_ps((float*)&y13,y14); y14 = _mm256_setzero_ps();
+          k=kbase+0,_mm256_storeu_ps(output_+output_index(k,h_-2,w_), y04); _mm256_storeu_ps((float*)&y04,y05); y05 = _mm256_setzero_ps();
+          k=kbase+1,_mm256_storeu_ps(output_+output_index(k,h_-2,w_), y07); _mm256_storeu_ps((float*)&y07,y08); y08 = _mm256_setzero_ps();
+          k=kbase+2,_mm256_storeu_ps(output_+output_index(k,h_-2,w_), y10); _mm256_storeu_ps((float*)&y10,y11); y11 = _mm256_setzero_ps();
+          k=kbase+3,_mm256_storeu_ps(output_+output_index(k,h_-2,w_), y13); _mm256_storeu_ps((float*)&y13,y14); y14 = _mm256_setzero_ps();
         }
       }
 
       {
         const int h_=ca.H-1;
-        REP(c_,0,ca.C-1){
+        REP(c_,cbase,cstop-1){
           int i_offset=input_index(c_,h_,w_);
           y00 = _mm256_loadu_ps(input + i_offset++);
           k=kbase+0,y03 = _mm256_set1_ps(kernel[filter_index(k,c_,2,0)]); y04 = _mm256_fmadd_ps(y00, y03, y04);
@@ -247,9 +263,9 @@ void fast_conv::run() {
           k=kbase+3,y03 = _mm256_set1_ps(kernel[filter_index(k,c_,2,2)]); y13 = _mm256_fmadd_ps(y00, y03, y13);
         }
 
-        // when c_=ca.C-1
+        // when c_=cstop-1
         {
-          int c_=ca.C-1;
+          int c_=cstop-1;
           int i_offset=input_index(c_,h_,w_);
           y00 = _mm256_loadu_ps(input + i_offset++);
           k=kbase+0,y03 = _mm256_set1_ps(kernel[filter_index(k,c_,2,0)]); y04 = _mm256_fmadd_ps(y00, y03, y04);
@@ -271,10 +287,10 @@ void fast_conv::run() {
           k=kbase+3,y03 = _mm256_set1_ps(kernel[filter_index(k,c_,2,2)]); y13 = _mm256_fmadd_ps(y00, y03, y13);
 
           //print_m256(y04);
-          k=kbase+0,_mm256_storeu_ps(output+output_index(k,h_-2,w_), y04);
-          k=kbase+1,_mm256_storeu_ps(output+output_index(k,h_-2,w_), y07);
-          k=kbase+2,_mm256_storeu_ps(output+output_index(k,h_-2,w_), y10);
-          k=kbase+3,_mm256_storeu_ps(output+output_index(k,h_-2,w_), y13);
+          k=kbase+0,_mm256_storeu_ps(output_+output_index(k,h_-2,w_), y04);
+          k=kbase+1,_mm256_storeu_ps(output_+output_index(k,h_-2,w_), y07);
+          k=kbase+2,_mm256_storeu_ps(output_+output_index(k,h_-2,w_), y10);
+          k=kbase+3,_mm256_storeu_ps(output_+output_index(k,h_-2,w_), y13);
           y04 = _mm256_setzero_ps();
           y07 = _mm256_setzero_ps();
           y10 = _mm256_setzero_ps();
@@ -283,9 +299,10 @@ void fast_conv::run() {
       }
 
     }
-    //printf("write to output\n");
+    //printf("write to output_\n");
   }
 }
+
 
 void get_input(float* l, int n, int c, int w, int h, float channel_delta = 0.1, float cell_delta = 1, float batch_delta=0.2) {
   //if ((int)l.size() < n * c * w * h) l.resize(n * c * w * h);
@@ -355,9 +372,9 @@ int main(int argc, char** argv) {
 
   fast_conv cw(ca, I, F, O);
   auto start = high_resolution_clock::now();
-  cw.run();
-  long long t = duration_cast<nanoseconds>((high_resolution_clock::now() - start)).count();
-  cout << __FUNCTION__ << " | total algo Time: " << t << " ns" << endl;
+  cw.run_full();
+  long long t = duration_cast<milliseconds>((high_resolution_clock::now() - start)).count();
+  cout << __FUNCTION__ << ":" << input_channel << "," << t << endl;
   cw.print();
   _mm_free(I), _mm_free(F), _mm_free(O);
   return 0;

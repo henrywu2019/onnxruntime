@@ -58,11 +58,11 @@ void matrix_fuse(float* dest, int h, int w, float *delta, int h2, int w2, float*
   __m256 x={}, y={}, z={};
   //int called = 0;
   for(int i=0;i<h2*w2;i+=8){
-    x = _mm256_load_ps(dest+i);
-    y = _mm256_load_ps(delta+i);
+    x = _mm256_loadu_ps(dest+i);
+    y = _mm256_loadu_ps(delta+i);
     z = _mm256_add_ps(x,y);
     ///called++;
-    _mm256_store_ps(tmp+i, z);
+    _mm256_storeu_ps(tmp+i, z);
   }
   /*for(int i=0;i<h2;i++){
     ::memcpy(dest+i*w, tmp+i*w2, w2*sizeof(float));
@@ -123,7 +123,7 @@ void matrix_fuse_by_memcpy(float* dest, int h, int w, float *delta, int h2, int 
   long long t = duration_cast<nanoseconds>((high_resolution_clock::now() - start)).count(); cout << __FUNCTION__ << " | memcpy time: " << t << " ns" << endl;
 }
 
-void test_matrix_fuse(int h=34, int w=34){
+void test_matrix_fuse(int h=400, int w=298){
   int h2=h-2, w2=w-2;
   float* dest=(float*)_mm_malloc(sizeof(float) * (h*w), 32);
   float* delta=(float*)_mm_malloc(sizeof(float) * (h2*w2), 32);
@@ -135,7 +135,7 @@ void test_matrix_fuse(int h=34, int w=34){
   for (int i = 0; i < h2; i++)
     for (int j = 0; j < w2; j++)
       delta[i*w2+j] = 2; //i*w2+j-1;
-  matrix_fuse(dest,h,w,delta,h2,w2,tmp);
+  //matrix_fuse(dest,h,w,delta,h2,w2,tmp);
   matrix_fuse_direct(dest,h,w,delta,h2,w2);
   matrix_fuse_by_memcpy(dest,h,w,delta,h2,w2);
   print_matrix(dest, h, w);
