@@ -89,7 +89,7 @@ struct fast_conv {  // can refactor using inheritance
   inline int input_index(int c_, int h_, int w_){
     return c_*input_channel_stride + h_*ca.W + w_;
   }
-  inline int filter_index(int k_, int c_, int r_, int l_) {
+  inline int kernel_index(int k_, int c_, int r_, int l_) {
     return k_ * filter_batch_stride + c_ * filter_channel_stride + r_ * ca.L + l_;
   }
   inline int output_index(int k_, int oh_, int ow_){
