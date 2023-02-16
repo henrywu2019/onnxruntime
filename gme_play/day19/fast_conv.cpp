@@ -97,7 +97,10 @@ void fast_conv::reorder_input_NcHc8W(){
 
 void fast_conv::run_full(){
   if(is_multithreaded and ca.C>32){
+      std::mutex iomutex;
       auto loop = [&](const int a, const int b){
+        std::lock_guard<std::mutex> iolock(iomutex);
+        std::cout << "Thread #" << a/CHANNEL_SPLIT << ": on CPU " << sched_getcpu() << "\n";
         auto output_ = out_buff[floor_int(a,CHANNEL_SPLIT)];
         run_nchw(output, a, min(a+CHANNEL_SPLIT, ca.C));
       };
@@ -687,7 +690,7 @@ int main(int argc, char** argv) {
   printf("input total size: %.2fKB\n", 1 * input_channel * input_width * input_height / (1024.));
   float* O = (float*)_mm_malloc(sizeof(float) * output_height * output_width * filter_batch, 32);
 
-  fast_conv cw(ca, I, F, O, channel_split, 1);
+  fast_conv cw(ca, I, F, O, channel_split, 0);
   auto start = high_resolution_clock::now();
   cw.run_full();
   long long t = duration_cast<microseconds>((high_resolution_clock::now() - start)).count();
