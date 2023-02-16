@@ -55,12 +55,20 @@ struct fast_conv {  // can refactor using inheritance
   float** out_buff = nullptr;
   int out_buff_num=0;
 
-  float* fr; // reordered kernel
+  // possible reordered float*
+  float* fr = nullptr; // reordered kernel
+  float* input_nhbcw8 = nullptr;
+  float* input_nhcw = nullptr;
+  float* input_nchc8w = nullptr;
+
+
   int slice_number_in_batch_dim;
   int slice_number_in_channel_dim;
 
-  fast_conv(conv_attr ca_, float* input_, float* kernel_, float* output_)
-      :ca(ca_), input(input_), kernel(kernel_), output(output_){
+  int CHANNEL_SPLIT=32;
+
+  fast_conv(conv_attr ca_, float* input_, float* kernel_, float* output_, int channel_split=32)
+      :ca(ca_), input(input_), kernel(kernel_), output(output_), CHANNEL_SPLIT(channel_split){
     input_channel_stride = ca.H * ca.W;
     input_batch_stride = input_channel_stride*ca.C;
     input_size = input_channel_stride*ca.C*ca.N; // NCHW
@@ -74,12 +82,12 @@ struct fast_conv {  // can refactor using inheritance
     filter_chunk_stride = filter_batch_stride*4;
     filter_size = ca.K * filter_batch_stride;
     slice_number_in_batch_dim = ceil_int(ca.K, 4);
-    slice_number_in_channel_dim = ceil_int(ca.K, 32);
+    slice_number_in_channel_dim = ceil_int(ca.K, CHANNEL_SPLIT);
 
     if (output == nullptr)
       output = (float*)_mm_malloc(sizeof(float) * output_size, 32);
-    if (ca.C>32){
-      out_buff_num = ceil_int(ca.C,32)-1;
+    if (ca.C>CHANNEL_SPLIT){
+      out_buff_num = ceil_int(ca.C,CHANNEL_SPLIT)-1;
       out_buff = new float*[out_buff_num](); // TODO
       REP(x,0,out_buff_num){
         out_buff[x] = new float[output_size](); // TODO
@@ -89,17 +97,33 @@ struct fast_conv {  // can refactor using inheritance
   }
 
   void reorder_kernel(int k_split=4);
-  void run(float* output_, int cbase=0, int cstop=32);
+  void reorder_input_NHbcw8();
+  void reorder_input_NhcW();
+  void reorder_input_NcHc8W();
+  void run_nchw(float* output_, int cbase, int cstop);
+  void run_nhcw(float* output_, int cbase, int cstop);
+  void run_nchc8w(float* output_, int cbase, int cstop);
   void run_full();
+  void run_full_nchc8w();
 
   void print() {
     //print_matrix(output,ca.OH, ca.OW);
     print_output(output,ca.OH, ca.OW,ca.K);
   }
-  inline int input_index(int c_, int h_, int w_){
+  inline int input_index_nchw(int c_, int h_, int w_){
     return c_*input_channel_stride + h_*ca.W + w_;
   }
-#define DEBUG
+
+  inline int input_index_nhcw(int h_, int c_, int w_){
+    int r = h_*ca.W*ca.C + c_*ca.W + w_;
+    return r;
+  }
+
+  inline int input_index_nchc8w(int c, int h_, int c_, int w_){
+    return c*ca.H*ca.W*8 + h_*ca.W*8 + c_*ca.W + w_;
+  }
+
+//#define DEBUG
   inline int kernel_index(int k_, int c_, int r_, int l_) {
 #ifdef DEBUG
     static int count=0, prev=0;

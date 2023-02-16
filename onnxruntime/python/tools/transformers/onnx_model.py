@@ -260,7 +260,7 @@ class OnnxModel:
         self,
         node,
         parent_op_type,
-        input_index=None,
+        input_index_nchw=None,
         output_name_to_node=None,
         exclude=[],
         return_indice=None,
@@ -275,28 +275,28 @@ class OnnxModel:
             input_index (int or None): only check the parent given input index of current node.
             output_name_to_node (dict): dictionary with output name as key, and node as value.
             exclude (list): list of nodes that are excluded (not allowed to match as parent).
-            return_indice (list): a list to append the input index when input_index is None.
+            return_indice (list): a list to append the input index when input_index_nchw is None.
 
         Returns:
             parent: The matched parent node.
         """
         assert node is not None
-        assert input_index is None or input_index >= 0
+        assert input_index_nchw is None or input_index_nchw >= 0
 
         if output_name_to_node is None:
             output_name_to_node = self.output_name_to_node()
 
-        if input_index is None:
+        if input_index_nchw is None:
             parent, index = self.match_first_parent(node, parent_op_type, output_name_to_node, exclude)
             if return_indice is not None:
                 return_indice.append(index)
             return parent
 
-        if input_index >= len(node.input):
-            logger.debug(f"input_index {input_index} >= node inputs {len(node.input)}")
+        if input_index_nchw >= len(node.input):
+            logger.debug(f"input_index_nchw {input_index_nchw} >= node inputs {len(node.input)}")
             return None
 
-        parent = self.get_parent(node, input_index, output_name_to_node)
+        parent = self.get_parent(node, input_index_nchw, output_name_to_node)
         if parent is not None and parent.op_type == parent_op_type and parent not in exclude:
             return parent
 
@@ -324,7 +324,7 @@ class OnnxModel:
     ):
         """
         Find a sequence of input edges based on constraints on parent op_type and index.
-        When input_index is None, we will find the first parent node based on constraints, and return_indice will be appended the corresponding input index.
+        When input_index_nchw is None, we will find the first parent node based on constraints, and return_indice will be appended the corresponding input index.
 
         Args:
             node (str): current node name.
@@ -702,7 +702,7 @@ class OnnxModel:
         return graph_inputs
 
     @staticmethod
-    def input_index(node_output, child_node):
+    def input_index_nchw(node_output, child_node):
         index = 0
         for input in child_node.input:
             if input == node_output:
