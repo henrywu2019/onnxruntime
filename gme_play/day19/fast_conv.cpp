@@ -42,7 +42,6 @@ void fast_conv::reorder_kernel(int k_split){
   cout << __FUNCTION__ << ": " << t << " us" << endl;
 }
 
-
 void fast_conv::reorder_input_NHbcw8(){
   auto start = high_resolution_clock::now();
   input_nhbcw8 = (float*)_mm_malloc(sizeof(float) * input_size, 32);
@@ -97,13 +96,12 @@ void fast_conv::reorder_input_NcHc8W(){
 }
 
 void fast_conv::run_full(){
-  if(0 and ca.C>32){
+  if(is_multithreaded and ca.C>32){
       auto loop = [&](const int a, const int b){
-        auto output_ = out_buff[a/CHANNEL_SPLIT-1];
+        auto output_ = out_buff[floor_int(a,CHANNEL_SPLIT)];
         run_nchw(output, a, min(a+CHANNEL_SPLIT, ca.C));
       };
-      auto mf = pool.parallelize_loop(0, ca.C, loop, 16);
-      mf.wait();
+      pool.parallelize_loop(0, ca.C, loop, out_buff_num).wait();
       auto start = high_resolution_clock::now();
       REP(i,0,out_buff_num){
         matrix_fuse(output, out_buff[i], output_size);
@@ -111,11 +109,11 @@ void fast_conv::run_full(){
       auto t = duration_cast<microseconds>((high_resolution_clock::now() - start)).count();
       cout << "matrix_fuse: " << t << " us" << endl;
       return;
-  }
-  run_nchw(output, 0, min(ca.C, CHANNEL_SPLIT));
-  REP2(cbase,CHANNEL_SPLIT,ca.C,CHANNEL_SPLIT){
-      //run_nchw(out_buff[cbase/CHANNEL_SPLIT-1], cbase, min(cbase+CHANNEL_SPLIT, ca.C));
-      run_nchw(output, cbase, min(cbase+CHANNEL_SPLIT, ca.C));
+  }else{
+      REP2(cbase,0,ca.C,CHANNEL_SPLIT){
+        //run_nchw(out_buff[cbase/CHANNEL_SPLIT-1], cbase, min(cbase+CHANNEL_SPLIT, ca.C));
+        run_nchw(output, cbase, min(cbase+CHANNEL_SPLIT, ca.C));
+      }
   }
 }
 
@@ -689,7 +687,7 @@ int main(int argc, char** argv) {
   printf("input total size: %.2fKB\n", 1 * input_channel * input_width * input_height / (1024.));
   float* O = (float*)_mm_malloc(sizeof(float) * output_height * output_width * filter_batch, 32);
 
-  fast_conv cw(ca, I, F, O, channel_split);
+  fast_conv cw(ca, I, F, O, channel_split, 1);
   auto start = high_resolution_clock::now();
   cw.run_full();
   long long t = duration_cast<microseconds>((high_resolution_clock::now() - start)).count();
