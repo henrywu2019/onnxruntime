@@ -97,7 +97,7 @@ void fast_conv::reorder_input_NcHc8W(){
 }
 
 void fast_conv::run_full(){
-  if(ca.C>32){
+  if(0 and ca.C>32){
       auto loop = [&](const int a, const int b){
         auto output_ = out_buff[a/CHANNEL_SPLIT-1];
         run_nchw(output, a, min(a+CHANNEL_SPLIT, ca.C));

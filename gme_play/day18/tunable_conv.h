@@ -5,6 +5,8 @@
 #ifndef ONNXRUNTIME_TUNABLE_CONV_H
 #define ONNXRUNTIME_TUNABLE_CONV_H
 
+#include "immintrin.h"
+
 const int VEC_LEN = 8;  // vectorization length
 
 int ceil_int(int x, int y);
@@ -58,7 +60,7 @@ struct tunable_conv {  // can refactor using inheritance
   float* output;
   float* output_nchw;
 
-  float *core, *f; // reordered input and kernel
+  float *core=nullptr, *f; // reordered input and kernel
 
   tunable_conv(conv_attr ca_, float* input_, float* kernel_, float* output_, int tunable_x_=64, int tunable_y_=64)
       :ca(ca_), input(input_), kernel(kernel_), output(output_) {
@@ -91,6 +93,8 @@ struct tunable_conv {  // can refactor using inheritance
     filter_hunk_stride = filter_chunk_stride*reg_n;
 
     out_channel_stride = ca.OH * ca.OW;  // NKHW
+    if (core==nullptr)
+      core = (float*)_mm_malloc(sizeof(float) * input_size, 32);
   }
 
   void reorder_input();
