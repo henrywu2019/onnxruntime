@@ -5,6 +5,7 @@
 #ifndef TUNABLE_ALGO_FAST_CONV_H
 #define TUNABLE_ALGO_FAST_CONV_H
 #include "immintrin.h"
+#include "threadpool.h"
 #include <sein.hpp>
 
 const int VEC_LEN = 8;  // vectorization length
@@ -60,6 +61,7 @@ struct fast_conv {  // can refactor using inheritance
   float* input_nhbcw8 = nullptr;
   float* input_nhcw = nullptr;
   float* input_nchc8w = nullptr;
+  bs::thread_pool pool;
 
 
   int slice_number_in_batch_dim;

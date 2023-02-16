@@ -97,16 +97,26 @@ void fast_conv::reorder_input_NcHc8W(){
 }
 
 void fast_conv::run_full(){
+  if(ca.C>32){
+      auto loop = [&](const int a, const int b){
+        auto output_ = out_buff[a/CHANNEL_SPLIT-1];
+        run_nchw(output, a, min(a+CHANNEL_SPLIT, ca.C));
+      };
+      auto mf = pool.parallelize_loop(0, ca.C, loop, 16);
+      mf.wait();
+      auto start = high_resolution_clock::now();
+      REP(i,0,out_buff_num){
+        matrix_fuse(output, out_buff[i], output_size);
+      }
+      auto t = duration_cast<microseconds>((high_resolution_clock::now() - start)).count();
+      cout << "matrix_fuse: " << t << " us" << endl;
+      return;
+  }
   run_nchw(output, 0, min(ca.C, CHANNEL_SPLIT));
   REP2(cbase,CHANNEL_SPLIT,ca.C,CHANNEL_SPLIT){
-      run_nchw(out_buff[cbase/CHANNEL_SPLIT-1], cbase, min(cbase+CHANNEL_SPLIT, ca.C));
+      //run_nchw(out_buff[cbase/CHANNEL_SPLIT-1], cbase, min(cbase+CHANNEL_SPLIT, ca.C));
+      run_nchw(output, cbase, min(cbase+CHANNEL_SPLIT, ca.C));
   }
-  auto start = high_resolution_clock::now();
-  REP(i,0,out_buff_num){
-    matrix_fuse(output, out_buff[i], output_size);
-  }
-  auto t = duration_cast<microseconds>((high_resolution_clock::now() - start)).count();
-  cout << "matrix_fuse: " << t << " us" << endl;
 }
 
 void fast_conv::run_full_nchc8w(){
@@ -122,9 +132,14 @@ void fast_conv::run_full_nchc8w(){
   cout << "matrix_fuse: " << t << " us" << endl;
 }
 
+//void fma_add(float* dest, __m256& tmp, __m256& src){
+//  _mm256_storeu_ps(dest, _mm256_add_ps(src, _mm256_loadu_ps(dest)));
+//}
+
 void fast_conv::run_nchw(float* output_, int cbase, int cstop) {
   __m256 y00{}, y01{}, y02{}, y03{};
   __m256 y04{}, y05{}, y06{}, y07{}, y08{}, y09{}, y10{}, y11{}, y12{}, y13{}, y14{}, y15{}; // 8*12
+  float* d= nullptr;
   REP(k,0,slice_number_in_batch_dim){
     REP2(w_,0,ca.OW,8){
       // TC: O(9*CHANNEL_SPLIT*H=288H)
@@ -200,10 +215,10 @@ void fast_conv::run_nchw(float* output_, int cbase, int cstop) {
         // when c_=cstop-1
         {
           // write y04, y07, y10, y13 to output_, print_m256(y04);
-          _mm256_storeu_ps(output_+output_index(k*4+0,h_-2,w_), y04); _mm256_storeu_ps((float*)&y04,y05); _mm256_storeu_ps((float*)&y05,y06); y06 = _mm256_setzero_ps(); // k=kbase
-          _mm256_storeu_ps(output_+output_index(k*4+1,h_-2,w_), y07); _mm256_storeu_ps((float*)&y07,y08); _mm256_storeu_ps((float*)&y08,y09); y09 = _mm256_setzero_ps(); // k=kbase+1
-          _mm256_storeu_ps(output_+output_index(k*4+2,h_-2,w_), y10); _mm256_storeu_ps((float*)&y10,y11); _mm256_storeu_ps((float*)&y11,y12); y12 = _mm256_setzero_ps(); // k=kbase+2
-          _mm256_storeu_ps(output_+output_index(k*4+3,h_-2,w_), y13); _mm256_storeu_ps((float*)&y13,y14); _mm256_storeu_ps((float*)&y14,y15); y15 = _mm256_setzero_ps(); // k=kbase+3
+          d=output_+output_index(k*4+0,h_-2,w_); _mm256_storeu_ps(d, _mm256_add_ps(y04, _mm256_loadu_ps(d))); _mm256_storeu_ps((float*)&y04,y05); _mm256_storeu_ps((float*)&y05,y06); y06 = _mm256_setzero_ps(); // k=kbase
+          d=output_+output_index(k*4+1,h_-2,w_); _mm256_storeu_ps(d, _mm256_add_ps(y07, _mm256_loadu_ps(d))); _mm256_storeu_ps((float*)&y07,y08); _mm256_storeu_ps((float*)&y08,y09); y09 = _mm256_setzero_ps(); // k=kbase+1
+          d=output_+output_index(k*4+2,h_-2,w_); _mm256_storeu_ps(d, _mm256_add_ps(y10, _mm256_loadu_ps(d))); _mm256_storeu_ps((float*)&y10,y11); _mm256_storeu_ps((float*)&y11,y12); y12 = _mm256_setzero_ps(); // k=kbase+2
+          d=output_+output_index(k*4+3,h_-2,w_); _mm256_storeu_ps(d, _mm256_add_ps(y13, _mm256_loadu_ps(d))); _mm256_storeu_ps((float*)&y13,y14); _mm256_storeu_ps((float*)&y14,y15); y15 = _mm256_setzero_ps(); // k=kbase+3
         }
       }
 
@@ -234,10 +249,10 @@ void fast_conv::run_nchw(float* output_, int cbase, int cstop) {
         {
           // write y04, y07, y10, y13 to output_
           //print_m256(y04);
-          _mm256_storeu_ps(output_+output_index(k*4+0,h_-2,w_), y04); _mm256_storeu_ps((float*)&y04,y05); y05 = _mm256_setzero_ps();
-          _mm256_storeu_ps(output_+output_index(k*4+1,h_-2,w_), y07); _mm256_storeu_ps((float*)&y07,y08); y08 = _mm256_setzero_ps();
-          _mm256_storeu_ps(output_+output_index(k*4+2,h_-2,w_), y10); _mm256_storeu_ps((float*)&y10,y11); y11 = _mm256_setzero_ps();
-          _mm256_storeu_ps(output_+output_index(k*4+3,h_-2,w_), y13); _mm256_storeu_ps((float*)&y13,y14); y14 = _mm256_setzero_ps();
+          d=output_+output_index(k*4+0,h_-2,w_); _mm256_storeu_ps(d, _mm256_add_ps(y04, _mm256_loadu_ps(d))); _mm256_storeu_ps((float*)&y04,y05); y05 = _mm256_setzero_ps();
+          d=output_+output_index(k*4+1,h_-2,w_); _mm256_storeu_ps(d, _mm256_add_ps(y07, _mm256_loadu_ps(d))); _mm256_storeu_ps((float*)&y07,y08); y08 = _mm256_setzero_ps();
+          d=output_+output_index(k*4+2,h_-2,w_); _mm256_storeu_ps(d, _mm256_add_ps(y10, _mm256_loadu_ps(d))); _mm256_storeu_ps((float*)&y10,y11); y11 = _mm256_setzero_ps();
+          d=output_+output_index(k*4+3,h_-2,w_); _mm256_storeu_ps(d, _mm256_add_ps(y13, _mm256_loadu_ps(d))); _mm256_storeu_ps((float*)&y13,y14); y14 = _mm256_setzero_ps();
         }
       }
 
@@ -267,10 +282,10 @@ void fast_conv::run_nchw(float* output_, int cbase, int cstop) {
         // when c_=cstop-1
         {
           //print_m256(y04);
-          _mm256_storeu_ps(output_+output_index(k*4+0,h_-2,w_), y04);
-          _mm256_storeu_ps(output_+output_index(k*4+1,h_-2,w_), y07);
-          _mm256_storeu_ps(output_+output_index(k*4+2,h_-2,w_), y10);
-          _mm256_storeu_ps(output_+output_index(k*4+3,h_-2,w_), y13);
+          d=output_+output_index(k*4+0,h_-2,w_); _mm256_storeu_ps(d, _mm256_add_ps(y04, _mm256_loadu_ps(d)));
+          d=output_+output_index(k*4+1,h_-2,w_); _mm256_storeu_ps(d, _mm256_add_ps(y07, _mm256_loadu_ps(d)));
+          d=output_+output_index(k*4+2,h_-2,w_); _mm256_storeu_ps(d, _mm256_add_ps(y10, _mm256_loadu_ps(d)));
+          d=output_+output_index(k*4+3,h_-2,w_); _mm256_storeu_ps(d, _mm256_add_ps(y13, _mm256_loadu_ps(d)));
           y04 = _mm256_setzero_ps();
           y07 = _mm256_setzero_ps();
           y10 = _mm256_setzero_ps();
