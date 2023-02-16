@@ -63,7 +63,7 @@ struct fast_conv {  // can refactor using inheritance
 
 
   int slice_number_in_batch_dim;
-  int slice_number_in_channel_dim;
+
 
   int CHANNEL_SPLIT=32;
 
@@ -82,7 +82,6 @@ struct fast_conv {  // can refactor using inheritance
     filter_chunk_stride = filter_batch_stride*4;
     filter_size = ca.K * filter_batch_stride;
     slice_number_in_batch_dim = ceil_int(ca.K, 4);
-    slice_number_in_channel_dim = ceil_int(ca.K, CHANNEL_SPLIT);
 
     if (output == nullptr)
       output = (float*)_mm_malloc(sizeof(float) * output_size, 32);
