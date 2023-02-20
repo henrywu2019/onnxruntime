@@ -35,7 +35,7 @@ void get_input(float* l, int n, int c, int w, int h, float channel_delta = 0.1, 
 
 int main(int argc, char** argv) {
   srand(0xdeadbeef);
-  int input_height = 401, input_width = 299, input_channel = 256, filter_batch = 64, kernel_width = 3, kernel_height = 3;
+  int input_height = 400, input_width = 298, input_channel = 256, filter_batch = 64, kernel_width = 3, kernel_height = 3;
   // input_channel = 256, input_height = 400, input_width = 296;
 
   if (argc >= 2) {
@@ -74,11 +74,12 @@ int main(int argc, char** argv) {
   printf("input total size: %.2fKB\n", 1 * input_channel * input_width * input_height / (1024.));
   float* O = (float*)_mm_malloc(sizeof(float) * output_height * output_width * filter_batch, 32);
 
-  tunable_conv cw(ca, I, F, O, 32, 32);
+  int tunable_y = factor;
+  tunable_conv cw(ca, I, F, O, 32, tunable_y);
   auto start = high_resolution_clock::now();
   cw.reorder_input();
   cw.reorder_filter();
-  cw.run_32_32();
+  cw.run_tunable();
   cw.restore_output();
   long long t = duration_cast<nanoseconds>((high_resolution_clock::now() - start)).count();
   cout << __FUNCTION__ << " | total algo Time: " << t << " ns" << endl;

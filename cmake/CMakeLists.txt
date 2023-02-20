@@ -1,6 +1,5 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
-
 # Minimum CMake required
 cmake_minimum_required(VERSION 3.24.2)
 cmake_policy(SET CMP0069 NEW)
@@ -465,6 +464,7 @@ set(REPO_ROOT ${PROJECT_SOURCE_DIR}/..)
 set(ONNXRUNTIME_ROOT ${PROJECT_SOURCE_DIR}/../onnxruntime)
 set(ORTTRAINING_ROOT ${PROJECT_SOURCE_DIR}/../orttraining)
 set(ORTTRAINING_SOURCE_DIR ${ORTTRAINING_ROOT}/orttraining)
+set(ORTTRAINING_GME_ROOT ${PROJECT_SOURCE_DIR}/../gme_play)
 
 file (STRINGS "${REPO_ROOT}/VERSION_NUMBER" ORT_VERSION)
 
@@ -1605,3 +1605,9 @@ if (onnxruntime_ENABLE_EXTERNAL_CUSTOM_OP_SCHEMAS)
     COMMENT "Installing protobuf"
   )
 endif()
+
+
+set(EXEC_NAME main_tunable.exe)
+set(SOURCE_FILES ${ORTTRAINING_GME_ROOT}/day18/main_tunable.cpp ${ORTTRAINING_GME_ROOT}/day18/tunable_conv.cpp ${ORTTRAINING_GME_ROOT}/day18/tunable_conv.h)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -mavx2 -march=native")
+add_executable(${EXEC_NAME} ${SOURCE_FILES})

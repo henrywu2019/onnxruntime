@@ -52,6 +52,8 @@ struct tunable_conv {  // can refactor using inheritance
   int slice_number_in_batch_dim;
   int hunk_number_in_batch_dim;
 
+  int slice_number_in_channel_dim_y;
+
   int out_channel_stride;
   int reg_n=4;
   // original memory store
@@ -81,14 +83,15 @@ struct tunable_conv {  // can refactor using inheritance
     output_batch_stride = output_channel_stride*ca.K;
     output_size = output_channel_stride*ca.K; // there is no such thing as output_batch
 
-    slice_number_in_channel_dim = ceil_int(ca.C, tunable_x);
+    slice_number_in_channel_dim = ceil_int(ca.C, tunable_x); // for input and kernel
+    slice_number_in_channel_dim_y = ceil_int(ca.C, tunable_y); // for output
     slice_number_in_batch_dim = ceil_int(ca.K, VEC_LEN);
-    hunk_number_in_batch_dim = ceil_int(ceil_int(ca.K, VEC_LEN),reg_n); //?????
+    hunk_number_in_batch_dim = ceil_int(slice_number_in_batch_dim,reg_n); //?????
 
     filter_channel_stride = ca.R * ca.L;
     filter_batch_stride = ca.C * filter_channel_stride;
     filter_size = ca.K * filter_batch_stride;
-    filter_block_stride = ca.L*ca.R*tunable_x*VEC_LEN;
+    filter_block_stride = filter_channel_stride * tunable_x * VEC_LEN;
     filter_chunk_stride = filter_block_stride*slice_number_in_channel_dim;
     filter_hunk_stride = filter_chunk_stride*reg_n;
 
@@ -100,9 +103,11 @@ struct tunable_conv {  // can refactor using inheritance
   void reorder_input();
   void restore_output();
   void reorder_filter();
+  void run_tunable();
   void run();
   void run_ort();
   void run_32_32();
+  void run_32_8();
   void run_64_64();
   void run_64_64_v2();
   //void set_x(int x){tunable_x=x;}

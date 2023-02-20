@@ -57,7 +57,7 @@ struct fast_conv {  // can refactor using inheritance
   int out_buff_num=0;
 
   // possible reordered float*
-  float* fr = nullptr; // reordered kernel
+  float* fr = nullptr; // reordered kernel+
   float* input_nhbcw8 = nullptr;
   float* input_nhcw = nullptr;
   float* input_nchc8w = nullptr;
@@ -67,16 +67,16 @@ struct fast_conv {  // can refactor using inheritance
   int slice_number_in_batch_dim;
 
   int CHANNEL_SPLIT=32;
-  bool is_multithreaded=false;
+  int thread_num=-1;
   int get_currency(){
-    return 8;
+    return thread_num;
     return thread::hardware_concurrency();
   }
 
-  fast_conv(conv_attr ca_, float* input_, float* kernel_, float* output_, int channel_split=32, bool mt=false)
-      :ca(ca_), input(input_), kernel(kernel_), output(output_), CHANNEL_SPLIT(channel_split), is_multithreaded(mt){
+  fast_conv(conv_attr ca_, float* input_, float* kernel_, float* output_, int channel_split=32, int thread_num_=false)
+      :ca(ca_), input(input_), kernel(kernel_), output(output_), CHANNEL_SPLIT(channel_split), thread_num(thread_num_){
     assert(ca.C%8 == 0 or ca.C<=4);
-    if(is_multithreaded){
+    if(thread_num>0){
       CHANNEL_SPLIT = ceil_int(ca.C, get_currency());
     }
     input_channel_stride = ca.H * ca.W;
@@ -95,7 +95,7 @@ struct fast_conv {  // can refactor using inheritance
 
     if (output == nullptr)
       output = (float*)_mm_malloc(sizeof(float) * output_size, 32);
-    if (is_multithreaded){
+    if (thread_num>0){
       out_buff_num = get_currency();
       printf("concurrency number: %d\n", get_currency());
       out_buff = new float*[out_buff_num](); // TODO

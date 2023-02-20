@@ -96,11 +96,12 @@ void fast_conv::reorder_input_NcHc8W(){
 }
 
 void fast_conv::run_full(){
-  if(is_multithreaded and ca.C>32){
+  if(thread_num>0 and ca.C>32){
       std::mutex iomutex;
       auto loop = [&](const int a, const int b){
-        std::lock_guard<std::mutex> iolock(iomutex);
-        std::cout << "Thread #" << a/CHANNEL_SPLIT << ": on CPU " << sched_getcpu() << "\n";
+        auto start = high_resolution_clock::now();
+        //std::lock_guard<std::mutex> iolock(iomutex);
+        std::cout << "Thread #" << a/CHANNEL_SPLIT << ": on CPU " << sched_getcpu() << " (" << a << "," << b << ")" << CHANNEL_SPLIT << "\n";
         auto output_ = out_buff[floor_int(a,CHANNEL_SPLIT)];
         run_nchw(output, a, min(a+CHANNEL_SPLIT, ca.C));
       };
@@ -650,6 +651,7 @@ int main(int argc, char** argv) {
   int input_height = 10, input_width = 10, input_channel = 256, filter_batch = 4, kernel_width = 3, kernel_height = 3;
   // input_channel = 256, input_height = 400, input_width = 296;
   int channel_split=32;
+  int thread_num;
 
   if (argc >= 2) {
     if (strcmp(argv[1], "-h") == 0) {
@@ -678,6 +680,9 @@ int main(int argc, char** argv) {
   if (argc >= 8) {
     channel_split = stoi(argv[7]);
   }
+  if (argc >= 9) {
+    thread_num = stoi(argv[8]);
+  }
 
   const int output_height = input_height - kernel_height + 1, output_width = input_width - kernel_width + 1;
   conv_attr ca(1, input_channel, input_height, input_width, filter_batch, kernel_height, kernel_width);
@@ -690,7 +695,7 @@ int main(int argc, char** argv) {
   printf("input total size: %.2fKB\n", 1 * input_channel * input_width * input_height / (1024.));
   float* O = (float*)_mm_malloc(sizeof(float) * output_height * output_width * filter_batch, 32);
 
-  fast_conv cw(ca, I, F, O, channel_split, 0);
+  fast_conv cw(ca, I, F, O, channel_split, thread_num);
   auto start = high_resolution_clock::now();
   cw.run_full();
   long long t = duration_cast<microseconds>((high_resolution_clock::now() - start)).count();
