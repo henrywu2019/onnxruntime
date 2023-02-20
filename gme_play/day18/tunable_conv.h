@@ -71,7 +71,8 @@ struct tunable_conv {  // can refactor using inheritance
 
   void reset(int tunable_x_, int tunable_y_){
     tunable_x = tunable_x_, tunable_y = tunable_y_;
-    reg_n = tunable_x/VEC_LEN; //?????
+    // if reg_n is 4 for AVX2
+    reg_n = 4;
 
     input_channel_stride = ca.H * ca.W;
     input_block_stride = input_channel_stride * tunable_x;
@@ -106,6 +107,7 @@ struct tunable_conv {  // can refactor using inheritance
   void run_tunable();
   void run();
   void run_ort();
+  void run_8_8();
   void run_32_32();
   void run_32_8();
   void run_64_64();

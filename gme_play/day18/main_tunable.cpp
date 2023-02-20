@@ -45,23 +45,13 @@ int main(int argc, char** argv) {
     }
     filter_batch = stoi(argv[1]);
   }
-  if (argc >= 3) {
-    input_channel = stoi(argv[2]);
-  }
-  if (argc >= 4) {
-    input_height = stoi(argv[3]);
-  }
-  if (argc >= 5) {
-    input_width = stoi(argv[4]);
-  }
-  int run_flag = 2;
-  if (argc >= 6) {
-    run_flag = stoi(argv[5]);
-  }
-  int factor = 8;
-  if (argc >= 7) {
-    factor = stoi(argv[6]);
-  }
+  int tunable_x = 32, tunable_y = 8, run_flag = 2;
+  (argc >= 3) and (input_channel = stoi(argv[2]));
+  (argc >= 4) and (input_height = stoi(argv[3]));
+  (argc >= 5) and (input_width = stoi(argv[4]));
+  (argc >= 6) and (run_flag = stoi(argv[5]));
+  (argc >= 7) and (tunable_x = stoi(argv[6]));
+  (argc >= 8) and (tunable_y = stoi(argv[7]));
 
   const int output_height = input_height - kernel_height + 1, output_width = input_width - kernel_width + 1;
   conv_attr ca(1, input_channel, input_height, input_width, filter_batch, kernel_height, kernel_width);
@@ -74,8 +64,7 @@ int main(int argc, char** argv) {
   printf("input total size: %.2fKB\n", 1 * input_channel * input_width * input_height / (1024.));
   float* O = (float*)_mm_malloc(sizeof(float) * output_height * output_width * filter_batch, 32);
 
-  int tunable_y = factor;
-  tunable_conv cw(ca, I, F, O, 32, tunable_y);
+  tunable_conv cw(ca, I, F, O, tunable_x, tunable_y);
   auto start = high_resolution_clock::now();
   cw.reorder_input();
   cw.reorder_filter();
