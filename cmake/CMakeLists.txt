@@ -1611,3 +1611,13 @@ set(EXEC_NAME main_tunable.exe)
 set(SOURCE_FILES ${ORTTRAINING_GME_ROOT}/day18/main_tunable.cpp ${ORTTRAINING_GME_ROOT}/day18/tunable_conv.cpp ${ORTTRAINING_GME_ROOT}/day18/tunable_conv.h)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -mavx2 -march=native")
 add_executable(${EXEC_NAME} ${SOURCE_FILES})
+
+
+set(EXEC_NAME main_release.exe)
+set(SOURCE_FILES ${ORTTRAINING_GME_ROOT}/day18/main.cpp ${ORTTRAINING_GME_ROOT}/day18/ort_conv.cpp ${ORTTRAINING_GME_ROOT}/day18/ort_conv2.cpp)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -mavx2 -march=native")
+add_executable(${EXEC_NAME} ${SOURCE_FILES})
+include_directories(/home/henry/wendy/git.repo/onnxruntime/include)
+link_directories(/home/henry/wendy/git.repo/onnxruntime/build/Linux/Release)
+link_directories(/home/henry/wendy/git.repo/onnxruntime/build/Linux/Release/_deps/google_nsync-build)
+target_link_libraries(${EXEC_NAME} onnxruntime_mlas onnxruntime_common nsync_cpp)

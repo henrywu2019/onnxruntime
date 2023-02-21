@@ -483,7 +483,7 @@ int main(int argc, char** argv) {
   if (argc >= 5) {
     input_width = stoi(argv[4]);
   }
-  int run_flag = 2;
+  int run_flag = 1;
   if (argc >= 6) {
     run_flag = stoi(argv[5]);
   }

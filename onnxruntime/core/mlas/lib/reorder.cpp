@@ -67,6 +67,54 @@ Return Value:
 
 MLAS_FORCEINLINE
 void
+    MlasReorderGatherFloat32x8(
+        const float* S,
+        float* D,
+        size_t GatherStride
+        )
+    /*++
+
+    Routine Description:
+
+    This routine gathers floats from the source buffer and writes a vector to
+    the destination buffer.
+
+    Arguments:
+
+    S - Supplies the address of the source buffer.
+
+      D - Supplies the address of the destination buffer.
+
+      GatherStride - Supplies the stride to read elements from the source buffer.
+
+          Return Value:
+
+    None.
+
+    --*/
+{
+#if defined(MLAS_AVX2_INTRINSICS)
+    __m256 v = _mm256_castps128_ps256(_mm_load_ss(&S[0 * GatherStride]));
+    v = _mm256_insertf32x4(v, _mm_load_ss(&S[1 * GatherStride]), 0x10);
+    v = _mm_insert_ps(v, _mm_load_ss(&S[2 * GatherStride]), 0x20);
+    v = _mm_insert_ps(v, _mm_load_ss(&S[3 * GatherStride]), 0x30);
+
+    _mm256_storeu_ps(D, v);
+#else
+    float f0 = S[0 * GatherStride];
+    float f1 = S[1 * GatherStride];
+    float f2 = S[2 * GatherStride];
+    float f3 = S[3 * GatherStride];
+
+    D[0] = f0;
+    D[1] = f1;
+    D[2] = f2;
+    D[3] = f3;
+#endif
+}
+
+MLAS_FORCEINLINE
+void
 MlasReorderScatterFloat32x4(
     const float* S,
     float* D,

@@ -304,6 +304,29 @@ void tunable_conv::run_32_32() {
 }
 
 
+#define FMA_COMP(p_to_be_unrolled) { \
+    i_offset = input_index_new(0, j, k + n, l + o, m+p_to_be_unrolled);\
+    f_offset = filter_index_new((i * reg_n), j, n, o, m+p_to_be_unrolled, 0);\
+    y13 = _mm256_set1_ps(core[i_offset]);\
+    y14 = _mm256_set1_ps(core[i_offset + tunable_x]);\
+    y15 = _mm256_set1_ps(core[i_offset + tunable_x * 2]);\
+    y12 = _mm256_load_ps(f + f_offset);\
+    y00 = _mm256_fmadd_ps(y13, y12, y00);\
+    y04 = _mm256_fmadd_ps(y14, y12, y04);\
+    y08 = _mm256_fmadd_ps(y15, y12, y08);\
+    y12 = _mm256_load_ps(f + f_offset + filter_chunk_stride);\
+    y01 = _mm256_fmadd_ps(y13, y12, y01);\
+    y05 = _mm256_fmadd_ps(y14, y12, y05);\
+    y09 = _mm256_fmadd_ps(y15, y12, y09);\
+    y12 = _mm256_load_ps(f + f_offset + filter_chunk_stride*2);\
+    y02 = _mm256_fmadd_ps(y13, y12, y02);\
+    y06 = _mm256_fmadd_ps(y14, y12, y06);\
+    y10 = _mm256_fmadd_ps(y15, y12, y10);\
+    y12 = _mm256_load_ps(f + f_offset + filter_chunk_stride*3);\
+    y03 = _mm256_fmadd_ps(y13, y12, y03);\
+    y07 = _mm256_fmadd_ps(y14, y12, y07);\
+    y11 = _mm256_fmadd_ps(y15, y12, y11);}
+
 // x=32
 void tunable_conv::run_32_8() {
   auto start = high_resolution_clock::now();
@@ -320,29 +343,15 @@ void tunable_conv::run_32_8() {
           __m256 y00{}, y01{}, y02{}, y03{}, y04{}, y05{}, y06{}, y07{}, y08{}, y09{}, y10{}, y11{};
           REP(n, 0, ca.R) {
             REP(o, 0, ca.L) {
-              REP(m, 0, tunable_x) {  // channel dim
-                //REP(p, 0, 8) {}
-                i_offset = input_index_new(0, j, k + n, l + o, m);
-                f_offset = filter_index_new((i * reg_n), j, n, o, m, 0);
-                y13 = _mm256_set1_ps(core[i_offset]);
-                y14 = _mm256_set1_ps(core[i_offset + tunable_x]);
-                y15 = _mm256_set1_ps(core[i_offset + tunable_x * 2]);
-                y12 = _mm256_load_ps(f + f_offset);
-                y00 = _mm256_fmadd_ps(y13, y12, y00);
-                y04 = _mm256_fmadd_ps(y14, y12, y04);
-                y08 = _mm256_fmadd_ps(y15, y12, y08);
-                y12 = _mm256_load_ps(f + f_offset + filter_chunk_stride);
-                y01 = _mm256_fmadd_ps(y13, y12, y01);
-                y05 = _mm256_fmadd_ps(y14, y12, y05);
-                y09 = _mm256_fmadd_ps(y15, y12, y09);
-                y12 = _mm256_load_ps(f + f_offset + filter_chunk_stride*2);
-                y02 = _mm256_fmadd_ps(y13, y12, y02);
-                y06 = _mm256_fmadd_ps(y14, y12, y06);
-                y10 = _mm256_fmadd_ps(y15, y12, y10);
-                y12 = _mm256_load_ps(f + f_offset + filter_chunk_stride*3);
-                y03 = _mm256_fmadd_ps(y13, y12, y03);
-                y07 = _mm256_fmadd_ps(y14, y12, y07);
-                y11 = _mm256_fmadd_ps(y15, y12, y11);
+              REP2(m, 0, tunable_x, 8) {  // channel dim
+                FMA_COMP(0);
+                FMA_COMP(1);
+                FMA_COMP(2);
+                FMA_COMP(3);
+                FMA_COMP(4);
+                FMA_COMP(5);
+                FMA_COMP(6);
+                FMA_COMP(7);
               }
             }
           }
