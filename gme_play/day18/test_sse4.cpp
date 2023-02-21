@@ -206,6 +206,15 @@ void ReorderInputNchw(const int64_t* input_shape, const float* S, float* D) {
   }
 }
 
+/*
+reorder_NCHW_NCHWc8_avx2 : 47 us
+reorder_NCHW_NCHWc8_base : 121 us
+ReorderInputNchw : 83 us
+reorder_NCHW_NCHWc16_avx2 : 26 us
+reorder_NCHW_NCHWc16_base : 80 us
+reorder_NCHW_NCHWc32_avx2 : 26 us
+reorder_NCHW_NCHWc32_base : 78 us
+*/
 
 int main(int argc, char** argv){
 #ifdef __AVX512F__
