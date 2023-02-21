@@ -1078,6 +1078,9 @@ MlasConvDepthwiseFloat_CHW(
 #if defined(__AVX2__)
 #define MLAS_AVX2_INTRINSICS
 #endif
+#if defined(__AVX512F__)
+#define MLAS_AVX512_INTRINSICS
+#endif
 #if defined(__FMA__) || (defined(_MSC_VER) && defined(__AVX2__))
 #define MLAS_FMA3_INTRINSICS
 #endif

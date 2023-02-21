@@ -17,6 +17,9 @@ Abstract:
 
 #include "mlasi.h"
 
+#define MlasReorderGatherFloat32x8_macro(i) D[i] = S[i * GatherStride];
+static int INDEX_BASE_AVX2[8] = {0,1,2,3,4,5,6,7};
+
 MLAS_FORCEINLINE
 void
 MlasReorderGatherFloat32x4(
@@ -45,7 +48,12 @@ Return Value:
 
 --*/
 {
-#if defined(MLAS_SSE41_INTRINSICS)
+#if defined(MLAS_AVX2_INTRINSICSX)
+    __m128i idx = _mm_loadu_si128((__m128i*)INDEX_BASE_AVX2);
+    __m128i indices = _mm_mullo_epi32(idx, _mm_set1_epi32(GatherStride));
+    __m128 src_vec = _mm_i32gather_ps(S, indices, 4);
+    _mm_store_ps(D, src_vec);
+#elif defined(MLAS_SSE41_INTRINSICS)
     __m128 v = _mm_load_ss(&S[0 * GatherStride]);
     v = _mm_insert_ps(v, _mm_load_ss(&S[1 * GatherStride]), 0x10);
     v = _mm_insert_ps(v, _mm_load_ss(&S[2 * GatherStride]), 0x20);
@@ -65,51 +73,46 @@ Return Value:
 #endif
 }
 
+
+
 MLAS_FORCEINLINE
 void
-    MlasReorderGatherFloat32x8(
-        const float* S,
-        float* D,
-        size_t GatherStride
-        )
-    /*++
+MlasReorderGatherFloat32x8(
+    const float* S,
+    float* D,
+    size_t GatherStride
+    )
+/*++
 
-    Routine Description:
+Routine Description:
 
     This routine gathers floats from the source buffer and writes a vector to
     the destination buffer.
 
-    Arguments:
+Arguments:
 
     S - Supplies the address of the source buffer.
+    D - Supplies the address of the destination buffer.
+    GatherStride - Supplies the stride to read elements from the source buffer.
 
-      D - Supplies the address of the destination buffer.
+Return Value:
 
-      GatherStride - Supplies the stride to read elements from the source buffer.
-
-          Return Value:
-
-    None.
-
-    --*/
+None.
+--*/
 {
 #if defined(MLAS_AVX2_INTRINSICS)
-    __m256 v = _mm256_castps128_ps256(_mm_load_ss(&S[0 * GatherStride]));
-    v = _mm256_insertf32x4(v, _mm_load_ss(&S[1 * GatherStride]), 0x10);
-    v = _mm_insert_ps(v, _mm_load_ss(&S[2 * GatherStride]), 0x20);
-    v = _mm_insert_ps(v, _mm_load_ss(&S[3 * GatherStride]), 0x30);
-
-    _mm256_storeu_ps(D, v);
+    __m256i indices = _mm256_mullo_epi32(_mm256_loadu_si256((__m256i*)INDEX_BASE_AVX2), _mm256_set1_epi32(GatherStride));
+    __m256 src_vec = _mm256_i32gather_ps(S, indices, 8);
+    _mm256_storeu_ps(D, src_vec);
 #else
-    float f0 = S[0 * GatherStride];
-    float f1 = S[1 * GatherStride];
-    float f2 = S[2 * GatherStride];
-    float f3 = S[3 * GatherStride];
-
-    D[0] = f0;
-    D[1] = f1;
-    D[2] = f2;
-    D[3] = f3;
+    MlasReorderGatherFloat32x8_macro(0);
+    MlasReorderGatherFloat32x8_macro(1);
+    MlasReorderGatherFloat32x8_macro(2);
+    MlasReorderGatherFloat32x8_macro(3);
+    MlasReorderGatherFloat32x8_macro(4);
+    MlasReorderGatherFloat32x8_macro(5);
+    MlasReorderGatherFloat32x8_macro(6);
+    MlasReorderGatherFloat32x8_macro(7);
 #endif
 }
 

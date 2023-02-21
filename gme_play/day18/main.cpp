@@ -467,6 +467,11 @@ Input 1 Name: reorder_gme_148
  Shape: {64,256,3,3}
 */
 int main(int argc, char** argv) {
+#ifdef __AVX512F__
+  printf("AVX-512 is supported on this platform.\n");
+#else
+  printf("AVX-512 is not supported on this platform.\n");
+#endif
   srand(0xdeadbeef);
   printf("argc: %d\n", argc);
   // 64x256x3x3

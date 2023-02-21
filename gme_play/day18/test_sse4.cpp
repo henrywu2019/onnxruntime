@@ -73,34 +73,105 @@ void avx512_copy(float* src, float* dst) {
 #endif
 }
 
-void print_m256i(__m256i v) {
+void print_m256i(auto v) {
   const int32_t* ptr = (const int32_t*) &v;
   printf("[%d, %d, %d, %d, %d, %d, %d, %d]\n",
          ptr[0], ptr[1], ptr[2], ptr[3], ptr[4], ptr[5], ptr[6], ptr[7]);
 }
-
-static int INDEX_BASE_AVX2[8] = {0,1,2,3,4,5,6,7};
-void fun(float* src, float* dst, int GatherStride){
-#if 1
-  __m256i IDX = _mm256_loadu_si256((__m256i*)INDEX_BASE_AVX2);
-  // Set indices for gather operation
-  __m256i indices = _mm256_mullo_epi32(IDX, _mm256_set1_epi32(GatherStride));
-  print_m256i(indices);
-  // Load 8 floats from src using gather operation
-  __m256 src_vec = _mm256_i32gather_ps(src, indices, 8);
-  // Store 8 floats to dst
-  _mm256_store_ps(dst, src_vec);
-#endif
+void print_m128i(auto v) {
+  const int32_t* ptr = (const int32_t*) &v;
+  printf("[%d, %d, %d, %d]\n",
+         ptr[0], ptr[1], ptr[2], ptr[3]);
 }
 
+/*
+Dump of assembler code for function _Z3funPfS_i:
+   0x0000555555555409 <+0>:	endbr64
+   0x000055555555540d <+4>:	push   %rbp
+   0x000055555555540e <+5>:	mov    %rsp,%rbp
+   0x0000555555555411 <+8>:	and    $0xffffffffffffffe0,%rsp
+   0x0000555555555415 <+12>:	sub    $0x100,%rsp
+   0x000055555555541c <+19>:	mov    %rdi,0x18(%rsp)
+   0x0000555555555421 <+24>:	mov    %rsi,0x10(%rsp)
+   0x0000555555555426 <+29>:	mov    %edx,0xc(%rsp)
+   0x000055555555542a <+33>:	mov    $0x68,%edi
+   0x000055555555542f <+38>:	call   0x5555555551a0 <putchar@plt>
+   0x0000555555555434 <+43>:	lea    0x2be5(%rip),%rax        # 0x555555558020 <INDEX_BASE>
+   0x000055555555543b <+50>:	mov    %rax,0x38(%rsp)
+   0x0000555555555440 <+55>:	mov    0x38(%rsp),%rax
+   0x0000555555555445 <+60>:	vmovdqu (%rax),%ymm0
+   0x0000555555555449 <+64>:	vmovdqa %ymm0,0x40(%rsp)
+   0x000055555555544f <+70>:	mov    0xc(%rsp),%eax
+   0x0000555555555453 <+74>:	mov    %eax,0x2c(%rsp)
+   0x0000555555555457 <+78>:	vpbroadcastd 0x2c(%rsp),%ymm0
+   0x000055555555545e <+85>:	vmovdqa %ymm0,%ymm1
+   0x0000555555555462 <+89>:	vmovdqa 0x40(%rsp),%ymm0
+   0x0000555555555468 <+95>:	vmovdqa %ymm0,0xc0(%rsp)
+   0x0000555555555471 <+104>:	vmovdqa %ymm1,0xe0(%rsp)
+   0x000055555555547a <+113>:	vmovdqa 0xc0(%rsp),%ymm1
+   0x0000555555555483 <+122>:	vmovdqa 0xe0(%rsp),%ymm0
+   0x000055555555548c <+131>:	vpmulld %ymm0,%ymm1,%ymm0
+   0x0000555555555491 <+136>:	vmovdqa %ymm0,0x60(%rsp)
+   0x0000555555555497 <+142>:	vxorps %xmm1,%xmm1,%xmm1
+   0x000055555555549b <+146>:	vxorps %xmm0,%xmm0,%xmm0
+   0x000055555555549f <+150>:	vcmpeqps %ymm1,%ymm0,%ymm0
+   0x00005555555554a4 <+155>:	vmovdqa 0x60(%rsp),%ymm1
+   0x00005555555554aa <+161>:	vxorps %xmm2,%xmm2,%xmm2
+   0x00005555555554ae <+165>:	mov    0x18(%rsp),%rax
+   0x00005555555554b3 <+170>:	vgatherdps %ymm0,(%rax,%ymm1,8),%ymm2
+   0x00005555555554b9 <+176>:	vmovaps %ymm2,%ymm0
+   0x00005555555554bd <+180>:	vmovaps %ymm0,0x80(%rsp)
+   0x00005555555554c6 <+189>:	mov    0x10(%rsp),%rax
+   0x00005555555554cb <+194>:	mov    %rax,0x30(%rsp)
+   0x00005555555554d0 <+199>:	vmovaps 0x80(%rsp),%ymm0
+   0x00005555555554d9 <+208>:	vmovaps %ymm0,0xa0(%rsp)
+   0x00005555555554e2 <+217>:	mov    0x30(%rsp),%rax
+   0x00005555555554e7 <+222>:	vmovaps 0xa0(%rsp),%ymm0
+   0x00005555555554f0 <+231>:	vmovaps %ymm0,(%rax)
+   0x00005555555554f4 <+235>:	nop
+   0x00005555555554f5 <+236>:	mov    $0x68,%edi
+   0x00005555555554fa <+241>:	call   0x5555555551a0 <putchar@plt>
+   0x00005555555554ff <+246>:	nop
+   0x0000555555555500 <+247>:	leave
+   0x0000555555555501 <+248>:	ret
+End of assembler dump.
+ * */
+static int INDEX_BASE[16] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
+
+inline void fun_sse(float* src, float* dst, int GatherStride){
+  auto idx = _mm_loadu_si128((__m128i*)INDEX_BASE);
+  auto indices = _mm_mullo_epi32(idx, _mm_set1_epi32(GatherStride));
+  auto src_vec = _mm_i32gather_ps(src, indices, 4);
+  _mm_storeu_ps(dst, src_vec);
+}
+
+inline void fun_avx2(float* src, float* dst, int GatherStride){
+  auto IDX = _mm256_loadu_si256((__m256i*)INDEX_BASE);
+  auto indices = _mm256_mullo_epi32(IDX, _mm256_set1_epi32(GatherStride));
+  auto src_vec = _mm256_i32gather_ps(src, indices, 8);
+  _mm256_storeu_ps(dst, src_vec);
+}
+
+inline void fun_avx512(float* src, float* dst, int GatherStride){
+  auto IDX = _mm512_loadu_si512((__m512i*)INDEX_BASE);
+  auto indices = _mm512_mullo_epi32(IDX, _mm512_set1_epi32(GatherStride));
+  auto src_vec = _mm512_i32gather_ps(indices, src, 16);
+  _mm512_storeu_ps(dst, src_vec);
+}
 
 int main(int argc, char** argv){
+#ifdef __AVX512F__
+    printf("AVX-512 is supported on this platform.\n");
+#else
+  printf("AVX-512 is not supported on this platform.\n");
+#endif
+
   float* I=(float*)_mm_malloc(sizeof(float) * 1024, 32);
   float* O=(float*)_mm_malloc(sizeof(float) * 1024, 32);
   REP(i,0,1024) O[i]=i;
 
   printf("h");
-  fun(O, I, 64);
+  fun_sse(O, I, 64);
   /*
 => 0x00005555555553d0 <+161>:	mov    0x90(%rsp),%rax
    0x00005555555553d8 <+169>:	add    $0x1c,%rax
