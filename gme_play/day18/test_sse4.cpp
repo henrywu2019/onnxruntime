@@ -5,6 +5,7 @@
 #include <immintrin.h>
 #include <gamma_common.h>
 #include "conv2d.h"
+#include "mlas.h"
 
 
     /*
@@ -191,6 +192,20 @@ void transpose_4x4(float *mat) {
 void transpose_8x8(float *src) {
 }
 
+void ReorderInputNchw(const int64_t* input_shape, const float* S, float* D) {
+  auto_profiler ap(__FUNCTION__ );
+  const int64_t nchwc_block_size = static_cast<int64_t>(MlasNchwcGetBlockSize());
+  int64_t batch_count = input_shape[0];
+  int64_t channel_count = input_shape[1];
+  int64_t nchwc_channel_count = (channel_count + nchwc_block_size - 1) & ~(nchwc_block_size - 1);
+  int64_t spatial_count = input_shape[2] * input_shape[3];
+  for (int64_t n = 0; n < batch_count; n++) {
+    MlasReorderInputNchw(S, D, static_cast<size_t>(channel_count), static_cast<size_t>(spatial_count));
+    S += spatial_count * channel_count;
+    D += spatial_count * nchwc_channel_count;
+  }
+}
+
 
 int main(int argc, char** argv){
 #ifdef __AVX512F__
@@ -204,10 +219,14 @@ int main(int argc, char** argv){
 
   auto new_input=(float*)_mm_malloc(sizeof(float) * ca.input_size, 32);
   auto new_input_v2=(float*)_mm_malloc(sizeof(float) * ca.input_size, 32);
+  auto new_input_v3=(float*)_mm_malloc(sizeof(float) * ca.input_size, 32);
 
   reorder_NCHW_NCHWc8_avx2(input,new_input,ca);
   reorder_NCHW_NCHWc8_base(input,new_input_v2,ca);
+  int64_t InputShape[] = {int64_t(ca.N), int64_t(1) * int64_t(ca.C), int64_t(ca.H), int64_t(ca.W)};
+  ReorderInputNchw(InputShape, input, new_input_v3);
   assert(array_equal(new_input, new_input_v2, ca.input_size));
+  assert(array_equal(new_input, new_input_v3, ca.input_size));
 
   ::memset((void*)new_input,0,ca.input_size* sizeof(float));
   ::memset((void*)new_input_v2,0,ca.input_size* sizeof(float));

@@ -1649,4 +1649,5 @@ set_target_properties(${EXEC_NAME} PROPERTIES
         COMPILE_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -mavx2 -march=native"
         )
 target_link_libraries(${EXEC_NAME} gamma)
+target_link_libraries(${EXEC_NAME} onnxruntime_mlas onnxruntime_common nsync_cpp)
 

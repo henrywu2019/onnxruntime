@@ -164,24 +164,21 @@ void reorder_NCHW_NCHWc32_avx2(float* s, float* d, conv_attr& ca){
       REP(k, 0, ca.H) {
         REP(l, 0, ca.W) {
           auto src_vec = _mm256_i32gather_ps(s+i_offset++, indices, sizeof(float));
-          _mm256_storeu_ps(d+input_index_new(i,j,k,l,8,ca,32), src_vec);
-          d+=8;
+          _mm256_storeu_ps(d+input_index_new(i,j,k,l,0,ca,32)+8, src_vec);
         }
       }
       i_offset = base+ca.input_block_stride/2;
       REP(k, 0, ca.H) {
         REP(l, 0, ca.W) {
           auto src_vec = _mm256_i32gather_ps(s+i_offset++, indices, sizeof(float));
-          _mm256_storeu_ps(d+input_index_new(i,j,k,l,16,ca,32), src_vec);
-          d+=8;
+          _mm256_storeu_ps(d+input_index_new(i,j,k,l,0,ca,32)+16, src_vec);
         }
       }
       i_offset = base+3*ca.input_block_stride/4;
       REP(k, 0, ca.H) {
         REP(l, 0, ca.W) {
           auto src_vec = _mm256_i32gather_ps(s+i_offset++, indices, sizeof(float));
-          _mm256_storeu_ps(d+input_index_new(i,j,k,l,24,ca,32), src_vec);
-          d+=8;
+          _mm256_storeu_ps(d+input_index_new(i,j,k,l,0,ca,32)+24, src_vec);
         }
       }
     }
