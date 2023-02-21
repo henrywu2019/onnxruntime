@@ -48,7 +48,7 @@ Return Value:
 
 --*/
 {
-#if defined(MLAS_AVX2_INTRINSICSX)
+#if defined(MLAS_AVX2_INTRINSICS)
     __m128i idx = _mm_loadu_si128((__m128i*)INDEX_BASE_AVX2);
     __m128i indices = _mm_mullo_epi32(idx, _mm_set1_epi32(GatherStride));
     __m128 src_vec = _mm_i32gather_ps(S, indices, 4);
@@ -199,6 +199,12 @@ Return Value:
 --*/
 {
     size_t load = input_channel>>1;
+#if defined(MLAS_AVX2_INTRINSICS)
+    __m128i idx = _mm_loadu_si128((__m128i*)INDEX_BASE_AVX2);
+    __m128i indices = _mm_mullo_epi32(idx, _mm_set1_epi32(GatherStride));
+    __m128 src_vec = _mm_i32gather_ps(S, indices, 4);
+    _mm_store_ps(D, src_vec);
+#endif
 #if defined(MLAS_SSE2_INTRINSICS)
     MLAS_FLOAT32X4 v[4]={};
     MLAS_FLOAT32X4 t[4]={};

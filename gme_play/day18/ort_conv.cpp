@@ -123,10 +123,14 @@ void onnxruntime_conv_nchwc(
     size_t NchwcInputElements = BatchCount * NchwcInputChannels * InputHeight * InputWidth;
     BufferNchwcInput.resize(NchwcInputElements);
     float* NchwcInput = BufferNchwcInput.data();
+    auto start_ = chrono::high_resolution_clock::now();
     ReorderInputNchw(InputShape, Input, NchwcInput);
+    auto t0_ = chrono::high_resolution_clock::now();
+    cout << __FUNCTION__ << " | Reorder Time: " << chrono::duration_cast<chrono::nanoseconds>((t0_ - start_)).count() << " ns" << endl;
     Input = NchwcInput;
     InputShape[1] = NchwcInputChannels;
   }
+  auto t0 = chrono::high_resolution_clock::now();
 
   int64_t NchwcOutputShape[] = {int64_t(BatchCount), int64_t(NchwcOutputChannels), int64_t(OutputHeight), int64_t(OutputWidth)};
 
@@ -136,8 +140,6 @@ void onnxruntime_conv_nchwc(
 
   MLAS_ACTIVATION Activation;
   Activation.ActivationKind = MlasIdentityActivation;
-  auto t0 = chrono::high_resolution_clock::now();
-  cout << __FUNCTION__ << " | Reorder Time: " << chrono::duration_cast<chrono::nanoseconds>((t0 - start)).count() << " ns" << endl;
 
   MlasNchwcConv(InputShape,
                 KernelShape,

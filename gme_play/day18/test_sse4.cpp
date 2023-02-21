@@ -4,85 +4,6 @@
 #include <sein.hpp>
 #include <immintrin.h>
 
-__attribute__ ((always_inline)) inline
-void
-    MlasReorderGatherFloat32x4(
-        const float* S,
-        float* D,
-        size_t GatherStride
-        )
-    /*++
-
-    Routine Description:
-
-    This routine gathers floats from the source buffer and writes a vector to
-    the destination buffer.
-
-    Arguments:
-
-    S - Supplies the address of the source buffer.
-
-      D - Supplies the address of the destination buffer.
-
-      GatherStride - Supplies the stride to read elements from the source buffer.
-
-          Return Value:
-
-    None.
-
-    --*/
-{
-  auto t0 = std::chrono::high_resolution_clock::now();
-//#if defined(__SSE4_2__)
-#if 0
-  __m128 v = _mm_load_ss(&S[0 * GatherStride]);
-  for (int i=0;i<5000*5000;i++){
-    v = _mm_insert_ps(v, _mm_load_ss(&S[1 * GatherStride]), 0x10);
-    v = _mm_insert_ps(v, _mm_load_ss(&S[2 * GatherStride]), 0x20);
-    v = _mm_insert_ps(v, _mm_load_ss(&S[3 * GatherStride]), 0x30);
-    _mm_storeu_ps(D, v);
-  }
-#else
-  for (int i=0;i<5000*5000;i++){
-    float f0 = S[0 * GatherStride];
-    float f1 = S[1 * GatherStride];
-    float f2 = S[2 * GatherStride];
-    float f3 = S[3 * GatherStride];
-
-    D[0] = f0;
-    D[1] = f1;
-    D[2] = f2;
-    D[3] = f3;
-  }
-
-#endif
-  auto t1 = std::chrono::high_resolution_clock::now();
-  long long t = std::chrono::duration_cast<std::chrono::nanoseconds>((t1 - t0)).count();
-  std::cout << __FUNCTION__ << " | Compute Time: " << t << " ns" << std::endl;
-}
-
-
-void avx512_copy(float* src, float* dst) {
-#if 0
-  // Load the 8 floats from src using _mm256_i32gather_ps
-  auto idx=_mm256_set_epi64x(7 * 64, 6 * 64, 5 * 64, 4 * 64, 3 * 64, 2 * 64, 1 * 64, 0 * 64);
-  __m256 vsrc = _mm256_i32gather_ps(src, idx, 1);
-
-  // Store the 8 floats to dst using _mm256_store_ps
-  _mm256_store_ps(dst, vsrc);
-#endif
-}
-
-void print_m256i(auto v) {
-  const int32_t* ptr = (const int32_t*) &v;
-  printf("[%d, %d, %d, %d, %d, %d, %d, %d]\n",
-         ptr[0], ptr[1], ptr[2], ptr[3], ptr[4], ptr[5], ptr[6], ptr[7]);
-}
-void print_m128i(auto v) {
-  const int32_t* ptr = (const int32_t*) &v;
-  printf("[%d, %d, %d, %d]\n",
-         ptr[0], ptr[1], ptr[2], ptr[3]);
-}
 
 /*
 Dump of assembler code for function _Z3funPfS_i:
@@ -146,18 +67,127 @@ inline void fun_sse(float* src, float* dst, int GatherStride){
 }
 
 inline void fun_avx2(float* src, float* dst, int GatherStride){
-  auto IDX = _mm256_loadu_si256((__m256i*)INDEX_BASE);
-  auto indices = _mm256_mullo_epi32(IDX, _mm256_set1_epi32(GatherStride));
+  auto idx = _mm256_loadu_si256((__m256i*)INDEX_BASE);
+  auto indices = _mm256_mullo_epi32(idx, _mm256_set1_epi32(GatherStride));
   auto src_vec = _mm256_i32gather_ps(src, indices, 8);
   _mm256_storeu_ps(dst, src_vec);
 }
 
 inline void fun_avx512(float* src, float* dst, int GatherStride){
-  auto IDX = _mm512_loadu_si512((__m512i*)INDEX_BASE);
-  auto indices = _mm512_mullo_epi32(IDX, _mm512_set1_epi32(GatherStride));
+  auto idx = _mm512_loadu_si512((__m512i*)INDEX_BASE);
+  auto indices = _mm512_mullo_epi32(idx, _mm512_set1_epi32(GatherStride));
   auto src_vec = _mm512_i32gather_ps(indices, src, 16);
   _mm512_storeu_ps(dst, src_vec);
 }
+
+__attribute__ ((always_inline)) inline
+void
+    MlasReorderGatherFloat32x4(
+        const float* S,
+        float* D,
+        size_t GatherStride
+        )
+    /*++
+
+    Routine Description:
+
+    This routine gathers floats from the source buffer and writes a vector to
+    the destination buffer.
+
+    Arguments:
+
+    S - Supplies the address of the source buffer.
+
+      D - Supplies the address of the destination buffer.
+
+      GatherStride - Supplies the stride to read elements from the source buffer.
+
+          Return Value:
+
+    None.
+
+    --*/
+{
+  auto t0 = std::chrono::high_resolution_clock::now();
+//#if defined(__SSE4_2__)
+#if 0
+  __m128 v = _mm_load_ss(&S[0 * GatherStride]);
+  for (int i=0;i<5000*5000;i++){
+    v = _mm_insert_ps(v, _mm_load_ss(&S[1 * GatherStride]), 0x10);
+    v = _mm_insert_ps(v, _mm_load_ss(&S[2 * GatherStride]), 0x20);
+    v = _mm_insert_ps(v, _mm_load_ss(&S[3 * GatherStride]), 0x30);
+    _mm_storeu_ps(D, v);
+  }
+#endif
+#if 1
+  for (int i=0;i<5000*5000;i++){
+    auto src=S+i%(400*298);
+    float f0 = src[0 * GatherStride];
+    float f1 = src[1 * GatherStride];
+    float f2 = src[2 * GatherStride];
+    float f3 = src[3 * GatherStride];
+
+    D[0] = f0;
+    D[1] = f1;
+    D[2] = f2;
+    D[3] = f3;
+  }
+
+#else
+  for (int i=0;i<5000*5000/2;i++){
+    auto idx = _mm256_loadu_si256((__m256i*)INDEX_BASE);
+    auto indices = _mm256_mullo_epi32(idx, _mm256_set1_epi32(GatherStride));
+    auto src_vec = _mm256_i32gather_ps(src, indices, 8);
+    _mm256_storeu_ps(dst, src_vec);
+  }
+
+#endif
+  auto t1 = std::chrono::high_resolution_clock::now();
+  long long t = std::chrono::duration_cast<std::chrono::nanoseconds>((t1 - t0)).count();
+  std::cout << __FUNCTION__ << " | Compute Time: " << t << " ns" << std::endl;
+}
+
+
+void avx512_copy(float* src, float* dst) {
+#if 0
+  // Load the 8 floats from src using _mm256_i32gather_ps
+  auto idx=_mm256_set_epi64x(7 * 64, 6 * 64, 5 * 64, 4 * 64, 3 * 64, 2 * 64, 1 * 64, 0 * 64);
+  auto vsrc = _mm256_i32gather_ps(src, idx, 1);
+
+  // Store the 8 floats to dst using _mm256_store_ps
+  _mm256_store_ps(dst, vsrc);
+#endif
+}
+
+void print_m256i(auto v) {
+  const int32_t* ptr = (const int32_t*) &v;
+  printf("[%d, %d, %d, %d, %d, %d, %d, %d]\n",
+         ptr[0], ptr[1], ptr[2], ptr[3], ptr[4], ptr[5], ptr[6], ptr[7]);
+}
+void print_m128i(auto v) {
+  const int32_t* ptr = (const int32_t*) &v;
+  printf("[%d, %d, %d, %d]\n",
+         ptr[0], ptr[1], ptr[2], ptr[3]);
+}
+
+
+void transpose_4x4(float *mat) {
+  __m128 row0 = _mm_loadu_ps(&mat[0]);
+  __m128 row1 = _mm_loadu_ps(&mat[4]);
+  __m128 row2 = _mm_loadu_ps(&mat[8]);
+  __m128 row3 = _mm_loadu_ps(&mat[12]);
+
+  __m128 tmp0 = _mm_shuffle_ps(row0, row1, 0b01000100);
+  __m128 tmp2 = _mm_shuffle_ps(row0, row1, 0b11101110);
+  __m128 tmp1 = _mm_shuffle_ps(row2, row3, 0b01000100);
+  __m128 tmp3 = _mm_shuffle_ps(row2, row3, 0b11101110);
+
+  _mm_storeu_ps(&mat[0], _mm_shuffle_ps(tmp0, tmp1, 0b10001000));
+  _mm_storeu_ps(&mat[4], _mm_shuffle_ps(tmp0, tmp1, 0b11011101));
+  _mm_storeu_ps(&mat[8], _mm_shuffle_ps(tmp2, tmp3, 0b10001000));
+  _mm_storeu_ps(&mat[12], _mm_shuffle_ps(tmp2, tmp3, 0b11011101));
+}
+
 
 int main(int argc, char** argv){
 #ifdef __AVX512F__
@@ -166,12 +196,18 @@ int main(int argc, char** argv){
   printf("AVX-512 is not supported on this platform.\n");
 #endif
 
-  float* I=(float*)_mm_malloc(sizeof(float) * 1024, 32);
-  float* O=(float*)_mm_malloc(sizeof(float) * 1024, 32);
-  REP(i,0,1024) O[i]=i;
+  float* X=(float*)_mm_malloc(sizeof(float) * 16, 32);
+  REP(i,0,16) X[i]=i;
+  transpose_4x4(X);
+  _mm_free(X);
 
-  printf("h");
-  fun_sse(O, I, 64);
+
+
+  float* I=(float*)_mm_malloc(sizeof(float) * 400*298*256, 32);
+  float* O=(float*)_mm_malloc(sizeof(float) * 400*298*256, 32);
+  REP(i,0,400*298*256) O[i]=i;
+
+  //fun_sse(O, I, 64);
   /*
 => 0x00005555555553d0 <+161>:	mov    0x90(%rsp),%rax
    0x00005555555553d8 <+169>:	add    $0x1c,%rax
@@ -246,10 +282,10 @@ int main(int argc, char** argv){
    0x0000555555555567 <+568>:	vmovups %ymm0,(%rax)
    * */
   //////////////////////////////////////////////
-  /*__m256 a = _mm256_set_ps(O[0], O[1], O[2], O[3], O[4], O[5], O[6], O[7]);
+  /*auto a = _mm256_set_ps(O[0], O[1], O[2], O[3], O[4], O[5], O[6], O[7]);
   //__m128 b = _mm_setr_ps(9.0f, 10.0f, 11.0f, 12.0f);
   // insert the four single-precision values in b into the upper 128 bits of a
-  //__m256 c = _mm256_insertf128_ps(a, b, 0);
+  //auto c = _mm256_insertf128_ps(a, b, 0);
   _mm256_storeu_ps(I, a);*/
   //////////////////////////////////
   /*

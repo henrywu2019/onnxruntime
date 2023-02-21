@@ -56,22 +56,12 @@ void tunable_conv::reorder_input() {
         REP(l, 0, ca.W) {
           REP(m, 0, tunable_x) {
             ori_idx = i * input_batch_stride + (m + j * tunable_x) * input_channel_stride + k * ca.W + l;
-#ifdef SIMPLE_INDEX
             core[new_idx++] = input[ori_idx];
-#else
-            new_idx = i * input_batch_stride + j * input_block_stride + k * ca.W * tunable_x + l * tunable_x + m;
-            core[new_idx] = input[ori_idx];
-#endif
           }
         }
       }
     }
   }
-#ifdef SIMPLE_INDEX
-  assert(new_idx == input_size);
-#else
-  assert(new_idx + 1 == input_size);
-#endif
   auto t = duration_cast<nanoseconds>((high_resolution_clock::now() - start)).count();
   cout << __FUNCTION__ << ": " << t << " ns" << endl;
 }
