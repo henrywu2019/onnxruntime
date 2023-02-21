@@ -18,7 +18,7 @@ Abstract:
 #include "mlasi.h"
 
 #define MlasReorderGatherFloat32x8_macro(i) D[i] = S[i * GatherStride];
-static int INDEX_BASE_AVX2[8] = {0,1,2,3,4,5,6,7};
+static int GATHER_INDEX_BASE[8] = {0,1,2,3,4,5,6,7};
 
 MLAS_FORCEINLINE
 void
@@ -49,7 +49,7 @@ Return Value:
 --*/
 {
 #if defined(MLAS_AVX2_INTRINSICS)
-    __m128i idx = _mm_loadu_si128((__m128i*)INDEX_BASE_AVX2);
+    __m128i idx = _mm_loadu_si128((__m128i*)GATHER_INDEX_BASE);
     __m128i indices = _mm_mullo_epi32(idx, _mm_set1_epi32(GatherStride));
     __m128 src_vec = _mm_i32gather_ps(S, indices, 4);
     _mm_store_ps(D, src_vec);
@@ -101,7 +101,7 @@ None.
 --*/
 {
 #if defined(MLAS_AVX2_INTRINSICS)
-    __m256i indices = _mm256_mullo_epi32(_mm256_loadu_si256((__m256i*)INDEX_BASE_AVX2), _mm256_set1_epi32(GatherStride));
+    __m256i indices = _mm256_mullo_epi32(_mm256_loadu_si256((__m256i*)GATHER_INDEX_BASE), _mm256_set1_epi32(GatherStride));
     __m256 src_vec = _mm256_i32gather_ps(S, indices, 8);
     _mm256_storeu_ps(D, src_vec);
 #else
@@ -200,7 +200,7 @@ Return Value:
 {
     size_t load = input_channel>>1;
 #if defined(MLAS_AVX2_INTRINSICS)
-    __m128i idx = _mm_loadu_si128((__m128i*)INDEX_BASE_AVX2);
+    __m128i idx = _mm_loadu_si128((__m128i*)GATHER_INDEX_BASE);
     __m128i indices = _mm_mullo_epi32(idx, _mm_set1_epi32(GatherStride));
     __m128 src_vec = _mm_i32gather_ps(S, indices, 4);
     _mm_store_ps(D, src_vec);

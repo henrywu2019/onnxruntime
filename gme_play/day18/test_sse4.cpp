@@ -3,9 +3,12 @@
 //
 #include <sein.hpp>
 #include <immintrin.h>
+#include <gamma_common.h>
+#include "conv2d.h"
 
+extern int GAMMA_GATHER_INDEX_BASE[16];
 
-/*
+    /*
 Dump of assembler code for function _Z3funPfS_i:
    0x0000555555555409 <+0>:	endbr64
    0x000055555555540d <+4>:	push   %rbp
@@ -111,7 +114,7 @@ void
   auto t0 = std::chrono::high_resolution_clock::now();
 //#if defined(__SSE4_2__)
 #if 0
-  __m128 v = _mm_load_ss(&S[0 * GatherStride]);
+  auto v = _mm_load_ss(&S[0 * GatherStride]);
   for (int i=0;i<5000*5000;i++){
     v = _mm_insert_ps(v, _mm_load_ss(&S[1 * GatherStride]), 0x10);
     v = _mm_insert_ps(v, _mm_load_ss(&S[2 * GatherStride]), 0x20);
@@ -172,20 +175,102 @@ void print_m128i(auto v) {
 
 
 void transpose_4x4(float *mat) {
-  __m128 row0 = _mm_loadu_ps(&mat[0]);
-  __m128 row1 = _mm_loadu_ps(&mat[4]);
-  __m128 row2 = _mm_loadu_ps(&mat[8]);
-  __m128 row3 = _mm_loadu_ps(&mat[12]);
-
-  __m128 tmp0 = _mm_shuffle_ps(row0, row1, 0b01000100);
-  __m128 tmp2 = _mm_shuffle_ps(row0, row1, 0b11101110);
-  __m128 tmp1 = _mm_shuffle_ps(row2, row3, 0b01000100);
-  __m128 tmp3 = _mm_shuffle_ps(row2, row3, 0b11101110);
-
+  auto row0 = _mm_loadu_ps(&mat[0]);
+  auto row1 = _mm_loadu_ps(&mat[4]);
+  auto row2 = _mm_loadu_ps(&mat[8]);
+  auto row3 = _mm_loadu_ps(&mat[12]);
+  auto tmp0 = _mm_shuffle_ps(row0, row1, 0b01000100);
+  auto tmp2 = _mm_shuffle_ps(row0, row1, 0b11101110);
+  auto tmp1 = _mm_shuffle_ps(row2, row3, 0b01000100);
+  auto tmp3 = _mm_shuffle_ps(row2, row3, 0b11101110);
   _mm_storeu_ps(&mat[0], _mm_shuffle_ps(tmp0, tmp1, 0b10001000));
   _mm_storeu_ps(&mat[4], _mm_shuffle_ps(tmp0, tmp1, 0b11011101));
   _mm_storeu_ps(&mat[8], _mm_shuffle_ps(tmp2, tmp3, 0b10001000));
   _mm_storeu_ps(&mat[12], _mm_shuffle_ps(tmp2, tmp3, 0b11011101));
+}
+
+void reorder_NCHW_NCHWc8_base(float* s, float* d, const conv_attr& ca){
+  int slice_number_in_channel_dim = ceil_int(ca.C, 8); // for input and kernel
+  int ori_idx = 0, new_idx = 0;
+  REP(i, 0, ca.N) {
+    REP(j, 0, slice_number_in_channel_dim) {
+      REP(k, 0, ca.H) {
+        REP(l, 0, ca.W) {
+          REP(m, 0, 8) {
+            ori_idx = i * ca.input_batch_stride + (m + j * 8) * ca.input_channel_stride + k * ca.W + l;
+            d[new_idx++] = s[ori_idx];
+          }
+        }
+      }
+    }
+  }
+}
+
+void reorder_NCHW_NCHWc8_avx2(float* s, float* d, conv_attr& ca){
+  int slice_number_in_channel_dim = ceil_int(ca.C, 8); // for input and kernel
+  int ori_idx = 0, new_idx = 0, GatherStride= ca.input_channel_stride;
+  ca.input_block_stride = 8*ca.input_channel_stride;
+  REP(i, 0, ca.N) {
+    REP(j, 0, slice_number_in_channel_dim) {
+      REP(k, 0, ca.H) {
+        REP(l, 0, ca.W) {
+          auto idx = _mm256_loadu_si256((__m256i*)GAMMA_GATHER_INDEX_BASE);
+          auto indices = _mm256_mullo_epi32(idx, _mm256_set1_epi32(GatherStride));
+          auto src_vec = _mm256_i32gather_ps(s+i*ca.input_batch_stride+j*ca.input_block_stride+k*ca.W+l, indices, 8);
+          _mm256_storeu_ps(d, src_vec);
+          d+=8;
+        }
+      }
+    }
+  }
+}
+
+
+void transpose_8x8(float *mat) {
+  auto row0 = _mm256_loadu_ps(&mat[0]);
+  auto row1 = _mm256_loadu_ps(&mat[8]);
+  auto row2 = _mm256_loadu_ps(&mat[16]);
+  auto row3 = _mm256_loadu_ps(&mat[24]);
+  auto row4 = _mm256_loadu_ps(&mat[32]);
+  auto row5 = _mm256_loadu_ps(&mat[40]);
+  auto row6 = _mm256_loadu_ps(&mat[48]);
+  auto row7 = _mm256_loadu_ps(&mat[56]);
+  
+  __m256 t0 = _mm256_unpacklo_ps(row0, row1);
+  __m256 t1 = _mm256_unpackhi_ps(row0, row1);
+  __m256 t2 = _mm256_unpacklo_ps(row2, row3);
+  __m256 t3 = _mm256_unpackhi_ps(row2, row3);
+  __m256 t4 = _mm256_unpacklo_ps(row4, row5);
+  __m256 t5 = _mm256_unpackhi_ps(row4, row5);
+  __m256 t6 = _mm256_unpacklo_ps(row6, row7);
+  __m256 t7 = _mm256_unpackhi_ps(row6, row7);
+
+  __m256 tt0 = _mm256_shuffle_ps(t0, t2, _MM_SHUFFLE(1,0,1,0));
+  __m256 tt1 = _mm256_shuffle_ps(t0, t2, _MM_SHUFFLE(3,2,3,2));
+  __m256 tt2 = _mm256_shuffle_ps(t1, t3, _MM_SHUFFLE(1,0,1,0));
+  __m256 tt3 = _mm256_shuffle_ps(t1, t3, _MM_SHUFFLE(3,2,3,2));
+  __m256 tt4 = _mm256_shuffle_ps(t4, t6, _MM_SHUFFLE(1,0,1,0));
+  __m256 tt5 = _mm256_shuffle_ps(t4, t6, _MM_SHUFFLE(3,2,3,2));
+  __m256 tt6 = _mm256_shuffle_ps(t5, t7, _MM_SHUFFLE(1,0,1,0));
+  __m256 tt7 = _mm256_shuffle_ps(t5, t7, _MM_SHUFFLE(3,2,3,2));
+
+  __m256 ttt0 = _mm256_permutevar8x32_ps(tt0, _mm256_set_epi32(7, 3, 6, 2, 5, 1, 4, 0));
+  __m256 ttt1 = _mm256_permutevar8x32_ps(tt1, _mm256_set_epi32(7, 3, 6, 2, 5, 1, 4, 0));
+  __m256 ttt2 = _mm256_permutevar8x32_ps(tt2, _mm256_set_epi32(7, 3, 6, 2, 5, 1, 4, 0));
+  __m256 ttt3 = _mm256_permutevar8x32_ps(tt3, _mm256_set_epi32(7, 3, 6, 2, 5, 1, 4, 0));
+  __m256 ttt4 = _mm256_permutevar8x32_ps(tt4, _mm256_set_epi32(7, 3, 6, 2, 5, 1, 4, 0));
+  __m256 ttt5 = _mm256_permutevar8x32_ps(tt5, _mm256_set_epi32(7, 3, 6, 2, 5, 1, 4, 0));
+  __m256 ttt6 = _mm256_permutevar8x32_ps(tt6, _mm256_set_epi32(7, 3, 6, 2, 5, 1, 4, 0));
+  __m256 ttt7 = _mm256_permutevar8x32_ps(tt7, _mm256_set_epi32(7, 3, 6, 2, 5, 1, 4, 0));
+
+  _mm256_storeu_ps(&mat[0], ttt0);
+  _mm256_storeu_ps(&mat[8], ttt1);
+  _mm256_storeu_ps(&mat[16], ttt2);
+  _mm256_storeu_ps(&mat[24], ttt3);
+  _mm256_storeu_ps(&mat[32], ttt4);
+  _mm256_storeu_ps(&mat[40], ttt5);
+  _mm256_storeu_ps(&mat[48], ttt6);
+  _mm256_storeu_ps(&mat[56], ttt7);
 }
 
 
@@ -199,7 +284,17 @@ int main(int argc, char** argv){
   float* X=(float*)_mm_malloc(sizeof(float) * 16, 32);
   REP(i,0,16) X[i]=i;
   transpose_4x4(X);
+
+
+  float* Y=(float*)_mm_malloc(sizeof(float) * 64, 32);
+  REP(i,0,64) Y[i]=i;
+  transpose_8x8(Y);
+
+  print_matrix(X, 4, 4);
+  print_matrix(Y, 8, 8);
+
   _mm_free(X);
+  _mm_free(Y);
 
 
 
@@ -283,7 +378,7 @@ int main(int argc, char** argv){
    * */
   //////////////////////////////////////////////
   /*auto a = _mm256_set_ps(O[0], O[1], O[2], O[3], O[4], O[5], O[6], O[7]);
-  //__m128 b = _mm_setr_ps(9.0f, 10.0f, 11.0f, 12.0f);
+  //auto b = _mm_setr_ps(9.0f, 10.0f, 11.0f, 12.0f);
   // insert the four single-precision values in b into the upper 128 bits of a
   //auto c = _mm256_insertf128_ps(a, b, 0);
   _mm256_storeu_ps(I, a);*/

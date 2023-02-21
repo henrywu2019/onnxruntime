@@ -66,6 +66,25 @@ void tunable_conv::reorder_input() {
   cout << __FUNCTION__ << ": " << t << " ns" << endl;
 }
 
+void tunable_conv::reorder_input_8() {
+  auto start = high_resolution_clock::now();
+  int ori_idx = 0, new_idx = 0;
+  REP(i, 0, ca.N) {
+    REP(j, 0, slice_number_in_channel_dim) {
+      REP(k, 0, ca.H) {
+        REP(l, 0, ca.W) {
+          REP(m, 0, tunable_x) {
+            ori_idx = i * input_batch_stride + (m + j * tunable_x) * input_channel_stride + k * ca.W + l;
+            core[new_idx++] = input[ori_idx];
+          }
+        }
+      }
+    }
+  }
+  auto t = duration_cast<nanoseconds>((high_resolution_clock::now() - start)).count();
+  cout << __FUNCTION__ << ": " << t << " ns" << endl;
+}
+
 void tunable_conv::restore_output() {
   auto start = high_resolution_clock::now();
   output_nchw = (float*)_mm_malloc(sizeof(float) * output_size, 32);
