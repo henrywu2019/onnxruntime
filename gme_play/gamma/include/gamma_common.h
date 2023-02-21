@@ -8,8 +8,7 @@
 void print_matrix(float* m, int h, int w);
 int ceil_int(int x, int y);
 int floor_int(int x, int y);
+bool array_equal(float*,float*,int,float tolerance=1e-4);
 
-void make_conv2d_input(float* l, int n, int c, int w, int h,
-  float channel_delta = 0.1, float cell_delta = 1, float batch_delta = 0.2, bool random_ = false, float start = 1.0);
 
 #endif  // ONNXRUNTIME_GAMMA_COMMON_H

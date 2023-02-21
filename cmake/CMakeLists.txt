@@ -1628,9 +1628,13 @@ link_directories(/home/henry/wendy/git.repo/onnxruntime/build/Linux/Release/_dep
 target_link_libraries(${EXEC_NAME} onnxruntime_mlas onnxruntime_common nsync_cpp)
 
 add_library(gamma STATIC
-        ${ORTTRAINING_GME_ROOT}/gamma/src/common.cpp)
+        ${ORTTRAINING_GME_ROOT}/gamma/src/common.cpp
+        ${ORTTRAINING_GME_ROOT}/gamma/src/conv2d.cpp)
 target_include_directories(gamma PUBLIC
         ${ORTTRAINING_GME_ROOT}/gamma/include)
+set_target_properties(gamma PROPERTIES
+        COMPILE_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -mavx2 -march=native"
+        )
 install(TARGETS gamma DESTINATION lib)
 install(DIRECTORY ${ORTTRAINING_GME_ROOT}/gamma/include DESTINATION include)
 

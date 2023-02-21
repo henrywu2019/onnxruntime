@@ -2,9 +2,11 @@
 // Created by henry on 2/21/23.
 //
 #include "gamma_common.h"
+#include "conv2d.h"
 #include "sein.hpp"
+#include <immintrin.h>
 
-int GAMMA_GATHER_INDEX_BASE[16] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
+
 
 void print_matrix(float* m, int h, int w) {
   if (h * w > 100) return;
@@ -23,26 +25,11 @@ int floor_int(int x, int y) {
   return int(floor((float)x / y));
 }
 
-void make_conv2d_input(float* l, int n, int c, int w, int h, float channel_delta, float cell_delta, float batch_delta, bool random_, float start) {
-  for (int i = 0; i < n; i++) {
-    for (int j = 0; j < c; j++) {
-      if (random_) {
-        start = start / (abs(int(start)) + 1) + ((double)rand() / (RAND_MAX)) + 0.1;
-        if (rand() & 1) start *= -1;
-      } else {
-        start = 1 + i * batch_delta + j * channel_delta;
-      }
-      for (int m = 0; m < h; m++){
-        for (int k = 0; k < w; k++) {
-          int idx = k + m * w + h * w * j + h * w * c * i;
-          if (random_) {
-            if (rand() & 1) start *= -1;
-            l[idx] = start, start += 0.01;
-          } else {
-            l[idx] = start, start += cell_delta;
-          }
-        }
-      }
+bool array_equal(float* a,float* b,int z,float tolerance){
+  REP(i,0,z){
+    if(a[i]!=b[i] and abs((a[i]-b[i])/a[i])>tolerance){
+      return false;
     }
   }
+  return true;
 }
