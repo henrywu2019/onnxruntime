@@ -258,24 +258,28 @@ int main(int argc, char** argv){
   auto new_input_v3=(float*)_mm_malloc(sizeof(float) * ca.input_size, 32);
   auto new_input_v4=(float*)_mm_malloc(sizeof(float) * ca.input_size, 32);
 
-  reorder_NCHW_NCHWc8_avx2(input,new_input,ca);
-  reorder_NCHW_NCHWc8_base(input,new_input_v2,ca);
+  reorder_NCHW_NCHWc16_avx2(input,new_input,ca);
+  reorder_NCHW_NCHWc16_base(input,new_input_v2,ca);
+  assert(array_equal(new_input, new_input_v2, ca.input_size));
+
+
+
+  ::memset((void*)new_input,0,ca.input_size* sizeof(float));
+  ::memset((void*)new_input_v2,0,ca.input_size* sizeof(float));
+
   int64_t InputShape[] = {int64_t(ca.N), int64_t(1) * int64_t(ca.C), int64_t(ca.H), int64_t(ca.W)};
+  reorder_NCHW_NCHWc8_base(input,new_input_v2,ca);
   ReorderInputNchw(InputShape, input, new_input_v3);
+  reorder_NCHW_NCHWc8_avx2(input,new_input,ca);
+  restore_NCHWc8_NCHW_avx2(new_input_v2, new_input_v4, ca);
+
   assert(array_equal(new_input, new_input_v2, ca.input_size));
   assert(array_equal(new_input, new_input_v3, ca.input_size));
-  restore_NCHWc8_NCHW_avx2(new_input_v2, new_input_v4, ca);
   assert(array_equal(input, new_input_v4, ca.input_size));
 #ifdef __AVX512__
   restore_NCHWc8_NCHW_avx512(new_input_v2, new_input_v4, ca);
   assert(array_equal(input, new_input_v4, ca.input_size));
 #endif
-
-  ::memset((void*)new_input,0,ca.input_size* sizeof(float));
-  ::memset((void*)new_input_v2,0,ca.input_size* sizeof(float));
-  reorder_NCHW_NCHWc16_avx2(input,new_input,ca);
-  reorder_NCHW_NCHWc16_base(input,new_input_v2,ca);
-  assert(array_equal(new_input, new_input_v2, ca.input_size));
 
   ::memset((void*)new_input,0,ca.input_size* sizeof(float));
   ::memset((void*)new_input_v2,0,ca.input_size* sizeof(float));

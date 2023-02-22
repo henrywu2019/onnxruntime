@@ -7,8 +7,9 @@
 
 #include <bits/stdc++.h>
 #include "mlas.h"
+#include "sein.hpp"
 
-using namespace std;
+
 
 // MlasNchwcConv(long const*, long const*, long const*, long const*, long const*, long const*, unsigned long, float const*, float const*, float const*, float*, MLAS_ACTIVATION const*, bool, onnxruntime::concurrency::ThreadPool*)
 

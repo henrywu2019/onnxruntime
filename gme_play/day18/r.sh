@@ -2,8 +2,8 @@
 
 set -x
 
-ROOT=/home/henry/wendy/git.repo/onnxruntime
 ROOT=/home/opc/mlops/onnxruntime
+ROOT=/home/henry/wendy/git.repo/onnxruntime
 
 g++ test_sse4.cpp -o test_sse4.exe -I${ROOT}/gme_play/gamma/include \
 -L$ROOT/build/Linux/Release \

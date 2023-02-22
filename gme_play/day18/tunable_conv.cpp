@@ -27,6 +27,22 @@ void print_output(float* Output, int h, int w, int output_channel, bool all) {
   // printf("\n");
 }
 
+#include "mlas.h"
+
+void ReorderInputNchw(const int64_t* input_shape, const float* S, float* D) {
+  auto_profiler ap(__FUNCTION__ );
+  const int64_t nchwc_block_size = static_cast<int64_t>(MlasNchwcGetBlockSize());
+  int64_t batch_count = input_shape[0];
+  int64_t channel_count = input_shape[1];
+  int64_t nchwc_channel_count = (channel_count + nchwc_block_size - 1) & ~(nchwc_block_size - 1);
+  int64_t spatial_count = input_shape[2] * input_shape[3];
+  for (int64_t n = 0; n < batch_count; n++) {
+    MlasReorderInputNchw(S, D, static_cast<size_t>(channel_count), static_cast<size_t>(spatial_count));
+    S += spatial_count * channel_count;
+    D += spatial_count * nchwc_channel_count;
+  }
+}
+
 #define input_index_ori(N, C, H, w) (N * input_batch_stride + C * input_channel_stride + H * ca.W + w)
 // #define input_index_new(N,C_,H,w,c) (N*input_batch_stride + C_*input_block_stride + H*ca.W*tunable_x + w*tunable_x + c)
 #define filter_index_ori(K, C, R, l) (K * filter_batch_stride + C * filter_channel_stride + R * ca.L + l)
@@ -35,6 +51,8 @@ void print_output(float* Output, int h, int w, int output_channel, bool all) {
 void tunable_conv::reorder_input() {
   if (tunable_x==8){
     reorder_input_8();
+    //int64_t InputShape[] = {int64_t(ca.N), int64_t(1) * int64_t(ca.C), int64_t(ca.H), int64_t(ca.W)};
+    //ReorderInputNchw(InputShape, input, core);
     return;
   } else if (tunable_x==16){
     reorder_NCHW_NCHWc16_base(input,core,ca);

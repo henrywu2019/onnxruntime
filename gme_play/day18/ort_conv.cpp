@@ -44,7 +44,7 @@ void onnxruntime_conv_nchwc(
     const float* Filter,
     const float* Bias,
     float* Output) {
-  auto start = chrono::high_resolution_clock::now();
+  auto start = high_resolution_clock::now();
   int64_t InputShape[] = {int64_t(BatchCount), int64_t(GroupCount) * int64_t(InputChannels), int64_t(InputHeight), int64_t(InputWidth)};
   int64_t FilterShape[] = {int64_t(GroupCount) * int64_t(FilterCount), int64_t(InputChannels), int64_t(KernelHeight), int64_t(KernelWidth)};
   int64_t OutputShape[] = {int64_t(BatchCount), int64_t(GroupCount) * int64_t(FilterCount), int64_t(OutputHeight), int64_t(OutputWidth)};
@@ -123,14 +123,13 @@ void onnxruntime_conv_nchwc(
     size_t NchwcInputElements = BatchCount * NchwcInputChannels * InputHeight * InputWidth;
     BufferNchwcInput.resize(NchwcInputElements);
     float* NchwcInput = BufferNchwcInput.data();
-    auto start_ = chrono::high_resolution_clock::now();
+    auto start_ = high_resolution_clock::now();
     ReorderInputNchw(InputShape, Input, NchwcInput);
-    auto t0_ = chrono::high_resolution_clock::now();
-    cout << __FUNCTION__ << " | Reorder Time: " << chrono::duration_cast<chrono::microseconds>((t0_ - start_)).count() << " us" << endl;
+    cout << __FUNCTION__ << " | Reorder Time: " << duration_cast<microseconds>((high_resolution_clock::now() - start_)).count() << " us" << endl;
     Input = NchwcInput;
     InputShape[1] = NchwcInputChannels;
   }
-  auto t0 = chrono::high_resolution_clock::now();
+  auto t0 = high_resolution_clock::now();
 
   int64_t NchwcOutputShape[] = {int64_t(BatchCount), int64_t(NchwcOutputChannels), int64_t(OutputHeight), int64_t(OutputWidth)};
 
@@ -155,17 +154,17 @@ void onnxruntime_conv_nchwc(
                 &Activation,
                 true,
                 nullptr);
-  auto t1 = chrono::high_resolution_clock::now();
-  cout << __FUNCTION__ << " | Algo Time: " << chrono::duration_cast<chrono::microseconds>((t1 - t0)).count() << " us" << endl;
+  auto t1 = high_resolution_clock::now();
+  cout << __FUNCTION__ << " | Algo Time: " << duration_cast<microseconds>((t1 - t0)).count() << " us" << endl;
 
   //
   // Reorder the output buffer.
   //
-  auto t_before_reorder = chrono::high_resolution_clock::now();
-  //MlasReorderOutputNchw(OutputShape, NchwcOutput, Output);
-  MlasReorderOutputNchw(OutputShape, NchwcOutput, Output, nullptr);
-  t1 = chrono::high_resolution_clock::now();
-  cout << __FUNCTION__ << " | restore MlasReorderOutputNchw: " << chrono::duration_cast<chrono::microseconds>((t1 - t_before_reorder)).count() << " us" << endl;
-  cout << __FUNCTION__ << " | entire Algo Time: " << chrono::duration_cast<chrono::microseconds>((t1 - start)).count() << " us" << endl;
+  auto t_before_reorder = high_resolution_clock::now();
+  MlasReorderOutputNchw(OutputShape, NchwcOutput, Output);
+  //MlasReorderOutputNchw(OutputShape, NchwcOutput, Output, nullptr);
+  t1 = high_resolution_clock::now();
+  cout << __FUNCTION__ << " | restore MlasReorderOutputNchw: " << duration_cast<microseconds>((t1 - t_before_reorder)).count() << " us" << endl;
+  cout << __FUNCTION__ << " | entire Algo Time: " << duration_cast<microseconds>((t1 - start)).count() << " us" << endl;
 
 }

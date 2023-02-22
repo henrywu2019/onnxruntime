@@ -2,8 +2,8 @@ set -x
 
 nasm -felf64 block_compute.asm -o compute.o
 
-ROOT=/home/henry/wendy/git.repo/onnxruntime
 ROOT=/home/opc/mlops/onnxruntime
+ROOT=/home/henry/wendy/git.repo/onnxruntime
 
 g++ compute.o main.cpp ort_conv.cpp ort_conv2.cpp -o main_release.exe -O3 -I${ROOT}/gme_play/gamma/include \
 -L$ROOT/build/Linux/Release \
