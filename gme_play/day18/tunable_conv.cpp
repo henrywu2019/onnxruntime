@@ -203,85 +203,6 @@ void tunable_conv::run() {
   cout << __FUNCTION__ << " | algo run Time: " << t << " us" << endl;
 }
 
-// x=32
-void tunable_conv::run_32_32() {
-  auto start = high_resolution_clock::now();
-
-  // not consider reg_n=4 in batch dim
-  __m256 y12{}, y13{}, y14{}, y15{};
-  REP(i, 0, hunk_number_in_batch_dim) {  // N(K_)
-    REP(k, 0, ca.OH) {
-      REP(j, 0, slice_number_in_channel_dim) {
-        for (int l = 0; l < ca.OW; l += 3) {
-          __m256 y00{}, y01{}, y02{}, y03{}, y04{}, y05{}, y06{}, y07{}, y08{}, y09{}, y10{}, y11{};
-          REP(n, 0, ca.R) {
-            REP(o, 0, ca.L) {
-              REP(m, 0, tunable_x) {  // channel dim
-                auto i_offset = input_index_new(0, j, k + n, l + o, m, ca, tunable_x);
-                y13 = _mm256_set1_ps(core[i_offset]);
-                y14 = _mm256_set1_ps(core[i_offset + tunable_x]);
-                y15 = _mm256_set1_ps(core[i_offset + tunable_x * 2]);
-                auto f_offset = filter_index_new((i * reg_n), j, n, o, m, 0);
-                y12 = _mm256_load_ps(f + f_offset);
-                y00 = _mm256_fmadd_ps(y13, y12, y00);
-                y04 = _mm256_fmadd_ps(y14, y12, y04);
-                y08 = _mm256_fmadd_ps(y15, y12, y08);
-                f_offset += filter_chunk_stride;
-                y12 = _mm256_load_ps(f + f_offset);
-                y01 = _mm256_fmadd_ps(y13, y12, y01);
-                y05 = _mm256_fmadd_ps(y14, y12, y05);
-                y09 = _mm256_fmadd_ps(y15, y12, y09);
-                f_offset += filter_chunk_stride;
-                y12 = _mm256_load_ps(f + f_offset);
-                y02 = _mm256_fmadd_ps(y13, y12, y02);
-                y06 = _mm256_fmadd_ps(y14, y12, y06);
-                y10 = _mm256_fmadd_ps(y15, y12, y10);
-                f_offset += filter_chunk_stride;
-                y12 = _mm256_load_ps(f + f_offset);
-                y03 = _mm256_fmadd_ps(y13, y12, y03);
-                y07 = _mm256_fmadd_ps(y14, y12, y07);
-                y11 = _mm256_fmadd_ps(y15, y12, y11);
-              }
-            }
-          }
-          int o_offset = output_index_nchwc(i, k, l, 0);
-          //if (j > 0) {
-            auto oo = o_offset;
-            auto tmp = _mm256_load_ps(output + oo);
-            y00 = _mm256_add_ps(y00, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y01 = _mm256_add_ps(y01, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y02 = _mm256_add_ps(y02, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y03 = _mm256_add_ps(y03, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y04 = _mm256_add_ps(y04, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y05 = _mm256_add_ps(y05, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y06 = _mm256_add_ps(y06, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y07 = _mm256_add_ps(y07, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y08 = _mm256_add_ps(y08, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y09 = _mm256_add_ps(y09, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y10 = _mm256_add_ps(y10, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y11 = _mm256_add_ps(y11, tmp);
-          //}
-          _mm256_store_ps(output + o_offset, y00);
-          o_offset += VEC_LEN, _mm256_store_ps(output + o_offset, y01);
-          o_offset += VEC_LEN, _mm256_store_ps(output + o_offset, y02);
-          o_offset += VEC_LEN, _mm256_store_ps(output + o_offset, y03);
-          o_offset += VEC_LEN, _mm256_store_ps(output + o_offset, y04);
-          o_offset += VEC_LEN, _mm256_store_ps(output + o_offset, y05);
-          o_offset += VEC_LEN, _mm256_store_ps(output + o_offset, y06);
-          o_offset += VEC_LEN, _mm256_store_ps(output + o_offset, y07);
-          o_offset += VEC_LEN, _mm256_store_ps(output + o_offset, y08);
-          o_offset += VEC_LEN, _mm256_store_ps(output + o_offset, y09);
-          o_offset += VEC_LEN, _mm256_store_ps(output + o_offset, y10);
-          o_offset += VEC_LEN, _mm256_store_ps(output + o_offset, y11);
-        }
-      }
-    }
-  }
-  long long t = duration_cast<microseconds>((high_resolution_clock::now() - start)).count();
-  cout << __FUNCTION__ << " | algo run Time: " << t << " us" << endl;
-}
-
-
 #define FMA_COMP(p_to_be_unrolled) { \
     i_offset = input_index_new(0, j, k + n, l + o, m+p_to_be_unrolled, ca, tunable_x);\
     f_offset = filter_index_new((i * reg_n), j, n, o, m+p_to_be_unrolled, 0);\
@@ -304,6 +225,70 @@ void tunable_conv::run_32_32() {
     y03 = _mm256_fmadd_ps(y13, y12, y03);\
     y07 = _mm256_fmadd_ps(y14, y12, y07);\
     y11 = _mm256_fmadd_ps(y15, y12, y11);}
+
+// x=32
+void tunable_conv::run_32_32() {
+  auto start = high_resolution_clock::now();
+
+  // not consider reg_n=4 in batch dim
+  __m256 y12{}, y13{}, y14{}, y15{};
+  int i_offset, f_offset;
+  REP(i, 0, hunk_number_in_batch_dim) {  // N(K_)
+    REP(k, 0, ca.OH) {
+      REP(j, 0, slice_number_in_channel_dim) {
+        for (int l = 0; l < ca.OW; l += 3) {
+          __m256 y00{}, y01{}, y02{}, y03{}, y04{}, y05{}, y06{}, y07{}, y08{}, y09{}, y10{}, y11{};
+          REP(n, 0, ca.R) {
+            REP(o, 0, ca.L) {
+              REP2(m, 0, tunable_x, 8) {  // channel dim
+                FMA_COMP(0);
+                FMA_COMP(1);
+                FMA_COMP(2);
+                FMA_COMP(3);
+                FMA_COMP(4);
+                FMA_COMP(5);
+                FMA_COMP(6);
+                FMA_COMP(7);
+              }
+            }
+          }
+          int o_offset = output_index_nchwc(i, k, l, 0);
+          //if (j > 0) {
+            auto oo = o_offset; y12 = _mm256_load_ps(output + oo), y00 = _mm256_add_ps(y00, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y01 = _mm256_add_ps(y01, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y02 = _mm256_add_ps(y02, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y03 = _mm256_add_ps(y03, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y04 = _mm256_add_ps(y04, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y05 = _mm256_add_ps(y05, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y06 = _mm256_add_ps(y06, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y07 = _mm256_add_ps(y07, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y08 = _mm256_add_ps(y08, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y09 = _mm256_add_ps(y09, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y10 = _mm256_add_ps(y10, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y11 = _mm256_add_ps(y11, y12);
+          //}
+          _mm256_store_ps(output + o_offset, y00);
+          o_offset += VEC_LEN, _mm256_store_ps(output + o_offset, y01);
+          o_offset += VEC_LEN, _mm256_store_ps(output + o_offset, y02);
+          o_offset += VEC_LEN, _mm256_store_ps(output + o_offset, y03);
+          o_offset += VEC_LEN, _mm256_store_ps(output + o_offset, y04);
+          o_offset += VEC_LEN, _mm256_store_ps(output + o_offset, y05);
+          o_offset += VEC_LEN, _mm256_store_ps(output + o_offset, y06);
+          o_offset += VEC_LEN, _mm256_store_ps(output + o_offset, y07);
+          o_offset += VEC_LEN, _mm256_store_ps(output + o_offset, y08);
+          o_offset += VEC_LEN, _mm256_store_ps(output + o_offset, y09);
+          o_offset += VEC_LEN, _mm256_store_ps(output + o_offset, y10);
+          o_offset += VEC_LEN, _mm256_store_ps(output + o_offset, y11);
+        }
+      }
+    }
+  }
+  long long t = duration_cast<microseconds>((high_resolution_clock::now() - start)).count();
+  cout << __FUNCTION__ << " | algo run Time: " << t << " us" << endl;
+}
+
+
+
 
 // x=32
 void tunable_conv::run_32_8() {
@@ -335,23 +320,22 @@ void tunable_conv::run_32_8() {
           }
           int o_offset = output_index_nchwc(output_C_, k, l, 0);
           int oo;
-          __m256 tmp{};
           if (j > 0) {
-            oo = o_offset, tmp = _mm256_load_ps(output + oo), y00 = _mm256_add_ps(y00, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y04 = _mm256_add_ps(y04, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y08 = _mm256_add_ps(y08, tmp);
+            oo = o_offset, y12 = _mm256_load_ps(output + oo), y00 = _mm256_add_ps(y00, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y04 = _mm256_add_ps(y04, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y08 = _mm256_add_ps(y08, y12);
 
-            oo = o_offset + output_block_stride, tmp = _mm256_load_ps(output + oo), y01 = _mm256_add_ps(y01, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y05 = _mm256_add_ps(y05, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y09 = _mm256_add_ps(y09, tmp);
+            oo = o_offset + output_block_stride, y12 = _mm256_load_ps(output + oo), y01 = _mm256_add_ps(y01, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y05 = _mm256_add_ps(y05, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y09 = _mm256_add_ps(y09, y12);
 
-            oo = o_offset + output_block_stride*2, tmp = _mm256_load_ps(output + oo), y02 = _mm256_add_ps(y02, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y06 = _mm256_add_ps(y06, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y10 = _mm256_add_ps(y10, tmp);
+            oo = o_offset + output_block_stride*2, y12 = _mm256_load_ps(output + oo), y02 = _mm256_add_ps(y02, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y06 = _mm256_add_ps(y06, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y10 = _mm256_add_ps(y10, y12);
 
-            oo = o_offset + output_block_stride*3, tmp = _mm256_load_ps(output + oo), y03 = _mm256_add_ps(y03, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y07 = _mm256_add_ps(y07, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y11 = _mm256_add_ps(y11, tmp);
+            oo = o_offset + output_block_stride*3, y12 = _mm256_load_ps(output + oo), y03 = _mm256_add_ps(y03, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y07 = _mm256_add_ps(y07, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y11 = _mm256_add_ps(y11, y12);
           }
           oo = o_offset, _mm256_store_ps(output + oo, y00);
           oo += VEC_LEN, _mm256_store_ps(output + oo, y04);
@@ -407,21 +391,20 @@ void tunable_conv::run_32_16() {
           }
           int o_offset = output_index_nchwc(output_C_, k, l, 0);
           int oo;
-          __m256 tmp{};
           if (j > 0) {
-            oo = o_offset, tmp = _mm256_load_ps(output + oo), y00 = _mm256_add_ps(y00, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y01 = _mm256_add_ps(y01, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y04 = _mm256_add_ps(y04, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y05 = _mm256_add_ps(y05, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y08 = _mm256_add_ps(y08, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y09 = _mm256_add_ps(y09, tmp);
+            oo = o_offset, y12 = _mm256_load_ps(output + oo), y00 = _mm256_add_ps(y00, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y01 = _mm256_add_ps(y01, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y04 = _mm256_add_ps(y04, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y05 = _mm256_add_ps(y05, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y08 = _mm256_add_ps(y08, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y09 = _mm256_add_ps(y09, y12);
 
-            oo = o_offset + output_block_stride, tmp = _mm256_load_ps(output + oo), y02 = _mm256_add_ps(y02, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y03 = _mm256_add_ps(y03, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y06 = _mm256_add_ps(y06, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y07 = _mm256_add_ps(y07, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y10 = _mm256_add_ps(y10, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y11 = _mm256_add_ps(y11, tmp);
+            oo = o_offset + output_block_stride, y12 = _mm256_load_ps(output + oo), y02 = _mm256_add_ps(y02, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y03 = _mm256_add_ps(y03, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y06 = _mm256_add_ps(y06, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y07 = _mm256_add_ps(y07, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y10 = _mm256_add_ps(y10, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y11 = _mm256_add_ps(y11, y12);
           }
 
           oo = o_offset, _mm256_store_ps(output + oo, y00);
@@ -471,24 +454,23 @@ void tunable_conv::run_8_8() {
             }
           }
           int o_offset = output_index_nchwc(output_C_, k, l, 0);
-          //if (j > 0) {
           int oo;
-          __m256 tmp{};
-          oo = o_offset, tmp = _mm256_load_ps(output + oo), y00 = _mm256_add_ps(y00, tmp);
-          oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y04 = _mm256_add_ps(y04, tmp);
-          oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y08 = _mm256_add_ps(y08, tmp);
+          //if (j > 0) {
+          oo = o_offset, y12 = _mm256_load_ps(output + oo), y00 = _mm256_add_ps(y00, y12);
+          oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y04 = _mm256_add_ps(y04, y12);
+          oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y08 = _mm256_add_ps(y08, y12);
 
-          oo = o_offset + output_block_stride, tmp = _mm256_load_ps(output + oo), y01 = _mm256_add_ps(y01, tmp);
-          oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y05 = _mm256_add_ps(y05, tmp);
-          oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y09 = _mm256_add_ps(y09, tmp);
+          oo = o_offset + output_block_stride, y12 = _mm256_load_ps(output + oo), y01 = _mm256_add_ps(y01, y12);
+          oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y05 = _mm256_add_ps(y05, y12);
+          oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y09 = _mm256_add_ps(y09, y12);
 
-          oo = o_offset + output_block_stride*2, tmp = _mm256_load_ps(output + oo), y02 = _mm256_add_ps(y02, tmp);
-          oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y06 = _mm256_add_ps(y06, tmp);
-          oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y10 = _mm256_add_ps(y10, tmp);
+          oo = o_offset + output_block_stride*2, y12 = _mm256_load_ps(output + oo), y02 = _mm256_add_ps(y02, y12);
+          oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y06 = _mm256_add_ps(y06, y12);
+          oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y10 = _mm256_add_ps(y10, y12);
 
-          oo = o_offset + output_block_stride*3, tmp = _mm256_load_ps(output + oo), y03 = _mm256_add_ps(y03, tmp);
-          oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y07 = _mm256_add_ps(y07, tmp);
-          oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y11 = _mm256_add_ps(y11, tmp);
+          oo = o_offset + output_block_stride*3, y12 = _mm256_load_ps(output + oo), y03 = _mm256_add_ps(y03, y12);
+          oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y07 = _mm256_add_ps(y07, y12);
+          oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y11 = _mm256_add_ps(y11, y12);
           //}
 
           oo = o_offset, _mm256_store_ps(output + oo, y00);
@@ -551,16 +533,14 @@ void tunable_conv::run_64_64() {
           int o_offset = output_index_nchwc(i, k, l, 0);
           int oo;
           if (j > 0) {
-            oo = o_offset;
-            auto tmp = _mm256_load_ps(output + oo);
-            y00 = _mm256_add_ps(y00, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y01 = _mm256_add_ps(y01, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y02 = _mm256_add_ps(y02, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y03 = _mm256_add_ps(y03, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y04 = _mm256_add_ps(y04, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y05 = _mm256_add_ps(y05, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y06 = _mm256_add_ps(y06, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y07 = _mm256_add_ps(y07, tmp);
+            oo = o_offset; y12 = _mm256_load_ps(output + oo); y00 = _mm256_add_ps(y00, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y01 = _mm256_add_ps(y01, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y02 = _mm256_add_ps(y02, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y03 = _mm256_add_ps(y03, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y04 = _mm256_add_ps(y04, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y05 = _mm256_add_ps(y05, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y06 = _mm256_add_ps(y06, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y07 = _mm256_add_ps(y07, y12);
           }
           _mm256_store_ps(output + o_offset, y00);
           o_offset += VEC_LEN, _mm256_store_ps(output + o_offset, y01);
@@ -623,25 +603,24 @@ void tunable_conv::run_64_64_v2() {
             }
           }
           int o_offset = output_index_nchwc(i, k, l, 0);
+          int oo;
           if (j > 0) {
-            auto oo = o_offset;
-            auto tmp = _mm256_load_ps(output + oo);
-            y00 = _mm256_add_ps(y00, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y02 = _mm256_add_ps(y02, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y04 = _mm256_add_ps(y04, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y06 = _mm256_add_ps(y06, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y08 = _mm256_add_ps(y08, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y10 = _mm256_add_ps(y10, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y12 = _mm256_add_ps(y12, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y14 = _mm256_add_ps(y14, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y01 = _mm256_add_ps(y01, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y03 = _mm256_add_ps(y03, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y05 = _mm256_add_ps(y05, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y07 = _mm256_add_ps(y07, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y09 = _mm256_add_ps(y09, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y11 = _mm256_add_ps(y11, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y13 = _mm256_add_ps(y13, tmp);
-            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y15 = _mm256_add_ps(y15, tmp);
+            oo = o_offset; y12 = _mm256_load_ps(output + oo); y00 = _mm256_add_ps(y00, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y02 = _mm256_add_ps(y02, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y04 = _mm256_add_ps(y04, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y06 = _mm256_add_ps(y06, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y08 = _mm256_add_ps(y08, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y10 = _mm256_add_ps(y10, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y12 = _mm256_add_ps(y12, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y14 = _mm256_add_ps(y14, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y01 = _mm256_add_ps(y01, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y03 = _mm256_add_ps(y03, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y05 = _mm256_add_ps(y05, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y07 = _mm256_add_ps(y07, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y09 = _mm256_add_ps(y09, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y11 = _mm256_add_ps(y11, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y13 = _mm256_add_ps(y13, y12);
+            oo += VEC_LEN, y12 = _mm256_load_ps(output + oo), y15 = _mm256_add_ps(y15, y12);
           }
           _mm256_store_ps(output + o_offset, y00);
           o_offset += VEC_LEN, _mm256_store_ps(output + o_offset, y02);
