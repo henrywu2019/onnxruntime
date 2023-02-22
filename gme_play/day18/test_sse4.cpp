@@ -223,6 +223,17 @@ reorder_NCHW_NCHWc16_avx2 : 26 us
 reorder_NCHW_NCHWc16_base : 80 us
 reorder_NCHW_NCHWc32_avx2 : 26 us
 reorder_NCHW_NCHWc32_base : 78 us
+Release:
+ 23:41 $ ./test_sse4.exe
+AVX-512 is not supported on this platform.4
+reorder_NCHW_NCHWc8_avx2 : 141 us
+reorder_NCHW_NCHWc8_base : 151 us
+ReorderInputNchw : 139 us
+restore_NCHWc8_NCHW_avx2 : 145 us
+reorder_NCHW_NCHWc16_avx2 : 28 us
+reorder_NCHW_NCHWc16_base : 33 us
+reorder_NCHW_NCHWc32_avx2 : 28 us
+reorder_NCHW_NCHWc32_base : 50 us
 */
 
 /*

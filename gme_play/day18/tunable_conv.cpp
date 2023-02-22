@@ -33,7 +33,10 @@ void print_output(float* Output, int h, int w, int output_channel, bool all) {
 //#define filter_index_new(K_, C_, R, l, c, k) (K_ * filter_chunk_stride + C_ * filter_block_stride + R * ca.L * tunable_x * VEC_LEN + l * tunable_x * VEC_LEN + c * VEC_LEN + k)
 // channel is removed; NHBcw(8)
 void tunable_conv::reorder_input() {
-  auto start = high_resolution_clock::now();
+  if (tunable_x==8){
+    reorder_input_8();
+    return;
+  }
   int ori_idx = 0, new_idx = 0;
   REP(i, 0, ca.N) {
     REP(j, 0, slice_number_in_channel_dim) {
@@ -47,8 +50,6 @@ void tunable_conv::reorder_input() {
       }
     }
   }
-  auto t = duration_cast<microseconds>((high_resolution_clock::now() - start)).count();
-  cout << __FUNCTION__ << ": " << t << " us" << endl;
 }
 
 void tunable_conv::reorder_input_8() {
