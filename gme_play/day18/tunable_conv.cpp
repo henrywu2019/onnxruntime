@@ -40,15 +40,16 @@ void tunable_conv::reorder_input() {
   } else if (tunable_x==32){
     reorder_NCHW_NCHWc32_base(input,core,ca);
     return;
-  }
-  int ori_idx = 0, new_idx = 0;
-  REP(i, 0, ca.N) {
-    REP(j, 0, slice_number_in_channel_dim) {
-      REP(k, 0, ca.H) {
-        REP(l, 0, ca.W) {
-          REP(m, 0, tunable_x) {
-            ori_idx = i * ca.input_batch_stride + (m + j * tunable_x) * ca.input_channel_stride + k * ca.W + l;
-            core[new_idx++] = input[ori_idx];
+  } else{
+    int ori_idx = 0, new_idx = 0;
+    REP(i, 0, ca.N) {
+      REP(j, 0, slice_number_in_channel_dim) {
+        REP(k, 0, ca.H) {
+          REP(l, 0, ca.W) {
+            REP(m, 0, tunable_x) {
+              ori_idx = i * ca.input_batch_stride + (m + j * tunable_x) * ca.input_channel_stride + k * ca.W + l;
+              core[new_idx++] = input[ori_idx];
+            }
           }
         }
       }
