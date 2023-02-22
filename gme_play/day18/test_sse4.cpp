@@ -1,12 +1,21 @@
-//
-// Created by henry on 2/10/23.
-//
 #include <sein.hpp>
 #include <immintrin.h>
 #include <gamma_common.h>
 #include "conv2d.h"
 #include "mlas.h"
 
+/* CPU: AMD EPYC 7742 64-Core Processor
+🅰️  ./test_sse4.exe
+AVX-512 is not supported on this platform.4
+reorder_NCHW_NCHWc8_avx2 : 60 us
+reorder_NCHW_NCHWc8_base : 60 us
+ReorderInputNchw : 58 us
+restore_NCHWc8_NCHW_avx2 : 62 us
+reorder_NCHW_NCHWc16_avx2 : 31 us
+reorder_NCHW_NCHWc16_base : 14 us
+reorder_NCHW_NCHWc32_avx2 : 31 us
+reorder_NCHW_NCHWc32_base : 16 us
+*/
 
     /*
 Dump of assembler code for function _Z3funPfS_i:
@@ -206,7 +215,7 @@ void ReorderInputNchw(const int64_t* input_shape, const float* S, float* D) {
   }
 }
 
-/*
+/* INTEL CPU
 reorder_NCHW_NCHWc8_avx2 : 47 us
 reorder_NCHW_NCHWc8_base : 121 us
 ReorderInputNchw : 83 us
