@@ -1,12 +1,11 @@
-//
-// Created by henry on 1/21/23.
-//
+#include "sein.hpp"
 #include "ort_conv.h"
 
 const int BlockSize = 8;  // for AVX2, YMM register is 8*32 = 256bits.
 vector<float> BufferNchwcFilter, BufferNchwcBias, BufferNchwcInput, BufferNchwcOutput;
 
 void ReorderInputNchw(const int64_t* input_shape, const float* S, float* D) {
+  auto_profiler ap(__FUNCTION__);
   const int64_t nchwc_block_size = static_cast<int64_t>(MlasNchwcGetBlockSize());
   int64_t batch_count = input_shape[0];
   int64_t channel_count = input_shape[1];
@@ -78,6 +77,21 @@ void onnxruntime_conv_nchwc(
   size_t NchwcInputChannels = (GroupCount * InputChannels + BlockSize - 1) & ~(BlockSize - 1);
   size_t NchwcOutputChannels = (GroupCount * FilterCount + BlockSize - 1) & ~(BlockSize - 1);
 
+
+  //
+  // Reorder the input buffer if needed.
+  //
+
+  if (DoReorderInput) {
+    size_t NchwcInputElements = BatchCount * NchwcInputChannels * InputHeight * InputWidth;
+    BufferNchwcInput.resize(NchwcInputElements);
+    float* NchwcInput = BufferNchwcInput.data();
+    auto start_ = high_resolution_clock::now();
+    ReorderInputNchw(InputShape, Input, NchwcInput);
+    cout << __FUNCTION__ << " | input reorder time: " << duration_cast<microseconds>((high_resolution_clock::now() - start_)).count() << " us" << endl;
+    Input = NchwcInput;
+    InputShape[1] = NchwcInputChannels;
+  }
   //
   // Reorder the filter buffer as needed.
   //
@@ -115,20 +129,6 @@ void onnxruntime_conv_nchwc(
     Bias = AlignedBias;
   }
 
-  //
-  // Reorder the input buffer if needed.
-  //
-
-  if (DoReorderInput) {
-    size_t NchwcInputElements = BatchCount * NchwcInputChannels * InputHeight * InputWidth;
-    BufferNchwcInput.resize(NchwcInputElements);
-    float* NchwcInput = BufferNchwcInput.data();
-    auto start_ = high_resolution_clock::now();
-    ReorderInputNchw(InputShape, Input, NchwcInput);
-    cout << __FUNCTION__ << " | Reorder Time: " << duration_cast<microseconds>((high_resolution_clock::now() - start_)).count() << " us" << endl;
-    Input = NchwcInput;
-    InputShape[1] = NchwcInputChannels;
-  }
   auto t0 = high_resolution_clock::now();
 
   int64_t NchwcOutputShape[] = {int64_t(BatchCount), int64_t(NchwcOutputChannels), int64_t(OutputHeight), int64_t(OutputWidth)};

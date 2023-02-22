@@ -199,7 +199,8 @@ Return Value:
 --*/
 {
     size_t load = input_channel>>1;
-#if defined(MLAS_AVX2_INTRINSICS)
+    //defined(MLAS_AVX2_INTRINSICS)
+#if 0
     __m128i idx = _mm_loadu_si128((__m128i*)GATHER_INDEX_BASE);
     __m128i indices = _mm_mullo_epi32(idx, _mm_set1_epi32(GatherStride));
     __m128 src_vec = _mm_i32gather_ps(S, indices, 4);
@@ -278,6 +279,7 @@ Return Value:
 
 --*/
 {
+    int called=0;
     const size_t BlockSize = MlasNchwcGetBlockSizeCi();
 
     const MLAS_FLOAT32X4 ZeroFloat32x4 = MlasZeroFloat32x4();
@@ -305,6 +307,7 @@ Return Value:
                 MlasReorderTransposeFloat32x4x4(ss, dd, InputSize, BlockSize, InputChannelsThisIteration);
                 ss += 4 * InputSize;
                 dd += 4;
+                called++;
             }
 
             for (; bc < BlockSize; bc += 4) {
@@ -326,7 +329,7 @@ Return Value:
             size_t bc = 0;
 
             for (; bc < InputChannelsThisIteration; bc += 4) {
-                MlasReorderGatherFloat32x4(ss, dd, InputSize);
+                MlasReorderGatherFloat32x4(ss, dd, InputSize); called++;
                 ss += 4 * InputSize;
                 dd += 4;
             }
@@ -343,6 +346,7 @@ Return Value:
         S += BlockSize * InputSize;
         D += BlockSize * InputSize;
     }
+    printf("InputChannels=%ld,InputSize=%ld,called=%d\n", InputChannels, InputSize, called);
 }
 
 void

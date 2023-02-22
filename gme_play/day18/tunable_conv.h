@@ -3,6 +3,7 @@
 
 #include "immintrin.h"
 #include "conv2d.h"
+#include "sein.hpp"
 
 const int VEC_LEN = 8;  // vectorization length
 
@@ -20,8 +21,6 @@ struct tunable_conv {  // can refactor using inheritance
   int output_block_stride;
   int output_channel_stride;
 
-  int filter_block_stride_channel_dim=-1;
-  int filter_block_stride_batch_dim=-1;
   int filter_block_stride;
   int filter_chunk_stride;
   int filter_hunk_stride;
@@ -33,13 +32,14 @@ struct tunable_conv {  // can refactor using inheritance
   int slice_number_in_channel_dim_y;
 
   int out_channel_stride;
-  int reg_n=4;
+  static const int reg_n=4;
   // original memory store
   float* input;
   float* kernel;
   float* output;
   float* output_nchw;
 
+  vector<float> input_nchwc;
   float *core=nullptr, *f; // reordered input and kernel
 
   tunable_conv(conv_attr ca_, float* input_, float* kernel_, float* output_, int tunable_x_=64, int tunable_y_=64)
@@ -49,8 +49,7 @@ struct tunable_conv {  // can refactor using inheritance
 
   void reset(int tunable_x_, int tunable_y_){
     tunable_x = tunable_x_, tunable_y = tunable_y_;
-    // if reg_n is 4 for AVX2
-    reg_n = 4;
+    //reg_n = 4;     // if reg_n is 4 for AVX2
 
     ca.input_block_stride = ca.input_channel_stride * tunable_x;
 
@@ -68,12 +67,13 @@ struct tunable_conv {  // can refactor using inheritance
     filter_hunk_stride = filter_chunk_stride*reg_n;
 
     out_channel_stride = ca.OH * ca.OW;  // NKHW
-    if (core==nullptr)
-      core = (float*)_mm_malloc(sizeof(float) * ca.input_size, 32);
+    if (core==nullptr){
+      input_nchwc.resize(ca.input_size);
+      core = input_nchwc.data();
+    }
   }
 
   void reorder_input();
-  void reorder_input_8();
   void restore_output();
   void reorder_filter();
   void run_tunable();

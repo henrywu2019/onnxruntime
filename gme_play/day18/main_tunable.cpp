@@ -1,6 +1,7 @@
 #include <sein.hpp>
 #include "immintrin.h"
 #include "tunable_conv.h"
+#include "ort_conv.h"
 
 
 int main(int argc, char** argv) {
@@ -34,15 +35,29 @@ int main(int argc, char** argv) {
   printf("input total size: %.2fKB\n", 1 * input_channel * input_width * input_height / (1024.));
   float* O = (float*)_mm_malloc(sizeof(float) * output_height * output_width * filter_batch, 32);
 
-  tunable_conv cw(ca, I, F, O, tunable_x, tunable_y);
-  auto start = high_resolution_clock::now();
-  cw.reorder_input();
-  cw.reorder_filter();
-  cw.run_tunable();
-  cw.restore_output();
-  long long t = duration_cast<microseconds>((high_resolution_clock::now() - start)).count();
-  cout << __FUNCTION__ << " | total algo Time: " << t << " us" << endl;
-  cw.print();
+  if (run_flag&2){
+    auto_profiler ap("gme_conv");
+    tunable_conv cw(ca, I, F, O, tunable_x, tunable_y);
+    cw.reorder_input();
+    cw.reorder_filter();
+    cw.run_tunable();
+    cw.restore_output();
+    cw.print();
+  }else if(run_flag&1){
+    auto_profiler ap("ort_conv");
+    onnxruntime_conv_nchwc(1, 1, input_channel, input_height, input_width,
+                           filter_batch, kernel_height, kernel_width,
+                           0, 0, 0, 0,
+                           1, 1,
+                           1, 1,
+                           output_height, output_width,
+                           I,
+                           F,
+                           nullptr,
+                           O);
+    print_output(O, output_height, output_width, filter_batch, 0);
+  }
+
   _mm_free(I), _mm_free(F), _mm_free(O);
   return 0;
 }

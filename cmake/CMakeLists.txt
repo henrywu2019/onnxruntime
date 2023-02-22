@@ -1630,7 +1630,7 @@ install(TARGETS gamma DESTINATION lib)
 set(EXEC_NAME main_tunable.exe)
 set(SOURCE_FILES ${ORTTRAINING_GME_ROOT}/day18/main_tunable.cpp
         ${ORTTRAINING_GME_ROOT}/day18/tunable_conv.cpp
-        ${ORTTRAINING_GME_ROOT}/day18/tunable_conv.h)
+        ${ORTTRAINING_GME_ROOT}/day18/ort_conv.cpp)
 add_executable(${EXEC_NAME} ${SOURCE_FILES})
 set_target_properties(main_tunable.exe PROPERTIES COMPILE_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -mavx2 -march=native")
 set_target_properties(${EXEC_NAME} PROPERTIES INCLUDE_DIRECTORIES "${ONNXRUNTIME_ROOT}/include;${ORTTRAINING_GME_ROOT}/gamma/include")

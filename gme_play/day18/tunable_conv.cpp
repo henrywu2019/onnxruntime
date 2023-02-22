@@ -1,6 +1,6 @@
 #include "tunable_conv.h"
 #include <sein.hpp>
-#include "mlas.h"
+#include "ort_conv.h"
 #include "gamma_common.h"
 #define SIMPLE_INDEX
 #define ALGO_INPUT_AS_OUTER_LOOP
@@ -28,28 +28,9 @@ void print_output(float* Output, int h, int w, int output_channel, bool all) {
   // printf("\n");
 }
 
-void ReorderInputNchw(const int64_t* input_shape, const float* S, float* D) {
-  auto_profiler ap(__FUNCTION__ );
-  const int64_t nchwc_block_size = static_cast<int64_t>(MlasNchwcGetBlockSize());
-  int64_t batch_count = input_shape[0];
-  int64_t channel_count = input_shape[1];
-  int64_t nchwc_channel_count = (channel_count + nchwc_block_size - 1) & ~(nchwc_block_size - 1);
-  int64_t spatial_count = input_shape[2] * input_shape[3];
-  for (int64_t n = 0; n < batch_count; n++) {
-    MlasReorderInputNchw(S, D, static_cast<size_t>(channel_count), static_cast<size_t>(spatial_count));
-    S += spatial_count * channel_count;
-    D += spatial_count * nchwc_channel_count;
-  }
-}
-
-#define input_index_ori(N, C, H, w) (N * input_batch_stride + C * input_channel_stride + H * ca.W + w)
-// #define input_index_new(N,C_,H,w,c) (N*input_batch_stride + C_*input_block_stride + H*ca.W*tunable_x + w*tunable_x + c)
-#define filter_index_ori(K, C, R, l) (K * filter_batch_stride + C * filter_channel_stride + R * ca.L + l)
-//#define filter_index_new(K_, C_, R, l, c, k) (K_ * filter_chunk_stride + C_ * filter_block_stride + R * ca.L * tunable_x * VEC_LEN + l * tunable_x * VEC_LEN + c * VEC_LEN + k)
-// channel is removed; NHBcw(8)
 void tunable_conv::reorder_input() {
   if (tunable_x==8){
-    reorder_input_8();
+    reorder_NCHW_NCHWc8_avx2(input,core,ca);
     //int64_t InputShape[] = {int64_t(ca.N), int64_t(1) * int64_t(ca.C), int64_t(ca.H), int64_t(ca.W)};
     //ReorderInputNchw(InputShape, input, core);
     return;
@@ -73,13 +54,6 @@ void tunable_conv::reorder_input() {
       }
     }
   }
-}
-
-void tunable_conv::reorder_input_8() {
-  auto start = high_resolution_clock::now();
-  reorder_NCHW_NCHWc8_base(input,core,ca);
-  auto t = duration_cast<microseconds>((high_resolution_clock::now() - start)).count();
-  cout << __FUNCTION__ << ": " << t << " us" << endl;
 }
 
 void tunable_conv::restore_output() {
