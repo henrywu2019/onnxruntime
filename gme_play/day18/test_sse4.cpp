@@ -240,12 +240,16 @@ int main(int argc, char** argv){
 
   reorder_NCHW_NCHWc8_avx2(input,new_input,ca);
   reorder_NCHW_NCHWc8_base(input,new_input_v2,ca);
-  //restore_NCHWc8_NCHW_avx2(new_input_v2, new_input_v4, ca);
   int64_t InputShape[] = {int64_t(ca.N), int64_t(1) * int64_t(ca.C), int64_t(ca.H), int64_t(ca.W)};
   ReorderInputNchw(InputShape, input, new_input_v3);
   assert(array_equal(new_input, new_input_v2, ca.input_size));
   assert(array_equal(new_input, new_input_v3, ca.input_size));
-  //assert(array_equal(input, new_input_v4, ca.input_size));
+  restore_NCHWc8_NCHW_avx2(new_input_v2, new_input_v4, ca);
+  assert(array_equal(input, new_input_v4, ca.input_size));
+#ifdef __AVX512__
+  restore_NCHWc8_NCHW_avx512(new_input_v2, new_input_v4, ca);
+  assert(array_equal(input, new_input_v4, ca.input_size));
+#endif
 
   ::memset((void*)new_input,0,ca.input_size* sizeof(float));
   ::memset((void*)new_input_v2,0,ca.input_size* sizeof(float));

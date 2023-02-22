@@ -43,6 +43,7 @@ float* make_conv2d_input(conv_attr& ca,
 
 void reorder_NCHW_NCHWc8_base(float* s, float* d, const conv_attr& ca);
 void reorder_NCHW_NCHWc8_avx2(float* s, float* d, conv_attr& ca);
+void restore_NCHWc8_NCHW_avx2(float* s, float* d, conv_attr& ca);
 void restore_NCHWc8_NCHW_avx512(float* s, float* d, conv_attr& ca);
 
 void reorder_NCHW_NCHWc16_base(float* s, float* d, const conv_attr& ca);
