@@ -55,7 +55,7 @@ void extract(const vector<float>& v, float* D, int offset, int H, int W, pair<in
     i += hw.second;
   }
   auto t1 = std::chrono::high_resolution_clock::now();
-  extract_time += std::chrono::duration_cast<std::chrono::nanoseconds>((t1 - t0)).count();
+  extract_time += std::chrono::duration_cast<std::chrono::microseconds>((t1 - t0)).count();
 }
 
 // extract LINE lines data to D
@@ -68,7 +68,7 @@ pair<int, float*> extract100(float* src, float* D, int H, int W, const pair<int,
     src += W;
   }
   auto t1 = std::chrono::high_resolution_clock::now();
-  extract_time += std::chrono::duration_cast<std::chrono::nanoseconds>((t1 - t0)).count();
+  extract_time += std::chrono::duration_cast<std::chrono::microseconds>((t1 - t0)).count();
   return {i, src};
 }
 
@@ -136,8 +136,8 @@ long long gme_conv(vector<float>& I,
   }
 
   auto t1 = std::chrono::high_resolution_clock::now();
-  long long t = std::chrono::duration_cast<std::chrono::nanoseconds>((t1 - start)).count();
-  std::cout << __FUNCTION__ << " | Compute Time: " << t << " ns" << std::endl;
+  long long t = std::chrono::duration_cast<std::chrono::microseconds>((t1 - start)).count();
+  std::cout << __FUNCTION__ << " | Compute Time: " << t << " us" << std::endl;
   return t;
 }
 
@@ -153,7 +153,7 @@ void extract_o(const vector<float>& v, float* D, int offset, int H, int W, pair<
     i += hw.second;
   }
   auto t1 = std::chrono::high_resolution_clock::now();
-  extract_time_o += std::chrono::duration_cast<std::chrono::nanoseconds>((t1 - t0)).count();
+  extract_time_o += std::chrono::duration_cast<std::chrono::microseconds>((t1 - t0)).count();
 }
 
 long long gme_conv_ori(vector<float>& I,
@@ -171,7 +171,7 @@ long long gme_conv_ori(vector<float>& I,
       // auto t0 = std::chrono::high_resolution_clock::now();
       extract_o(I, sliced_mat, i, input_h, input_w, {output_h, output_w}, channel);  //////
       // t1 = std::chrono::high_resolution_clock::now();
-      // std::cout << __LINE__ << " | Compute Time: " << std::chrono::duration_cast< std::chrono::nanoseconds >((t1 - t0)).count() << " us" << std::endl; t0=t1;
+      // std::cout << __LINE__ << " | Compute Time: " << std::chrono::duration_cast< std::chrono::microseconds >((t1 - t0)).count() << " us" << std::endl; t0=t1;
 
       int64_t area = output_h * output_w;
       if (i == 0 and channel == 0)
@@ -195,8 +195,8 @@ long long gme_conv_ori(vector<float>& I,
   printf("idx: %ld\n", idx);
 
   auto t1 = std::chrono::high_resolution_clock::now();
-  long long t = std::chrono::duration_cast<std::chrono::nanoseconds>((t1 - start)).count();
-  std::cout << __FUNCTION__ << " | Compute Time: " << t << " ns" << std::endl;
+  long long t = std::chrono::duration_cast<std::chrono::microseconds>((t1 - start)).count();
+  std::cout << __FUNCTION__ << " | Compute Time: " << t << " us" << std::endl;
   return t;
 }
 extern "C" int _compute(float **pa, float*O, float* F, int ih, int len);
@@ -342,8 +342,8 @@ long long gme_conv_no_extraction(vector<float>& I,
   }
 
   auto t1 = std::chrono::high_resolution_clock::now();
-  long long t = std::chrono::duration_cast<std::chrono::nanoseconds>((t1 - start)).count();
-  std::cout << __FUNCTION__ << " | Compute Time: " << t << " ns" << std::endl;
+  long long t = std::chrono::duration_cast<std::chrono::microseconds>((t1 - start)).count();
+  std::cout << __FUNCTION__ << " | Compute Time: " << t << " us" << std::endl;
   return t;
 }
 

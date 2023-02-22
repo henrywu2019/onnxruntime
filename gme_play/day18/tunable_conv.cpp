@@ -1,25 +1,10 @@
 #include "tunable_conv.h"
 #include <sein.hpp>
-#include "immintrin.h"
+#include "gamma_common.h"
 #define SIMPLE_INDEX
 #define ALGO_INPUT_AS_OUTER_LOOP
 #define ALGO_KERNL_AS_OUTER_LOOP
 
-int ceil_int(int x, int y) {
-  return int(ceil((float)x / y));
-}
-int floor_int(int x, int y) {
-  return int(floor((float)x / y));
-}
-
-void print_matrix(float* m, int h, int w) {
-  if (h * w > 100) return;
-  for (int i = 0; i < h; i++) {
-    for (int j = 0; j < w - 1; j++)
-      printf("%.1f,", m[i * w + j]);
-    printf("%.1f\n", m[i * w + w - 1]);
-  }
-}
 
 void print_output(float* Output, int h, int w, int output_channel, bool all) {
   if (all or h * w < 10 * 10) {
@@ -55,39 +40,27 @@ void tunable_conv::reorder_input() {
       REP(k, 0, ca.H) {
         REP(l, 0, ca.W) {
           REP(m, 0, tunable_x) {
-            ori_idx = i * input_batch_stride + (m + j * tunable_x) * input_channel_stride + k * ca.W + l;
+            ori_idx = i * ca.input_batch_stride + (m + j * tunable_x) * ca.input_channel_stride + k * ca.W + l;
             core[new_idx++] = input[ori_idx];
           }
         }
       }
     }
   }
-  auto t = duration_cast<nanoseconds>((high_resolution_clock::now() - start)).count();
-  cout << __FUNCTION__ << ": " << t << " ns" << endl;
+  auto t = duration_cast<microseconds>((high_resolution_clock::now() - start)).count();
+  cout << __FUNCTION__ << ": " << t << " us" << endl;
 }
 
 void tunable_conv::reorder_input_8() {
   auto start = high_resolution_clock::now();
-  int ori_idx = 0, new_idx = 0;
-  REP(i, 0, ca.N) {
-    REP(j, 0, slice_number_in_channel_dim) {
-      REP(k, 0, ca.H) {
-        REP(l, 0, ca.W) {
-          REP(m, 0, tunable_x) {
-            ori_idx = i * input_batch_stride + (m + j * tunable_x) * input_channel_stride + k * ca.W + l;
-            core[new_idx++] = input[ori_idx];
-          }
-        }
-      }
-    }
-  }
-  auto t = duration_cast<nanoseconds>((high_resolution_clock::now() - start)).count();
-  cout << __FUNCTION__ << ": " << t << " ns" << endl;
+  reorder_NCHW_NCHWc8_avx2(input,core,ca);
+  auto t = duration_cast<microseconds>((high_resolution_clock::now() - start)).count();
+  cout << __FUNCTION__ << ": " << t << " us" << endl;
 }
 
 void tunable_conv::restore_output() {
   auto start = high_resolution_clock::now();
-  output_nchw = (float*)_mm_malloc(sizeof(float) * output_size, 32);
+  output_nchw = (float*)_mm_malloc(sizeof(float) * ca.output_size, 32);
   int ori_idx = 0, new_idx = 0;
   // N is always 1
   REP(i, 0, ca.K) {  // C
@@ -100,14 +73,14 @@ void tunable_conv::restore_output() {
       }
     }
   }
-  assert(new_idx == output_size);
-  auto t = duration_cast<nanoseconds>((high_resolution_clock::now() - start)).count();
-  cout << __FUNCTION__ << ": " << t << " ns" << endl;
+  assert(new_idx == ca.output_size);
+  auto t = duration_cast<microseconds>((high_resolution_clock::now() - start)).count();
+  cout << __FUNCTION__ << ": " << t << " us" << endl;
 }
 
 void tunable_conv::reorder_filter() {
   auto start = high_resolution_clock::now();
-  f = (float*)_mm_malloc(sizeof(float) * filter_size, 32);
+  f = (float*)_mm_malloc(sizeof(float) * ca.filter_size, 32);
   int ori_idx = 0, new_idx = 0;
   REP(i, 0, slice_number_in_batch_dim) {      // K'
     REP(j, 0, slice_number_in_channel_dim) {  // C'
@@ -115,7 +88,7 @@ void tunable_conv::reorder_filter() {
         REP(l, 0, ca.L) {                     // L
           REP(m, 0, tunable_x) {              // c_
             REP(n, 0, VEC_LEN) {              // k_
-              ori_idx = (i * VEC_LEN + n) * filter_batch_stride + (m + j * tunable_x) * filter_channel_stride + k * ca.L + l;
+              ori_idx = (i * VEC_LEN + n) * ca.filter_batch_stride + (m + j * tunable_x) * ca.filter_channel_stride + k * ca.L + l;
 #ifdef SIMPLE_INDEX
               f[new_idx++] = kernel[ori_idx];
 #else
@@ -129,12 +102,12 @@ void tunable_conv::reorder_filter() {
     }
   }
 #ifdef SIMPLE_INDEX
-  assert(new_idx == filter_size);
+  assert(new_idx == ca.filter_size);
 #else
   assert(new_idx + 1 == filter_size);
 #endif
-  auto t = duration_cast<nanoseconds>((high_resolution_clock::now() - start)).count();
-  cout << __FUNCTION__ << ": " << t << " ns" << endl;
+  auto t = duration_cast<microseconds>((high_resolution_clock::now() - start)).count();
+  cout << __FUNCTION__ << ": " << t << " us" << endl;
 }
 
 /*void _gme_conv(float* I, float* F, float* output, int oh_idx, int ow, int kh, int kw, int tunable_x, int c_idx, int k_idx, int iw, int input_block_stride, int output_block_stride) {
@@ -206,7 +179,7 @@ void tunable_conv::run() {
           REP(n, 0, ca.R) {
             REP(o, 0, ca.L) {
               REP(m, 0, tunable_x) {  // channel dim
-                int i_offset = input_index_new(0, j, k + n, l + o, m);
+                int i_offset = input_index_new(0, j, k + n, l + o, m, ca, tunable_x);
                 x = _mm256_set1_ps(core[i_offset]);
                 REP(p, 0, reg_n) {
                   int f_offset = filter_index_new((i * reg_n + p), j, n, o, m, 0);
@@ -230,8 +203,8 @@ void tunable_conv::run() {
   delete[] pr;
 #endif
   printf("called: %lld\n", called);
-  long long t = duration_cast<nanoseconds>((high_resolution_clock::now() - start)).count();
-  cout << __FUNCTION__ << " | algo run Time: " << t << " ns" << endl;
+  long long t = duration_cast<microseconds>((high_resolution_clock::now() - start)).count();
+  cout << __FUNCTION__ << " | algo run Time: " << t << " us" << endl;
 }
 
 // x=32
@@ -248,7 +221,7 @@ void tunable_conv::run_32_32() {
           REP(n, 0, ca.R) {
             REP(o, 0, ca.L) {
               REP(m, 0, tunable_x) {  // channel dim
-                auto i_offset = input_index_new(0, j, k + n, l + o, m);
+                auto i_offset = input_index_new(0, j, k + n, l + o, m, ca, tunable_x);
                 y13 = _mm256_set1_ps(core[i_offset]);
                 y14 = _mm256_set1_ps(core[i_offset + tunable_x]);
                 y15 = _mm256_set1_ps(core[i_offset + tunable_x * 2]);
@@ -308,13 +281,13 @@ void tunable_conv::run_32_32() {
       }
     }
   }
-  long long t = duration_cast<nanoseconds>((high_resolution_clock::now() - start)).count();
-  cout << __FUNCTION__ << " | algo run Time: " << t << " ns" << endl;
+  long long t = duration_cast<microseconds>((high_resolution_clock::now() - start)).count();
+  cout << __FUNCTION__ << " | algo run Time: " << t << " us" << endl;
 }
 
 
 #define FMA_COMP(p_to_be_unrolled) { \
-    i_offset = input_index_new(0, j, k + n, l + o, m+p_to_be_unrolled);\
+    i_offset = input_index_new(0, j, k + n, l + o, m+p_to_be_unrolled, ca, tunable_x);\
     f_offset = filter_index_new((i * reg_n), j, n, o, m+p_to_be_unrolled, 0);\
     y13 = _mm256_set1_ps(core[i_offset]);\
     y14 = _mm256_set1_ps(core[i_offset + tunable_x]);\
@@ -403,8 +376,8 @@ void tunable_conv::run_32_8() {
       }
     }
   }
-  long long t = duration_cast<nanoseconds>((high_resolution_clock::now() - start)).count();
-  cout << __FUNCTION__ << " | algo run Time: " << t << " ns" << endl;
+  long long t = duration_cast<microseconds>((high_resolution_clock::now() - start)).count();
+  cout << __FUNCTION__ << " | algo run Time: " << t << " us" << endl;
 }
 
 void tunable_conv::run_8_8() {
@@ -422,7 +395,7 @@ void tunable_conv::run_8_8() {
           REP(n, 0, ca.R) {
             REP(o, 0, ca.L) {
               REP(m, 0, tunable_x) {  // channel dim
-                auto i_offset = input_index_new(0, j, k + n, l + o, m);
+                auto i_offset = input_index_new(0, j, k + n, l + o, m, ca, tunable_x);
                 y13 = _mm256_set1_ps(core[i_offset]);
                 y14 = _mm256_set1_ps(core[i_offset + tunable_x]);
                 y15 = _mm256_set1_ps(core[i_offset + tunable_x * 2]);
@@ -489,8 +462,8 @@ void tunable_conv::run_8_8() {
       }
     }
   }
-  long long t = duration_cast<nanoseconds>((high_resolution_clock::now() - start)).count();
-  cout << __FUNCTION__ << " | algo run Time: " << t << " ns" << endl;
+  long long t = duration_cast<microseconds>((high_resolution_clock::now() - start)).count();
+  cout << __FUNCTION__ << " | algo run Time: " << t << " us" << endl;
 }
 
 // y12
@@ -507,7 +480,7 @@ void tunable_conv::run_64_64() {
           REP(n, 0, ca.R) {
             REP(o, 0, ca.L) {
               REP(m, 0, tunable_x) {  // channel dim
-                int i_offset = input_index_new(0, j, k + n, l + o, m);
+                int i_offset = input_index_new(0, j, k + n, l + o, m, ca, tunable_x);
                 y13 = _mm256_set1_ps(core[i_offset]);
                 int f_offset = filter_index_new((i * reg_n), j, n, o, m, 0);
                 y12 = _mm256_load_ps(f + f_offset), y00 = _mm256_fmadd_ps(y13, y12, y00);
@@ -554,8 +527,8 @@ void tunable_conv::run_64_64() {
       }
     }
   }
-  long long t = duration_cast<nanoseconds>((high_resolution_clock::now() - start)).count();
-  cout << __FUNCTION__ << " | algo run Time: " << t << " ns" << endl;
+  long long t = duration_cast<microseconds>((high_resolution_clock::now() - start)).count();
+  cout << __FUNCTION__ << " | algo run Time: " << t << " us" << endl;
 }
 
 //  the stack is used to store tmp __m256 value
@@ -571,7 +544,7 @@ void tunable_conv::run_64_64_v2() {
           REP(n, 0, ca.R) {
             REP(o, 0, ca.L) {
               REP(m, 0, tunable_x) {  // channel dim
-                int i_offset = input_index_new(0, j, k + n, l + o, m);
+                int i_offset = input_index_new(0, j, k + n, l + o, m, ca, tunable_x);
                 y17 = _mm256_set1_ps(core[i_offset]);
                 y18 = _mm256_set1_ps(core[i_offset + tunable_x]);
                 int f_offset = filter_index_new((i * reg_n), j, n, o, m, 0);
@@ -643,6 +616,6 @@ void tunable_conv::run_64_64_v2() {
       }
     }
   }
-  long long t = duration_cast<nanoseconds>((high_resolution_clock::now() - start)).count();
-  cout << __FUNCTION__ << " | algo run Time: " << t << " ns" << endl;
+  long long t = duration_cast<microseconds>((high_resolution_clock::now() - start)).count();
+  cout << __FUNCTION__ << " | algo run Time: " << t << " us" << endl;
 }

@@ -1609,45 +1609,47 @@ endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=unused-variable")
 
-set(EXEC_NAME main_tunable.exe)
-set(SOURCE_FILES ${ORTTRAINING_GME_ROOT}/day18/main_tunable.cpp ${ORTTRAINING_GME_ROOT}/day18/tunable_conv.cpp ${ORTTRAINING_GME_ROOT}/day18/tunable_conv.h)
-add_executable(${EXEC_NAME} ${SOURCE_FILES})
-set_target_properties(main_tunable.exe PROPERTIES
-        COMPILE_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -mavx2 -march=native"
-        )
+####################################################################
+add_library(gamma_shared SHARED
+        ${ORTTRAINING_GME_ROOT}/gamma/src/common.cpp
+        ${ORTTRAINING_GME_ROOT}/gamma/src/conv2d.cpp)
+target_include_directories(gamma_shared PUBLIC ${ORTTRAINING_GME_ROOT}/gamma/include)
+set_target_properties(gamma_shared PROPERTIES COMPILE_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -mavx2 -march=native")
+install(TARGETS gamma_shared DESTINATION lib)
+install(DIRECTORY ${ORTTRAINING_GME_ROOT}/gamma/include DESTINATION include)
 
-set(EXEC_NAME main_release.exe)
-set(SOURCE_FILES ${ORTTRAINING_GME_ROOT}/day18/main.cpp ${ORTTRAINING_GME_ROOT}/day18/ort_conv.cpp ${ORTTRAINING_GME_ROOT}/day18/ort_conv2.cpp)
-add_executable(${EXEC_NAME} ${SOURCE_FILES})
-set_target_properties(main_tunable.exe PROPERTIES
-        COMPILE_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -mavx2 -march=native"
-        )
-include_directories(/home/henry/wendy/git.repo/onnxruntime/include)
-link_directories(/home/henry/wendy/git.repo/onnxruntime/build/Linux/Release)
-link_directories(/home/henry/wendy/git.repo/onnxruntime/build/Linux/Release/_deps/google_nsync-build)
-target_link_libraries(${EXEC_NAME} onnxruntime_mlas onnxruntime_common nsync_cpp)
-
+####################################################################
 add_library(gamma STATIC
         ${ORTTRAINING_GME_ROOT}/gamma/src/common.cpp
         ${ORTTRAINING_GME_ROOT}/gamma/src/conv2d.cpp)
-target_include_directories(gamma PUBLIC
-        ${ORTTRAINING_GME_ROOT}/gamma/include)
-set_target_properties(gamma PROPERTIES
-        COMPILE_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -mavx2 -march=native"
-        )
+target_include_directories(gamma PUBLIC ${ORTTRAINING_GME_ROOT}/gamma/include)
+set_target_properties(gamma PROPERTIES COMPILE_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -mavx2 -march=native")
 install(TARGETS gamma DESTINATION lib)
-install(DIRECTORY ${ORTTRAINING_GME_ROOT}/gamma/include DESTINATION include)
 
+####################################################################
+set(EXEC_NAME main_tunable.exe)
+set(SOURCE_FILES ${ORTTRAINING_GME_ROOT}/day18/main_tunable.cpp
+        ${ORTTRAINING_GME_ROOT}/day18/tunable_conv.cpp
+        ${ORTTRAINING_GME_ROOT}/day18/tunable_conv.h)
+add_executable(${EXEC_NAME} ${SOURCE_FILES})
+set_target_properties(main_tunable.exe PROPERTIES COMPILE_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -mavx2 -march=native")
+set_target_properties(${EXEC_NAME} PROPERTIES INCLUDE_DIRECTORIES "${ONNXRUNTIME_ROOT}/include;${ORTTRAINING_GME_ROOT}/gamma/include")
+set_target_properties(${EXEC_NAME} PROPERTIES LINK_DIRECTORIES "${ONNXRUNTIME_ROOT}/build/Linux/Release;${ONNXRUNTIME_ROOT}/build/Linux/Release/_deps/google_nsync-build")
+target_link_libraries(${EXEC_NAME} onnxruntime_mlas onnxruntime_common nsync_cpp gamma)
 
+####################################################################
+set(EXEC_NAME main_release.exe)
+set(SOURCE_FILES ${ORTTRAINING_GME_ROOT}/day18/main.cpp ${ORTTRAINING_GME_ROOT}/day18/ort_conv.cpp ${ORTTRAINING_GME_ROOT}/day18/ort_conv2.cpp)
+add_executable(${EXEC_NAME} ${SOURCE_FILES})
+set_target_properties(${EXEC_NAME} PROPERTIES COMPILE_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -mavx2 -march=native")
+set_target_properties(${EXEC_NAME} PROPERTIES INCLUDE_DIRECTORIES "${ONNXRUNTIME_ROOT}/include")
+set_target_properties(${EXEC_NAME} PROPERTIES LINK_DIRECTORIES "${ONNXRUNTIME_ROOT}/build/Linux/Release;${ONNXRUNTIME_ROOT}/build/Linux/Release/_deps/google_nsync-build")
+target_link_libraries(${EXEC_NAME} onnxruntime_mlas onnxruntime_common nsync_cpp gamma)
+
+####################################################################
 set(EXEC_NAME test_sse4.exe)
 set(SOURCE_FILES ${ORTTRAINING_GME_ROOT}/day18/test_sse4.cpp)
 add_executable(${EXEC_NAME} ${SOURCE_FILES})
-set_target_properties(${EXEC_NAME} PROPERTIES
-        LINK_DIRECTORIES "/home/henry/wendy/git.repo/onnxruntime/build/Linux/Release"
-        )
-set_target_properties(${EXEC_NAME} PROPERTIES
-        COMPILE_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -mavx2 -march=native"
-        )
-target_link_libraries(${EXEC_NAME} gamma)
-target_link_libraries(${EXEC_NAME} onnxruntime_mlas onnxruntime_common nsync_cpp)
-
+set_target_properties(${EXEC_NAME} PROPERTIES LINK_DIRECTORIES "${ONNXRUNTIME_ROOT}/build/Linux/Release")
+set_target_properties(${EXEC_NAME} PROPERTIES COMPILE_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -mavx2 -march=native")
+target_link_libraries(${EXEC_NAME} gamma onnxruntime_mlas onnxruntime_common nsync_cpp)

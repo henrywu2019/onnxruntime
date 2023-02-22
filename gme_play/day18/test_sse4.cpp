@@ -146,8 +146,8 @@ void
 
 #endif
   auto t1 = std::chrono::high_resolution_clock::now();
-  long long t = std::chrono::duration_cast<std::chrono::nanoseconds>((t1 - t0)).count();
-  std::cout << __FUNCTION__ << " | Compute Time: " << t << " ns" << std::endl;
+  long long t = std::chrono::duration_cast<std::chrono::microseconds>((t1 - t0)).count();
+  std::cout << __FUNCTION__ << " | Compute Time: " << t << " us" << std::endl;
 }
 
 

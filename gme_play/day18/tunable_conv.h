@@ -1,11 +1,8 @@
-//
-// Created by henry on 2/12/23.
-//
-
 #ifndef ONNXRUNTIME_TUNABLE_CONV_H
 #define ONNXRUNTIME_TUNABLE_CONV_H
 
 #include "immintrin.h"
+#include "conv2d.h"
 
 const int VEC_LEN = 8;  // vectorization length
 
@@ -13,35 +10,16 @@ int ceil_int(int x, int y);
 void print_matrix(float* m, int h, int w);
 void print_output(float* Output, int h, int w, int output_channel, bool all = false);
 
-struct conv_attr {
-  int N, C, H, W;  // input
-  int K, R, L;     // kernel
-  int OH, OW;      // output
-  conv_attr(int N_, int C_, int H_, int W_, int K_, int R_, int L_) : N(N_), C(C_), H(H_), W(W_), K(K_), R(R_), L(L_) {
-    OH = H - R + 1;
-    OW = W - L + 1;
-  }
-};
-
 struct tunable_conv {  // can refactor using inheritance
   conv_attr ca;
   // core attr
   int tunable_x = VEC_LEN*4; // 32, must be multiple of VEC_LEN
   int tunable_y;
 
-  int input_size;
-  int input_batch_stride;
-  int input_block_stride;
-  int input_channel_stride;
-
-  int output_size;
   int output_batch_stride;
   int output_block_stride;
   int output_channel_stride;
 
-  int filter_size;
-  int filter_channel_stride;
-  int filter_batch_stride;
   int filter_block_stride_channel_dim=-1;
   int filter_block_stride_batch_dim=-1;
   int filter_block_stride;
@@ -74,31 +52,24 @@ struct tunable_conv {  // can refactor using inheritance
     // if reg_n is 4 for AVX2
     reg_n = 4;
 
-    input_channel_stride = ca.H * ca.W;
-    input_block_stride = input_channel_stride * tunable_x;
-    input_batch_stride = input_channel_stride*ca.C;
-    input_size = input_channel_stride*ca.C*ca.N; // NCHW
+    ca.input_block_stride = ca.input_channel_stride * tunable_x;
 
     output_channel_stride = ca.OH * ca.OW;
     output_block_stride = output_channel_stride * tunable_y;
     output_batch_stride = output_channel_stride*ca.K;
-    output_size = output_channel_stride*ca.K; // there is no such thing as output_batch
 
     slice_number_in_channel_dim = ceil_int(ca.C, tunable_x); // for input and kernel
     slice_number_in_channel_dim_y = ceil_int(ca.C, tunable_y); // for output
     slice_number_in_batch_dim = ceil_int(ca.K, VEC_LEN);
     hunk_number_in_batch_dim = ceil_int(slice_number_in_batch_dim,reg_n); //?????
 
-    filter_channel_stride = ca.R * ca.L;
-    filter_batch_stride = ca.C * filter_channel_stride;
-    filter_size = ca.K * filter_batch_stride;
-    filter_block_stride = filter_channel_stride * tunable_x * VEC_LEN;
+    filter_block_stride = ca.filter_channel_stride * tunable_x * VEC_LEN;
     filter_chunk_stride = filter_block_stride*slice_number_in_channel_dim;
     filter_hunk_stride = filter_chunk_stride*reg_n;
 
     out_channel_stride = ca.OH * ca.OW;  // NKHW
     if (core==nullptr)
-      core = (float*)_mm_malloc(sizeof(float) * input_size, 32);
+      core = (float*)_mm_malloc(sizeof(float) * ca.input_size, 32);
   }
 
   void reorder_input();
@@ -118,9 +89,9 @@ struct tunable_conv {  // can refactor using inheritance
     //print_matrix(output,ca.OH, ca.OW);
     print_output(output_nchw,ca.OH, ca.OW,ca.K);
   }
-  inline int input_index_new(int N, int C_, int H, int w, int c){
-    return N*input_batch_stride + C_*input_block_stride + H*ca.W*tunable_x + w*tunable_x + c;
-  }
+  /*inline int input_index_new(int N, int C_, int H, int w, int c){
+    return N*ca.input_batch_stride + C_*ca.input_block_stride + H*ca.W*tunable_x + w*tunable_x + c;
+  }*/
   inline int output_index_nchwc(int C_, int H, int w, int c){ // n always == 1
     return C_*output_block_stride + H*ca.OW*tunable_y + w*tunable_y + c;
   }

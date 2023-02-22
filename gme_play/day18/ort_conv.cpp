@@ -126,7 +126,7 @@ void onnxruntime_conv_nchwc(
     auto start_ = chrono::high_resolution_clock::now();
     ReorderInputNchw(InputShape, Input, NchwcInput);
     auto t0_ = chrono::high_resolution_clock::now();
-    cout << __FUNCTION__ << " | Reorder Time: " << chrono::duration_cast<chrono::nanoseconds>((t0_ - start_)).count() << " ns" << endl;
+    cout << __FUNCTION__ << " | Reorder Time: " << chrono::duration_cast<chrono::microseconds>((t0_ - start_)).count() << " us" << endl;
     Input = NchwcInput;
     InputShape[1] = NchwcInputChannels;
   }
@@ -156,7 +156,7 @@ void onnxruntime_conv_nchwc(
                 true,
                 nullptr);
   auto t1 = chrono::high_resolution_clock::now();
-  cout << __FUNCTION__ << " | Algo Time: " << chrono::duration_cast<chrono::nanoseconds>((t1 - t0)).count() << " ns" << endl;
+  cout << __FUNCTION__ << " | Algo Time: " << chrono::duration_cast<chrono::microseconds>((t1 - t0)).count() << " us" << endl;
 
   //
   // Reorder the output buffer.
@@ -165,7 +165,7 @@ void onnxruntime_conv_nchwc(
   MlasReorderOutputNchw(OutputShape, NchwcOutput, Output);
   //MlasReorderOutputNchw(OutputShape, NchwcOutput, Output, nullptr);
   t1 = chrono::high_resolution_clock::now();
-  cout << __FUNCTION__ << " | restore MlasReorderOutputNchw: " << chrono::duration_cast<chrono::nanoseconds>((t1 - t_before_reorder)).count() << " ns" << endl;
-  cout << __FUNCTION__ << " | entire Algo Time: " << chrono::duration_cast<chrono::nanoseconds>((t1 - start)).count() << " ns" << endl;
+  cout << __FUNCTION__ << " | restore MlasReorderOutputNchw: " << chrono::duration_cast<chrono::microseconds>((t1 - t_before_reorder)).count() << " us" << endl;
+  cout << __FUNCTION__ << " | entire Algo Time: " << chrono::duration_cast<chrono::microseconds>((t1 - start)).count() << " us" << endl;
 
 }

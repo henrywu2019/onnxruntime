@@ -2,8 +2,9 @@
 #include "conv2d.h"
 #include "gamma_common.h"
 #include <immintrin.h>
+// g++ -DDEBUG=1 xx.cpp
 
-int GAMMA_GATHER_INDEX_BASE[16] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
+[[maybe_unused]] int GAMMA_GATHER_INDEX_BASE[16] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
 
 
 float* make_conv2d_input(float* l, int n, int c, int w, int h, float channel_delta, float cell_delta, float batch_delta, bool random_, float start) {
@@ -39,7 +40,9 @@ float* make_conv2d_input(conv_attr& ca, float channel_delta, float cell_delta, f
 }
 
 void reorder_NCHW_NCHWc8_base(float* s, float* d, const conv_attr& ca){
+#ifdef DEBUG
   auto_profiler ap(__FUNCTION__ );
+#endif
   int slice_number_in_channel_dim = ceil_int(ca.C, 8); // for input and kernel
   int ori_idx = 0, new_idx = 0;
   REP(i, 0, ca.N) {
@@ -57,12 +60,14 @@ void reorder_NCHW_NCHWc8_base(float* s, float* d, const conv_attr& ca){
 }
 
 void reorder_NCHW_NCHWc8_avx2(float* s, float* d, conv_attr& ca){
+#ifdef DEBUG
   auto_profiler ap(__FUNCTION__ );
+#endif
   int slice_number_in_channel_dim = ceil_int(ca.C, 8); // for input and kernel
-  int ori_idx = 0, new_idx = 0, GatherStride= ca.input_channel_stride;
+  int ori_idx = 0, new_idx = 0, gather_stride= ca.input_channel_stride;
   ca.input_block_stride = 8*ca.input_channel_stride;
   auto idx = _mm256_loadu_si256((__m256i*)GAMMA_GATHER_INDEX_BASE);
-  auto indices = _mm256_mullo_epi32(idx, _mm256_set1_epi32(GatherStride));
+  auto indices = _mm256_mullo_epi32(idx, _mm256_set1_epi32(gather_stride));
   REP(i, 0, ca.N) {
     REP(j, 0, slice_number_in_channel_dim) {
       int i_offset = i*ca.input_batch_stride+j*ca.input_block_stride;
@@ -77,10 +82,10 @@ void reorder_NCHW_NCHWc8_avx2(float* s, float* d, conv_attr& ca){
   }
 }
 
-#define AVX2_F32_NUM 8
-
 void reorder_NCHW_NCHWc16_base(float* s, float* d, const conv_attr& ca){
+#ifdef DEBUG
   auto_profiler ap(__FUNCTION__ );
+#endif
   int slice_number_in_channel_dim = ceil_int(ca.C, 16); // for input and kernel
   int ori_idx = 0, new_idx = 0;
   REP(i, 0, ca.N) {
@@ -98,12 +103,14 @@ void reorder_NCHW_NCHWc16_base(float* s, float* d, const conv_attr& ca){
 }
 
 void reorder_NCHW_NCHWc16_avx2(float* s, float* d, conv_attr& ca){
+#ifdef DEBUG
   auto_profiler ap(__FUNCTION__ );
+#endif
   int slice_number_in_channel_dim = ceil_int(ca.C, 16); // for input and kernel
-  int ori_idx = 0, new_idx = 0, GatherStride= ca.input_channel_stride;
+  int ori_idx = 0, new_idx = 0, gather_stride= ca.input_channel_stride;
   ca.input_block_stride = 16*ca.input_channel_stride;
   auto idx = _mm256_loadu_si256((__m256i*)GAMMA_GATHER_INDEX_BASE);
-  auto indices = _mm256_mullo_epi32(idx, _mm256_set1_epi32(GatherStride));
+  auto indices = _mm256_mullo_epi32(idx, _mm256_set1_epi32(gather_stride));
   REP(i, 0, ca.N) {
     REP(j, 0, slice_number_in_channel_dim) {
       int base=i*ca.input_batch_stride+j*ca.input_block_stride;
@@ -126,7 +133,9 @@ void reorder_NCHW_NCHWc16_avx2(float* s, float* d, conv_attr& ca){
 }
 
 void reorder_NCHW_NCHWc32_base(float* s, float* d, const conv_attr& ca){
+#ifdef DEBUG
   auto_profiler ap(__FUNCTION__ );
+#endif
   int slice_number_in_channel_dim = ceil_int(ca.C, 32); // for input and kernel
   int ori_idx = 0, new_idx = 0;
   REP(i, 0, ca.N) {
@@ -144,12 +153,14 @@ void reorder_NCHW_NCHWc32_base(float* s, float* d, const conv_attr& ca){
 }
 
 void reorder_NCHW_NCHWc32_avx2(float* s, float* d, conv_attr& ca){
+#ifdef DEBUG
   auto_profiler ap(__FUNCTION__ );
+#endif
   int slice_number_in_channel_dim = ceil_int(ca.C, 32); // for input and kernel
-  int ori_idx = 0, new_idx = 0, GatherStride= ca.input_channel_stride;
+  int ori_idx = 0, new_idx = 0, gather_stride= ca.input_channel_stride;
   ca.input_block_stride = 32*ca.input_channel_stride;
   auto idx = _mm256_loadu_si256((__m256i*)GAMMA_GATHER_INDEX_BASE);
-  auto indices = _mm256_mullo_epi32(idx, _mm256_set1_epi32(GatherStride));
+  auto indices = _mm256_mullo_epi32(idx, _mm256_set1_epi32(gather_stride));
   REP(i, 0, ca.N) {
     REP(j, 0, slice_number_in_channel_dim) {
       int base=i*ca.input_batch_stride+j*ca.input_block_stride;
