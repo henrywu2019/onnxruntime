@@ -81,6 +81,7 @@ struct tunable_conv {  // can refactor using inheritance
   void run_ort();
   void run_8_8();
   void run_32_32();
+  void run_32_16();
   void run_32_8();
   void run_64_64();
   void run_64_64_v2();

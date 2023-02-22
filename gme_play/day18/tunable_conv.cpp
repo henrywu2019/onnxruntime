@@ -1,5 +1,6 @@
 #include "tunable_conv.h"
 #include <sein.hpp>
+#include "mlas.h"
 #include "gamma_common.h"
 #define SIMPLE_INDEX
 #define ALGO_INPUT_AS_OUTER_LOOP
@@ -26,8 +27,6 @@ void print_output(float* Output, int h, int w, int output_channel, bool all) {
   }
   // printf("\n");
 }
-
-#include "mlas.h"
 
 void ReorderInputNchw(const int64_t* input_shape, const float* S, float* D) {
   auto_profiler ap(__FUNCTION__ );
@@ -135,46 +134,18 @@ void tunable_conv::reorder_filter() {
   cout << __FUNCTION__ << ": " << t << " us" << endl;
 }
 
-/*void _gme_conv(float* I, float* F, float* output, int oh_idx, int ow, int kh, int kw, int tunable_x, int c_idx, int k_idx, int iw, int input_block_stride, int output_block_stride) {
-  int reg_n = 4;
-  int j = c_idx, k = oh_idx, i = k_idx;
-  REP(l, 0, ow) {
-    asm("vxorps %xmm0,%xmm0,%xmm0");
-    // REP(t,0,reg_n) pr[t]=_mm256_xor_ps(pr[t],pr[t]);
-    __m256 y00{}, y01{}, y02{}, y03{}, y04{}, y05{}, y06{}, y07{}, y08{}, y09{}, y10{}, y11{}, y12{}, y13{}, y14{}, y15{};
-    REP(n, 0, kh) {
-      REP(o, 0, kw) {
-        REP(m, 0, tunable_x) {  // channel dim
-          int i_offset = input_index_new(0, j, k + n, l + o, m);
-          y13 = _mm256_set1_ps(I[i_offset]);
-          y14 = _mm256_set1_ps(I[i_offset + tunable_x]);
-          y15 = _mm256_set1_ps(I[i_offset + tunable_x * 2]);
-
-          REP(p, 0, reg_n) {
-            int f_offset = filter_index_new((i * reg_n + p), j, n, o, m, 0);
-            y12 = _mm256_load_ps(f + f_offset);
-            pr[p] = _mm256_fmadd_ps(y01, y12, pr[p]);
-          }
-        }
-      }
-    }
-    REP(q, 0, reg_n) {
-      // assume tunable_x == tunable_y
-      int o_offset = output_index_nchwc(i, k, l, q * VEC_LEN);
-      auto tmp = _mm256_loadu_ps(output + o_offset);
-      pr[q] = _mm256_add_ps(pr[q], tmp);
-      _mm256_storeu_ps(output + o_offset, pr[q]);
-    }
-  }
-}*/
-
 void tunable_conv::run_tunable() {
   if (tunable_y == 8) {
-    run_32_8();
-  } else if (tunable_x==32 and tunable_y == 32) {
+    if (tunable_x==8){
+      run_8_8();
+    }else
+      run_32_8();
+  } else if(tunable_y == 16){
+    run_32_16();
+  } else if (tunable_y == 32) {
     run_32_32();
-  } else if(tunable_x==8 and tunable_y == 8){
-    run_8_8();
+  } else if(tunable_y == 64){
+    run_64_64();
   }
 }
 
@@ -405,11 +376,14 @@ void tunable_conv::run_32_8() {
   cout << __FUNCTION__ << " | algo run Time: " << t << " us" << endl;
 }
 
-void tunable_conv::run_8_8() {
+// x=32
+void tunable_conv::run_32_16() {
   auto start = high_resolution_clock::now();
+  assert(tunable_y==16);
 
   // not consider reg_n=4 in batch dim
   __m256 y12{}, y13{}, y14{}, y15{};
+  int i_offset, f_offset;
   REP(i, 0, hunk_number_in_batch_dim) {  // N(K_)
     int ori_channel_ = i*reg_n*VEC_LEN;
     int output_C_ = floor_int(ori_channel_, tunable_y);
@@ -419,32 +393,81 @@ void tunable_conv::run_8_8() {
           __m256 y00{}, y01{}, y02{}, y03{}, y04{}, y05{}, y06{}, y07{}, y08{}, y09{}, y10{}, y11{};
           REP(n, 0, ca.R) {
             REP(o, 0, ca.L) {
-              REP(m, 0, tunable_x) {  // channel dim
-                auto i_offset = input_index_new(0, j, k + n, l + o, m, ca, tunable_x);
-                y13 = _mm256_set1_ps(core[i_offset]);
-                y14 = _mm256_set1_ps(core[i_offset + tunable_x]);
-                y15 = _mm256_set1_ps(core[i_offset + tunable_x * 2]);
-                auto f_offset = filter_index_new((i * reg_n), j, n, o, m, 0);
-                y12 = _mm256_load_ps(f + f_offset);
-                y00 = _mm256_fmadd_ps(y13, y12, y00);
-                y04 = _mm256_fmadd_ps(y14, y12, y04);
-                y08 = _mm256_fmadd_ps(y15, y12, y08);
-                f_offset += filter_chunk_stride;
-                y12 = _mm256_load_ps(f + f_offset);
-                y01 = _mm256_fmadd_ps(y13, y12, y01);
-                y05 = _mm256_fmadd_ps(y14, y12, y05);
-                y09 = _mm256_fmadd_ps(y15, y12, y09);
-                f_offset += filter_chunk_stride;
-                y12 = _mm256_load_ps(f + f_offset);
-                y02 = _mm256_fmadd_ps(y13, y12, y02);
-                y06 = _mm256_fmadd_ps(y14, y12, y06);
-                y10 = _mm256_fmadd_ps(y15, y12, y10);
-                f_offset += filter_chunk_stride;
-                y12 = _mm256_load_ps(f + f_offset);
-                y03 = _mm256_fmadd_ps(y13, y12, y03);
-                y07 = _mm256_fmadd_ps(y14, y12, y07);
-                y11 = _mm256_fmadd_ps(y15, y12, y11);
+              REP2(m, 0, tunable_x, 8) {  // channel dim
+                FMA_COMP(0);
+                FMA_COMP(1);
+                FMA_COMP(2);
+                FMA_COMP(3);
+                FMA_COMP(4);
+                FMA_COMP(5);
+                FMA_COMP(6);
+                FMA_COMP(7);
               }
+            }
+          }
+          int o_offset = output_index_nchwc(output_C_, k, l, 0);
+          int oo;
+          __m256 tmp{};
+          if (j > 0) {
+            oo = o_offset, tmp = _mm256_load_ps(output + oo), y00 = _mm256_add_ps(y00, tmp);
+            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y01 = _mm256_add_ps(y01, tmp);
+            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y04 = _mm256_add_ps(y04, tmp);
+            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y05 = _mm256_add_ps(y05, tmp);
+            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y08 = _mm256_add_ps(y08, tmp);
+            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y09 = _mm256_add_ps(y09, tmp);
+
+            oo = o_offset + output_block_stride, tmp = _mm256_load_ps(output + oo), y02 = _mm256_add_ps(y02, tmp);
+            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y03 = _mm256_add_ps(y03, tmp);
+            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y06 = _mm256_add_ps(y06, tmp);
+            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y07 = _mm256_add_ps(y07, tmp);
+            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y10 = _mm256_add_ps(y10, tmp);
+            oo += VEC_LEN, tmp = _mm256_load_ps(output + oo), y11 = _mm256_add_ps(y11, tmp);
+          }
+
+          oo = o_offset, _mm256_store_ps(output + oo, y00);
+          oo += VEC_LEN, _mm256_store_ps(output + oo, y01);
+          oo += VEC_LEN, _mm256_store_ps(output + oo, y04);
+          oo += VEC_LEN, _mm256_store_ps(output + oo, y05);
+          oo += VEC_LEN, _mm256_store_ps(output + oo, y08);
+          oo += VEC_LEN, _mm256_store_ps(output + oo, y09);
+
+          oo = o_offset + output_block_stride, _mm256_store_ps(output + oo, y02);
+          oo += VEC_LEN, _mm256_store_ps(output + oo, y03);
+          oo += VEC_LEN, _mm256_store_ps(output + oo, y06);
+          oo += VEC_LEN, _mm256_store_ps(output + oo, y07);
+          oo += VEC_LEN, _mm256_store_ps(output + oo, y10);
+          oo += VEC_LEN, _mm256_store_ps(output + oo, y11);
+        }
+      }
+    }
+  }
+  long long t = duration_cast<microseconds>((high_resolution_clock::now() - start)).count();
+  cout << __FUNCTION__ << " | algo run Time: " << t << " us" << endl;
+}
+
+void tunable_conv::run_8_8() {
+  auto start = high_resolution_clock::now();
+  assert(tunable_x == 8 and tunable_y == 8);
+  // not consider reg_n=4 in batch dim
+  __m256 y12{}, y13{}, y14{}, y15{};
+  int i_offset, f_offset, m=0;
+  REP(i, 0, hunk_number_in_batch_dim) {  // N(K_)
+    int ori_channel_ = i*reg_n*VEC_LEN;
+    int output_C_ = floor_int(ori_channel_, tunable_y);
+    REP(k, 0, ca.OH) {
+      REP(j, 0, slice_number_in_channel_dim) {
+        for (int l = 0; l < ca.OW; l += 3) {
+          __m256 y00{}, y01{}, y02{}, y03{}, y04{}, y05{}, y06{}, y07{}, y08{}, y09{}, y10{}, y11{};
+          REP(n, 0, ca.R) {
+            REP(o, 0, ca.L) {
+              FMA_COMP(0);
+              FMA_COMP(1);
+              FMA_COMP(2);
+              FMA_COMP(3);
+              FMA_COMP(4);
+              FMA_COMP(5);
+              FMA_COMP(6);
+              FMA_COMP(7);
             }
           }
           int o_offset = output_index_nchwc(output_C_, k, l, 0);
@@ -493,9 +516,8 @@ void tunable_conv::run_8_8() {
 
 // y12
 void tunable_conv::run_64_64() {
-  //reset(64, 64);
   auto start = high_resolution_clock::now();
-
+  assert(tunable_y == 64);
   __m256 y12{}, y13{};// y14{}, y15{};
   REP(i, 0, hunk_number_in_batch_dim) {  // N(K_)
     REP(k, 0, ca.OH) {
