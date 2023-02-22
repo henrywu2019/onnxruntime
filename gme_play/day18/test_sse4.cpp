@@ -250,7 +250,7 @@ int main(int argc, char** argv){
   printf("AVX-512 is not supported on this platform.%ld\n", sizeof(float));
 #endif
 
-  conv_attr ca(1,256,10,10);
+  conv_attr ca(1,256,400,298);
   auto input = make_conv2d_input(ca);
 
   auto new_input=(float*)_mm_malloc(sizeof(float) * ca.input_size, 32);

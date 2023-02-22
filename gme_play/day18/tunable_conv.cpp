@@ -36,6 +36,12 @@ void tunable_conv::reorder_input() {
   if (tunable_x==8){
     reorder_input_8();
     return;
+  } else if (tunable_x==16){
+    reorder_NCHW_NCHWc16_base(input,core,ca);
+    return;
+  } else if (tunable_x==32){
+    reorder_NCHW_NCHWc32_base(input,core,ca);
+    return;
   }
   int ori_idx = 0, new_idx = 0;
   REP(i, 0, ca.N) {
@@ -54,7 +60,7 @@ void tunable_conv::reorder_input() {
 
 void tunable_conv::reorder_input_8() {
   auto start = high_resolution_clock::now();
-  reorder_NCHW_NCHWc8_avx2(input,core,ca);
+  reorder_NCHW_NCHWc8_base(input,core,ca);
   auto t = duration_cast<microseconds>((high_resolution_clock::now() - start)).count();
   cout << __FUNCTION__ << ": " << t << " us" << endl;
 }
