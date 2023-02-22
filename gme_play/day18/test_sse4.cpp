@@ -216,6 +216,13 @@ reorder_NCHW_NCHWc32_avx2 : 26 us
 reorder_NCHW_NCHWc32_base : 78 us
 */
 
+/*
+ * error: ‘__builtin_ia32_scattersiv8sf’ needs isa option -mavx512vl
+224 |   _mm256_i32scatter_ps((float*)data, index, value, 4);
+    |   ^~~~~~~~~~~~~~~~~~~~
+ * */
+//https://stackoverflow.com/questions/51128005/what-do-you-do-without-fast-gather-and-scatter-in-avx2-instructions
+
 int main(int argc, char** argv){
 #ifdef __AVX512F__
     printf("AVX-512 is supported on this platform.\n");
@@ -229,13 +236,16 @@ int main(int argc, char** argv){
   auto new_input=(float*)_mm_malloc(sizeof(float) * ca.input_size, 32);
   auto new_input_v2=(float*)_mm_malloc(sizeof(float) * ca.input_size, 32);
   auto new_input_v3=(float*)_mm_malloc(sizeof(float) * ca.input_size, 32);
+  auto new_input_v4=(float*)_mm_malloc(sizeof(float) * ca.input_size, 32);
 
   reorder_NCHW_NCHWc8_avx2(input,new_input,ca);
   reorder_NCHW_NCHWc8_base(input,new_input_v2,ca);
+  //restore_NCHWc8_NCHW_avx2(new_input_v2, new_input_v4, ca);
   int64_t InputShape[] = {int64_t(ca.N), int64_t(1) * int64_t(ca.C), int64_t(ca.H), int64_t(ca.W)};
   ReorderInputNchw(InputShape, input, new_input_v3);
   assert(array_equal(new_input, new_input_v2, ca.input_size));
   assert(array_equal(new_input, new_input_v3, ca.input_size));
+  //assert(array_equal(input, new_input_v4, ca.input_size));
 
   ::memset((void*)new_input,0,ca.input_size* sizeof(float));
   ::memset((void*)new_input_v2,0,ca.input_size* sizeof(float));

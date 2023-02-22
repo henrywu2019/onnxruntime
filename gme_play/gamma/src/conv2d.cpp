@@ -82,6 +82,33 @@ void reorder_NCHW_NCHWc8_avx2(float* s, float* d, conv_attr& ca){
   }
 }
 
+// restore from s to d
+void restore_NCHWc8_NCHW_avx512(float* s, float* d, conv_attr& ca){
+#ifdef __AVX512__
+#ifdef DEBUG
+  auto_profiler ap(__FUNCTION__ );
+#endif
+  int slice_number_in_channel_dim = ceil_int(ca.C, 8);
+  int scatter_stride= ca.input_channel_stride;
+  ca.input_block_stride = 8*ca.input_channel_stride;
+  auto idx = _mm256_loadu_si256((__m256i*)GAMMA_GATHER_INDEX_BASE);
+  auto indices = _mm256_mullo_epi32(idx, _mm256_set1_epi32(scatter_stride));
+  REP(i, 0, ca.N) {
+    REP(j, 0, slice_number_in_channel_dim) {
+      float* base = d + i*ca.input_batch_stride+j*ca.input_block_stride;
+      REP(k, 0, ca.H) {
+        REP(l, 0, ca.W) {
+          auto v = _mm256_loadu_ps(s);
+          _mm256_i32scatter_ps((void*)base, indices, v, sizeof(float));
+          s+=8, ++base;
+        }
+      }
+    }
+  }
+#endif
+}
+
+
 void reorder_NCHW_NCHWc16_base(float* s, float* d, const conv_attr& ca){
 #ifdef DEBUG
   auto_profiler ap(__FUNCTION__ );
