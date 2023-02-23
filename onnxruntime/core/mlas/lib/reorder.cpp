@@ -18,7 +18,9 @@ Abstract:
 #include "mlasi.h"
 
 #define MlasReorderGatherFloat32x8_macro(i) D[i] = S[i * GatherStride];
+#if defined(MLAS_AVX2_INTRINSICS)
 static int GATHER_INDEX_BASE[8] = {0,1,2,3,4,5,6,7};
+#endif
 
 MLAS_FORCEINLINE
 void
