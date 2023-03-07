@@ -2,8 +2,8 @@
 
 set -x
 
-ROOT=/home/opc/mlops/onnxruntime
 ROOT=/home/henry/wendy/git.repo/onnxruntime
+ROOT=/home/wfh/onnxruntime
 
 g++ tunable_conv.cpp main_tunable.cpp ort_conv.cpp -o main_tunable_omg.exe -O3 -I${ROOT}/gme_play/gamma/include \
 -L$ROOT/build/Linux/Release \

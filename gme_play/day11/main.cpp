@@ -9,7 +9,8 @@
 
 using namespace std;
 
-long l1_cache_size = sysconf(_SC_LEVEL1_DCACHE_SIZE);
+//long l1_cache_size = sysconf(_SC_LEVEL1_DCACHE_SIZE);
+long l1_cache_size = long(1.6*(1<<20));
 
 /*
  * Based on day6 example, increase the input channel number to 16.
@@ -398,15 +399,15 @@ Input 1 Name: reorder_gme_148
 
 int main(int argc, char** argv) {
   srand(0xdeadbeef);
-  printf("argc: %d\n", argc);
+  //printf("argc: %d\n", argc);
 
-  std::cout << "L1 data cache size: " << l1_cache_size << " bytes" << std::endl;
-  long l1_cache_line = sysconf(_SC_LEVEL1_DCACHE_LINESIZE);
-  std::cout << "L1 data cache line: " << l1_cache_line << " bytes" << std::endl;
-  long l2_cache_size = sysconf(_SC_LEVEL2_CACHE_SIZE);
-  std::cout << "L2 data cache size: " << l2_cache_size << " bytes" << std::endl;
-  long l3_cache_size = sysconf(_SC_LEVEL3_CACHE_SIZE);
-  std::cout << "L3 data cache size: " << l3_cache_size << " bytes" << std::endl;
+  //std::cout << "L1 data cache size: " << l1_cache_size << " bytes" << std::endl;
+  //long l1_cache_line = sysconf(_SC_LEVEL1_DCACHE_LINESIZE);
+  //std::cout << "L1 data cache line: " << l1_cache_line << " bytes" << std::endl;
+  //long l2_cache_size = sysconf(_SC_LEVEL2_CACHE_SIZE);
+  //std::cout << "L2 data cache size: " << l2_cache_size << " bytes" << std::endl;
+  //long l3_cache_size = sysconf(_SC_LEVEL3_CACHE_SIZE);
+  //std::cout << "L3 data cache size: " << l3_cache_size << " bytes" << std::endl;
 
   // 64x256x3x3
   int input_width = 100, input_height = 3000, input_channel = 2, filter_batch = 1, kernel_width = 3, kernel_height = 3;
