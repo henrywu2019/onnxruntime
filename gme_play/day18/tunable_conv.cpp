@@ -30,9 +30,9 @@ void print_output(float* Output, int h, int w, int output_channel, bool all) {
 
 void tunable_conv::reorder_input() {
   if (tunable_x==8){
-    reorder_NCHW_NCHWc8_avx2(input,core,ca);
-    //int64_t InputShape[] = {int64_t(ca.N), int64_t(1) * int64_t(ca.C), int64_t(ca.H), int64_t(ca.W)};
-    //ReorderInputNchw(InputShape, input, core);
+    //reorder_NCHW_NCHWc8_base(input,core,ca);
+    int64_t InputShape[] = {int64_t(ca.N), int64_t(1) * int64_t(ca.C), int64_t(ca.H), int64_t(ca.W)};
+    ReorderInputNchw(InputShape, input, core);
     return;
   } else if (tunable_x==16){
     reorder_NCHW_NCHWc16_base(input,core,ca);

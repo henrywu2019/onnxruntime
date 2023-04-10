@@ -161,8 +161,8 @@ void onnxruntime_conv_nchwc(
   // Reorder the output buffer.
   //
   auto t_before_reorder = high_resolution_clock::now();
-  MlasReorderOutputNchw(OutputShape, NchwcOutput, Output);
-  //MlasReorderOutputNchw(OutputShape, NchwcOutput, Output, nullptr);
+  //MlasReorderOutputNchw(OutputShape, NchwcOutput, Output);
+  MlasReorderOutputNchw(OutputShape, NchwcOutput, Output, nullptr);
   t1 = high_resolution_clock::now();
   cout << __FUNCTION__ << " | restore MlasReorderOutputNchw: " << duration_cast<microseconds>((t1 - t_before_reorder)).count() << " us" << endl;
   cout << __FUNCTION__ << " | entire Algo Time: " << duration_cast<microseconds>((t1 - start)).count() << " us" << endl;
