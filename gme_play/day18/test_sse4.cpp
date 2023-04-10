@@ -251,62 +251,73 @@ int main(int argc, char** argv){
 #endif
 
   conv_attr ca(1,256,400,298);
-  auto input = make_conv2d_input(ca);
+  vector<float> i1(ca.input_size),i2(ca.input_size),i3(ca.input_size),i4(ca.input_size);
+  vector<float> i5(ca.input_size),i6(ca.input_size),i7(ca.input_size),i8(ca.input_size);
+  auto input1 = make_conv2d_input(i1.data(),ca);
+  auto input2 = make_conv2d_input(i2.data(),ca);
+  auto input3 = make_conv2d_input(i3.data(),ca);
+  auto input4 = make_conv2d_input(i4.data(),ca);
+  auto input5 = make_conv2d_input(i5.data(),ca);
+  auto input6 = make_conv2d_input(i6.data(),ca);
+  auto input7 = make_conv2d_input(i7.data(),ca);
+  auto input8 = make_conv2d_input(i8.data(),ca);
 
-  auto new_input=(float*)_mm_malloc(sizeof(float) * ca.input_size, 32);
-  auto new_input_v2=(float*)_mm_malloc(sizeof(float) * ca.input_size, 32);
-  auto new_input_v3=(float*)_mm_malloc(sizeof(float) * ca.input_size, 32);
-  auto new_input_v4=(float*)_mm_malloc(sizeof(float) * ca.input_size, 32);
+  auto new_input_v1=(float*)malloc(sizeof(float) * ca.input_size);
+  auto new_input_v2=(float*)malloc(sizeof(float) * ca.input_size);
+  auto new_input_v3=(float*)malloc(sizeof(float) * ca.input_size);
+  auto new_input_v4=(float*)malloc(sizeof(float) * ca.input_size);
+  auto new_input_v5=(float*)malloc(sizeof(float) * ca.input_size);
+  auto new_input_v6=(float*)malloc(sizeof(float) * ca.input_size);
+  auto new_input_v7=(float*)malloc(sizeof(float) * ca.input_size);
+  auto new_input_v8=(float*)malloc(sizeof(float) * ca.input_size);
 
-  reorder_NCHW_NCHWc16_avx2(input,new_input,ca);
-  reorder_NCHW_NCHWc16_base(input,new_input_v2,ca);
-  assert(array_equal(new_input, new_input_v2, ca.input_size));
+  reorder_NCHW_NCHWc16_avx2(input1,new_input_v1,ca);
+  reorder_NCHW_NCHWc16_base(input2,new_input_v2,ca);
+  assert(array_equal(new_input_v1, new_input_v2, ca.input_size));
 
-
-
-  ::memset((void*)new_input,0,ca.input_size* sizeof(float));
-  ::memset((void*)new_input_v2,0,ca.input_size* sizeof(float));
 
   int64_t InputShape[] = {int64_t(ca.N), int64_t(1) * int64_t(ca.C), int64_t(ca.H), int64_t(ca.W)};
-  reorder_NCHW_NCHWc8_base(input,new_input_v2,ca);
-  ReorderInputNchw(InputShape, input, new_input_v3);
-  reorder_NCHW_NCHWc8_avx2(input,new_input,ca);
-  restore_NCHWc8_NCHW_avx2(new_input_v2, new_input_v4, ca);
+  reorder_NCHW_NCHWc8_base(input3,new_input_v3,ca);
+  ReorderInputNchw(InputShape, input4, new_input_v4);
+  reorder_NCHW_NCHWc8_avx2(input5,new_input_v5,ca);
 
-  assert(array_equal(new_input, new_input_v2, ca.input_size));
-  assert(array_equal(new_input, new_input_v3, ca.input_size));
-  assert(array_equal(input, new_input_v4, ca.input_size));
+
+  assert(array_equal(new_input_v3, new_input_v4, ca.input_size));
+  assert(array_equal(new_input_v4, new_input_v5, ca.input_size));
+  restore_NCHWc8_NCHW_avx2(new_input_v3, new_input_v4, ca);
+  assert(array_equal(input1, new_input_v4, ca.input_size));
 #ifdef __AVX512__
   restore_NCHWc8_NCHW_avx512(new_input_v2, new_input_v4, ca);
   assert(array_equal(input, new_input_v4, ca.input_size));
 #endif
 
-  ::memset((void*)new_input,0,ca.input_size* sizeof(float));
-  ::memset((void*)new_input_v2,0,ca.input_size* sizeof(float));
-  reorder_NCHW_NCHWc32_avx2(input,new_input,ca);
-  reorder_NCHW_NCHWc32_base(input,new_input_v2,ca);
-  assert(array_equal(new_input, new_input_v2, ca.input_size));
+  reorder_NCHW_NCHWc32_avx2(input6,new_input_v6,ca);
+  reorder_NCHW_NCHWc32_base(input7,new_input_v7,ca);
+  assert(array_equal(new_input_v6, new_input_v7, ca.input_size));
+
+  free(new_input_v1),free(new_input_v2),free(new_input_v3),free(new_input_v4);
+  free(new_input_v5),free(new_input_v6),free(new_input_v7),free(new_input_v8);
   return 0;
 
-  float* X=(float*)_mm_malloc(sizeof(float) * 16, 32);
+  float* X=(float*)malloc(sizeof(float) * 16);
   REP(i,0,16) X[i]=i;
   transpose_4x4(X);
 
 
-  float* Y=(float*)_mm_malloc(sizeof(float) * 64, 32);
+  float* Y=(float*)malloc(sizeof(float) * 64);
   REP(i,0,64) Y[i]=i;
   transpose_8x8(Y);
 
   print_matrix(X, 4, 4);
   print_matrix(Y, 8, 8);
 
-  _mm_free(X);
-  _mm_free(Y);
+  free(X);
+  free(Y);
 
 
 
-  float* I=(float*)_mm_malloc(sizeof(float) * 400*298*256, 32);
-  float* O=(float*)_mm_malloc(sizeof(float) * 400*298*256, 32);
+  float* I=(float*)malloc(sizeof(float) * 400*298*256);
+  float* O=(float*)malloc(sizeof(float) * 400*298*256);
   REP(i,0,400*298*256) O[i]=i;
 
   //fun_sse(O, I, 64);
@@ -437,5 +448,5 @@ int main(int argc, char** argv){
 
 
   MlasReorderGatherFloat32x4(I, O, 128);
-  _mm_free(I), _mm_free(O);
+  free(I), free(O);
 }

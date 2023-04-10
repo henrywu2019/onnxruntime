@@ -281,7 +281,6 @@ Return Value:
 
 --*/
 {
-    int called=0;
     const size_t BlockSize = MlasNchwcGetBlockSizeCi();
 
     const MLAS_FLOAT32X4 ZeroFloat32x4 = MlasZeroFloat32x4();
@@ -309,7 +308,6 @@ Return Value:
                 MlasReorderTransposeFloat32x4x4(ss, dd, InputSize, BlockSize, InputChannelsThisIteration);
                 ss += 4 * InputSize;
                 dd += 4;
-                called++;
             }
 
             for (; bc < BlockSize; bc += 4) {
@@ -331,7 +329,7 @@ Return Value:
             size_t bc = 0;
 
             for (; bc < InputChannelsThisIteration; bc += 4) {
-                MlasReorderGatherFloat32x4(ss, dd, InputSize); called++;
+                MlasReorderGatherFloat32x4(ss, dd, InputSize);
                 ss += 4 * InputSize;
                 dd += 4;
             }
@@ -348,7 +346,6 @@ Return Value:
         S += BlockSize * InputSize;
         D += BlockSize * InputSize;
     }
-    printf("InputChannels=%ld,InputSize=%ld,called=%d\n", InputChannels, InputSize, called);
 }
 
 void

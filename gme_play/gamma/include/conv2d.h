@@ -41,6 +41,9 @@ float* make_conv2d_input(float* l, int n, int c, int w, int h,
 float* make_conv2d_input(conv_attr& ca,
                        float channel_delta = 0.1, float cell_delta = 1, float batch_delta = 0.2, bool random_ = false, float start = 1.0);
 
+float* make_conv2d_input(float* l, conv_attr& ca,
+                         float channel_delta = 0.1, float cell_delta = 1, float batch_delta = 0.2, bool random_ = false, float start = 1.0);
+
 void reorder_NCHW_NCHWc8_base(float* s, float* d, const conv_attr& ca);
 void reorder_NCHW_NCHWc8_avx2(float* s, float* d, conv_attr& ca);
 void restore_NCHWc8_NCHW_avx2(float* s, float* d, conv_attr& ca);

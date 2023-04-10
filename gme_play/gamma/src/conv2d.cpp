@@ -35,7 +35,13 @@ float* make_conv2d_input(float* l, int n, int c, int w, int h, float channel_del
 }
 
 float* make_conv2d_input(conv_attr& ca, float channel_delta, float cell_delta, float batch_delta, bool random_, float start){
-  float* l=(float*)_mm_malloc(sizeof(float) * ca.input_size, 32);
+  float* l=(float*)malloc(sizeof(float) * ca.input_size);
+  make_conv2d_input(l,ca.N,ca.C,ca.H,ca.W, channel_delta, cell_delta, batch_delta, random_, start);
+  return l;
+}
+
+float* make_conv2d_input(float* l, conv_attr& ca,
+                         float channel_delta, float cell_delta, float batch_delta, bool random_, float start){
   make_conv2d_input(l,ca.N,ca.C,ca.H,ca.W, channel_delta, cell_delta, batch_delta, random_, start);
   return l;
 }

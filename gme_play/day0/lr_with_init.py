@@ -29,7 +29,7 @@ print(onnx.numpy_helper.to_array(onnx_model.graph.initializer[0]))
 print(onnx.numpy_helper.to_array(onnx_model.graph.initializer[1]))
 
 # y = 0.5 * x1 - 0.6 * x2 + 0.4
-onnx.save(onnx_model, "lr_init.onnx")
+onnx.save(onnx_model, "linear_regression_model.onnx")
 
 print('** intializer **')
 for init in onnx_model.graph.initializer:
