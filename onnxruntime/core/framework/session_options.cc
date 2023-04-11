@@ -4,7 +4,7 @@
 #include "core/framework/session_options.h"
 #include "core/common/logging/logging.h"
 #include "core/framework/ort_value.h"
-#include "core/gamma/gme.h"
+#include "core/oracle/gme.h"
 
 namespace onnxruntime {
 

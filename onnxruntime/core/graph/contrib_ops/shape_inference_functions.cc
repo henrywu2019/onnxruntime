@@ -43,7 +43,7 @@ void EmbedLayerNormalizationShapeInference(::ONNX_NAMESPACE::InferenceContext& c
   }
   int64_t hidden_size = word_embedding_shape.dim(1).dim_value();
 
-  // Ensure that all embeddings + the gamma/beta tensors have the same hidden_size:
+  // Ensure that all embeddings + the oracle/beta tensors have the same hidden_size:
   auto& position_embedding_shape = getInputShape(ctx, 3);
   auto& position_embedding_dims = position_embedding_shape.dim();
   if (position_embedding_dims.size() != 2 ||

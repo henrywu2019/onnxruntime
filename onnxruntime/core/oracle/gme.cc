@@ -1,4 +1,4 @@
-#include "core/gamma/gme.h"
+#include "core/oracle/gme.h"
 #include <iostream>
 #include <cstring>
 #include <fstream>
