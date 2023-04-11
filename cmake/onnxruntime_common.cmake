@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-set(onnxruntime_gme_src_patterns "${ONNXRUNTIME_ROOT}/core/gamma/*.asm")
+set(onnxruntime_gme_src_patterns "${ONNXRUNTIME_ROOT}/core/oracle/*.asm")
 file(GLOB onnxruntime_gme_src CONFIGURE_DEPENDS
     ${onnxruntime_gme_src_patterns}
     )
@@ -14,8 +14,8 @@ set(onnxruntime_common_src_patterns
     "${ONNXRUNTIME_INCLUDE_DIR}/core/platform/*.h"
     "${ONNXRUNTIME_ROOT}/core/common/*.h"
     "${ONNXRUNTIME_ROOT}/core/common/*.cc"
-    "${ONNXRUNTIME_ROOT}/core/gamma/*.h"
-    "${ONNXRUNTIME_ROOT}/core/gamma/*.cc"
+    "${ONNXRUNTIME_ROOT}/core/oracle/*.h"
+    "${ONNXRUNTIME_ROOT}/core/oracle/*.cc"
     "${ONNXRUNTIME_ROOT}/core/common/logging/*.h"
     "${ONNXRUNTIME_ROOT}/core/common/logging/*.cc"
     "${ONNXRUNTIME_ROOT}/core/common/logging/sinks/*.h"
