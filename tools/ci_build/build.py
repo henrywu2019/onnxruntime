@@ -733,6 +733,7 @@ def get_config_build_dir(build_dir, config):
 def run_subprocess(
     args, cwd=None, capture_stdout=False, dll_path=None, shell=False, env={}, python_path=None, cuda_home=None
 ):
+    print("🟢ORT:", args)
     if isinstance(args, str):
         raise ValueError("args should be a sequence of strings, not a string")
 

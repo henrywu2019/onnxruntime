@@ -1,6 +1,13 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+set(onnxruntime_gme_src_patterns "${ONNXRUNTIME_ROOT}/core/gamma/*.asm")
+file(GLOB onnxruntime_gme_src CONFIGURE_DEPENDS
+    ${onnxruntime_gme_src_patterns}
+    )
+onnxruntime_add_static_library(onnxruntime_gme ${onnxruntime_gme_src})
+target_compile_options(onnxruntime_gme PRIVATE "-felf64")
+
 set(onnxruntime_common_src_patterns
     "${ONNXRUNTIME_INCLUDE_DIR}/core/common/*.h"
     "${ONNXRUNTIME_INCLUDE_DIR}/core/common/logging/*.h"
@@ -117,7 +124,7 @@ target_include_directories(onnxruntime_common
         ${OPTIONAL_LITE_INCLUDE_DIR})
 
 
-target_link_libraries(onnxruntime_common PUBLIC safeint_interface ${GSL_TARGET} ${ABSEIL_LIBS})
+target_link_libraries(onnxruntime_common PUBLIC safeint_interface ${GSL_TARGET} ${ABSEIL_LIBS} onnxruntime_gme)
 
 add_dependencies(onnxruntime_common ${onnxruntime_EXTERNAL_DEPENDENCIES})
 

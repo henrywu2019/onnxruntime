@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 # Minimum CMake required
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.25)
 cmake_policy(SET CMP0069 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
 
@@ -14,7 +14,9 @@ cmake_policy(SET CMP0104 OLD)
 
 # Project
 project(onnxruntime C CXX ASM)
+enable_language(ASM_NASM)
 
+set(CMAKE_VERBOSE_MAKEFILE OFF)
 # Needed for Java
 set(CMAKE_C_STANDARD 99)
 

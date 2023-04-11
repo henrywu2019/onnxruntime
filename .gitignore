@@ -57,3 +57,4 @@ onnxruntime/python/version_info.py
 .psenvrc
 *.csproj.user
 *.pyc
+.vscode/settings.json

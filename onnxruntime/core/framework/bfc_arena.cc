@@ -3,7 +3,7 @@
 
 #include "core/framework/allocator.h"
 #include "core/framework/bfc_arena.h"
-#include <core/gamma/env.h>
+#include <core/gamma/gme.h>
 #include <type_traits>
 
 namespace onnxruntime {
