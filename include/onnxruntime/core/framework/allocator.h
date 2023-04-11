@@ -13,7 +13,7 @@
 // This configures the arena based allocator used by ORT
 // See docs/C_API.md for details on what these mean and how to choose these values
 struct OrtArenaCfg {
-  OrtArenaCfg() : max_mem(gme::mm()),
+  OrtArenaCfg() : max_mem(gme::memory_hb()),
                   arena_extend_strategy(gme::Int32FromEnv("AREA_EXTEND", -1)),
                   initial_chunk_size_bytes(-1),
                   max_dead_bytes_per_chunk(-1),

@@ -7,7 +7,7 @@
 #include <type_traits>
 
 namespace onnxruntime {
-size_t BFCArena::DEFAULT_MAX_MEM = gme::mm()?gme::mm():std::numeric_limits<size_t>::max();
+size_t BFCArena::DEFAULT_MAX_MEM = gme::memory_hb()?gme::memory_hb():std::numeric_limits<size_t>::max();
 
 BFCArena::BFCArena(std::unique_ptr<IAllocator> resource_allocator,
                    size_t total_memory,

@@ -223,11 +223,11 @@ size_t get_mem_total() {
   return 0;
 }
 
-size_t mm() {
+size_t memory_hb() {
   static size_t r = 1UL;
   if (r != 1UL) return r;
   // MAX MEM in MB
-  if ((r = gme::Int32FromEnv("MMM", 0)) > 0){
+  if ((r = gme::Int32FromEnv("MAX_MEM_MB", 0)) > 0){
     return (r *= (2UL<<20));
   }
   const static char* fp = "/sys/fs/cgroup/memory/memory.limit_in_bytes";
