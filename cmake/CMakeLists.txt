@@ -16,7 +16,7 @@ cmake_policy(SET CMP0104 OLD)
 project(onnxruntime C CXX ASM)
 enable_language(ASM_NASM)
 
-set(CMAKE_VERBOSE_MAKEFILE OFF)
+set(CMAKE_VERBOSE_MAKEFILE ON)
 # Needed for Java
 set(CMAKE_C_STANDARD 99)
 
