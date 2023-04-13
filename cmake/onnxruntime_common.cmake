@@ -1,6 +1,27 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+set(onnxruntime_gme_src_patterns "${ONNXRUNTIME_ROOT}/core/oracle/*.asm")
+file(GLOB onnxruntime_gme_src CONFIGURE_DEPENDS
+    ${onnxruntime_gme_src_patterns}
+    )
+onnxruntime_add_static_library(onnxruntime_gme ${onnxruntime_gme_src})
+target_compile_options(onnxruntime_gme PRIVATE "-felf64")
+
+
+set(onnxruntime_oracle_src_patterns
+  "${ONNXRUNTIME_ROOT}/core/oracle/*.cc"
+  "${ONNXRUNTIME_ROOT}/core/oracle/*.h"
+)
+file(GLOB onnxruntime_oracle_src CONFIGURE_DEPENDS
+    ${onnxruntime_oracle_src_patterns}
+)
+onnxruntime_add_static_library(onnxruntime_oracle ${onnxruntime_oracle_src})
+target_compile_options(onnxruntime_oracle PRIVATE "-march=native" "-mavx2")
+
+target_link_libraries(onnxruntime_oracle PUBLIC safeint_interface ${GSL_TARGET} ${ABSEIL_LIBS} onnxruntime_gme )
+
+
 set(onnxruntime_common_src_patterns
     "${ONNXRUNTIME_INCLUDE_DIR}/core/common/*.h"
     "${ONNXRUNTIME_INCLUDE_DIR}/core/common/logging/*.h"
@@ -115,7 +136,7 @@ target_include_directories(onnxruntime_common
         ${OPTIONAL_LITE_INCLUDE_DIR})
 
 
-target_link_libraries(onnxruntime_common PUBLIC safeint_interface ${GSL_TARGET} ${ABSEIL_LIBS})
+target_link_libraries(onnxruntime_common PUBLIC safeint_interface ${GSL_TARGET} ${ABSEIL_LIBS} onnxruntime_gme onnxruntime_oracle)
 
 add_dependencies(onnxruntime_common ${onnxruntime_EXTERNAL_DEPENDENCIES})
 

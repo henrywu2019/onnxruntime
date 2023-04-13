@@ -12,6 +12,7 @@
 #include "core/framework/allocator.h"
 
 #include "core/common/gsl.h"
+#include "core/oracle/gme.h"
 
 namespace onnxruntime {
 namespace contrib {

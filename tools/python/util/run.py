@@ -46,6 +46,7 @@ def run(
     def output(is_stream_captured):
         return subprocess.PIPE if is_stream_captured else (subprocess.DEVNULL if quiet else None)
 
+    print("🔥", '\n'.join(cmd))
     completed_process = subprocess.run(
         cmd,
         cwd=cwd,

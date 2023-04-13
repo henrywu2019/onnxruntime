@@ -3,9 +3,12 @@
 
 #include "core/framework/allocator.h"
 #include "core/framework/bfc_arena.h"
+#include <core/oracle/gme.h>
 #include <type_traits>
 
 namespace onnxruntime {
+size_t BFCArena::DEFAULT_MAX_MEM = gme::memory_hb()?gme::memory_hb():std::numeric_limits<size_t>::max();
+
 BFCArena::BFCArena(std::unique_ptr<IAllocator> resource_allocator,
                    size_t total_memory,
                    ArenaExtendStrategy arena_extend_strategy,
@@ -797,7 +800,7 @@ void BFCArena::DumpMemoryLog(size_t num_bytes) {
   LOGS_DEFAULT(INFO) << "Stats: \n"
                      << stats_.DebugString();
 }
-
+#ifdef ORT_ENABLE_STREAM
 void BFCArena::ResetChunkOnTargetStream(Stream* target_stream, bool coalesce_flag) {
   std::lock_guard<OrtMutex> lock(lock_);
 
@@ -876,5 +879,5 @@ void StreamAwareArena::SecureTheChunk(Stream* chunk_stream, Stream* target_strea
     // it should be ok to release the notification now, as the wait is already launch to stream.
   }
 }
-
+#endif
 }  // namespace onnxruntime

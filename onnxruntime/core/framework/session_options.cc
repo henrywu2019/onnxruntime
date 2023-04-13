@@ -4,6 +4,7 @@
 #include "core/framework/session_options.h"
 #include "core/common/logging/logging.h"
 #include "core/framework/ort_value.h"
+#include "core/oracle/gme.h"
 
 namespace onnxruntime {
 
@@ -28,6 +29,19 @@ Status CheckInitializer(const char* name, const OrtValue* val) {
 }
 
 }  // namespace
+
+SessionOptions::SessionOptions(){
+  bool x = gme::BoolFromEnv("MEM_OPT", false);
+  enable_mem_pattern = x;
+  enable_mem_reuse = x;
+  enable_cpu_mem_arena = x;
+
+  use_per_session_threads = gme::BoolFromEnv("PER_SESSION_THREAD", false);
+
+  enable_profiling = gme::BoolFromEnv("PROFILE", false);
+  session_log_severity_level = gme::Int32FromEnv("LOG", -1);
+  session_log_verbosity_level = gme::Int32FromEnv("VER", 0);
+}
 
 Status SessionOptions::AddInitializer(_In_z_ const char* name, _In_ const OrtValue* val) {
   // input validation

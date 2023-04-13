@@ -48,7 +48,6 @@ class StreamAwareArena;
 // A memory allocator that implements a 'best-fit with coalescing'
 // algorithm.  This is essentially a very simple version of Doug Lea's
 // malloc (dlmalloc).
-//
 // The goal of this allocator is to support defragmentation via
 // coalescing.  One assumption we make is that the process using this
 // allocator owns pretty much all of the memory, and that nearly
@@ -59,7 +58,7 @@ class BFCArena : public IAllocator {
   static const int DEFAULT_INITIAL_CHUNK_SIZE_BYTES = 1 * 1024 * 1024;
   static const int DEFAULT_MAX_DEAD_BYTES_PER_CHUNK = 128 * 1024 * 1024;
   static const int DEFAULT_INITIAL_GROWTH_CHUNK_SIZE_BYTES = 2 * 1024 * 1024;
-  static const size_t DEFAULT_MAX_MEM = std::numeric_limits<size_t>::max();
+  static size_t DEFAULT_MAX_MEM;
 
   enum ArenaType {
     BaseArena,
@@ -107,10 +106,11 @@ class BFCArena : public IAllocator {
                             Stream* stream,
                             bool enable_cross_stream_reusing,
                             WaitNotificationFn wait_fn);
+  #ifdef ORT_ENABLE_STREAM
   // for any chunk that associated with target stream, reset it to default (nullptr in stream, timestamp 0)
   // perform coalesce if coalesce_flag is true
   void ResetChunkOnTargetStream(Stream* target_stream, bool coalesce_flag);
-
+  #endif
   // Secure the allocated chunk on the target stream
   virtual void SecureTheChunk(Stream* /*chunk_stream*/,
                               Stream* /*target_stream*/,
@@ -513,7 +513,7 @@ class BFCArena : public IAllocator {
 
   ORT_DISALLOW_COPY_ASSIGNMENT_AND_MOVE(BFCArena);
 };
-
+#ifdef ORT_ENABLE_STREAM
 class StreamAwareArena : public BFCArena {
  public:
   StreamAwareArena(std::unique_ptr<IAllocator> resource_allocator,
@@ -541,6 +541,7 @@ class StreamAwareArena : public BFCArena {
  private:
   bool enable_cross_stream_reusing_;
 };
+#endif
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif

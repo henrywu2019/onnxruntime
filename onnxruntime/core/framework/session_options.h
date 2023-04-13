@@ -65,17 +65,17 @@ struct SessionOptions {
   // and generate a memory pattern for future request. So next time we could just do one allocation
   // with a big chunk for all the internal memory allocation.
   // See class 'OrtValuePatternPlanner'.
-  bool enable_mem_pattern = true;
+  bool enable_mem_pattern = false;
 
   // Enable memory resue in memory planning. Allows to reuse tensor buffer between tensors if they are of
   // the same size. The issue with this is it can lead to memory being held for longer than needed and
   // can impact peak memory consumption.
-  bool enable_mem_reuse = true;
+  bool enable_mem_reuse = false;
 
   // enable the memory arena on CPU
   // Arena may pre-allocate memory for future usage.
   // set this option to false if you don't want it.
-  bool enable_cpu_mem_arena = true;
+  bool enable_cpu_mem_arena = false;
 
   // the prefix of the profile file. The current time will be appended to the file name.
   std::basic_string<ORTCHAR_T> profile_file_prefix = ORT_TSTR("onnxruntime_profile_");
@@ -136,6 +136,8 @@ struct SessionOptions {
 
   // custom function callback to join a thread
   OrtCustomJoinThreadFn custom_join_thread_fn = nullptr;
+
+  SessionOptions();
 };
 
 }  // namespace onnxruntime
