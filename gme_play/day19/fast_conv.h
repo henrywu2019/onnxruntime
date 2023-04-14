@@ -123,11 +123,17 @@ struct fast_conv {  // can refactor using inheritance
   void run_nchc8w(float* output_, int cbase, int cstop);
   void run_full();
   void run_full_nchc8w();
+  void run();
 
   void print() {
     //print_matrix(output,ca.OH, ca.OW);
     print_output(output,ca.OH, ca.OW,ca.K);
   }
+
+  inline int input_index(int c_, int h_, int w_){
+    return c_*input_channel_stride + h_*ca.W + w_;
+  }
+
   inline int input_index_nchw(int c_, int h_, int w_){
     return c_*input_channel_stride + h_*ca.W + w_;
   }
