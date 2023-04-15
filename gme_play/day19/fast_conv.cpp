@@ -646,11 +646,22 @@ void get_input(float* l, int n, int c, int w, int h, float channel_delta = 0.1, 
   }
 }
 
+#include <sys/resource.h>
+#include <iostream>
+#include <iomanip>
+
+int print_peak_mem() {
+    struct rusage usage;
+    getrusage(RUSAGE_SELF, &usage);
+    std::cout << "Peak memory usage: " << usage.ru_maxrss << " KB" << std::endl;
+    return 0;
+}
+
 int main(int argc, char** argv) {
   srand(0xdeadbeef);
   int input_height = 10, input_width = 10, input_channel = 256, filter_batch = 4, kernel_width = 3, kernel_height = 3;
-  // input_channel = 256, input_height = 400, input_width = 296;
-  int channel_split=32;
+  input_channel = 256, input_height = 400, input_width = 296;
+  int channel_split=16;
   int thread_num;
 
   if (argc >= 2) {
@@ -686,23 +697,31 @@ int main(int argc, char** argv) {
 
   const int output_height = input_height - kernel_height + 1, output_width = input_width - kernel_width + 1;
   conv_attr ca(1, input_channel, input_height, input_width, filter_batch, kernel_height, kernel_width);
+  wait_for_input();
   float* I = (float*)_mm_malloc(sizeof(float) * input_channel * input_width * input_height, 32);
-  float* F = (float*)_mm_malloc(sizeof(float) * filter_batch * input_channel * kernel_width * kernel_height, 32);
-
   get_input(I, 1, input_channel, input_width, input_height, 0.1, 1);
+  wait_for_input();
+  float* F = (float*)_mm_malloc(sizeof(float) * filter_batch * input_channel * kernel_width * kernel_height, 32);
+  wait_for_input();
+
   get_input(F, filter_batch, input_channel, kernel_width, kernel_height, 0.1, 1, 0.2);
-  printf("filter size: %d\n", filter_batch * input_channel * kernel_width * kernel_height);
-  printf("input total size: %.2fKB\n", 1 * input_channel * input_width * input_height / (1024.));
+  printf("filter size: %.2fKB\n", filter_batch * input_channel * kernel_width * kernel_height*sizeof(float)/(1024.));
+  printf("input total size: %.2fKB\n", sizeof(float) * input_channel * input_width * input_height / (1024.));
+  printf("output total size: %.2fKB\n", sizeof(float) * filter_batch * output_width * output_height / (1024.));
+  wait_for_input();
   float* O = (float*)_mm_malloc(sizeof(float) * output_height * output_width * filter_batch, 32);
+  wait_for_input();
+  print_peak_mem();
 
   fast_conv cw(ca, I, F, O, channel_split, thread_num);
   auto start = high_resolution_clock::now();
   cw.run_full();
   long long t = duration_cast<microseconds>((high_resolution_clock::now() - start)).count();
   cout << "\n\n==============" << endl;
-  cout << __FUNCTION__ << ":" << input_channel << "," << t << "us" << endl;
+  cout << __FUNCTION__ << ": input_channel-" << input_channel << ",input_height-" << input_height << ",input_width-" << input_width  << ",filter_batch-" << filter_batch << ",channel_split-" << cw.CHANNEL_SPLIT << ",time-" << t << "us" << endl;
   cw.print();
   _mm_free(I), _mm_free(F), _mm_free(O);
+  print_peak_mem();
   return 0;
 }
 

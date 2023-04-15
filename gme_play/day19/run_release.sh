@@ -1,7 +1,7 @@
 set -x
 
 
-g++ fast_conv.cpp -o fast_conv.exe -lpthread -O3 -std=c++20 -mavx2 -march=native
+g++ fast_conv.cpp -o fast_conv_release.exe -lpthread -O3 -std=c++20 -mavx2 -march=native
 
 # DegreeOfParallelism
 

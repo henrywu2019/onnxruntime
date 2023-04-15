@@ -7,8 +7,16 @@
 #include "immintrin.h"
 #include "threadpool.h"
 #include <sein.hpp>
+#include <unistd.h>
 
 const int VEC_LEN = 8;  // vectorization length
+
+#define wait_for_input() {\
+  std::string userInput;\
+  std::cout << __FUNCTION__ << " > "<< __LINE__ << " => continue? ";\
+  std::getline(std::cin, userInput); \
+  std::cout << "You entered: " << userInput << std::endl;\
+}
 
 int ceil_int(int x, int y);
 void print_matrix(float* m, int h, int w);
@@ -65,15 +73,14 @@ struct fast_conv {  // can refactor using inheritance
 
 
   int slice_number_in_batch_dim;
-
-  int CHANNEL_SPLIT=32;
+  int CHANNEL_SPLIT=16;
   int thread_num=-1;
   int get_currency(){
     return thread_num;
     return thread::hardware_concurrency();
   }
 
-  fast_conv(conv_attr ca_, float* input_, float* kernel_, float* output_, int channel_split=32, int thread_num_=false)
+  fast_conv(conv_attr ca_, float* input_, float* kernel_, float* output_, int channel_split=16, int thread_num_=false)
       :ca(ca_), input(input_), kernel(kernel_), output(output_), CHANNEL_SPLIT(channel_split), thread_num(thread_num_){
     assert(ca.C%8 == 0 or ca.C<=4);
     if(thread_num>0){
@@ -93,8 +100,11 @@ struct fast_conv {  // can refactor using inheritance
     filter_size = ca.K * filter_batch_stride;
     slice_number_in_batch_dim = ceil_int(ca.K, 4);
 
-    if (output == nullptr)
+    if (output == nullptr){
+      wait_for_input();
       output = (float*)_mm_malloc(sizeof(float) * output_size, 32);
+      wait_for_input();
+    }
     if (thread_num>0){
       out_buff_num = get_currency();
       printf("concurrency number: %d\n", get_currency());
@@ -103,6 +113,8 @@ struct fast_conv {  // can refactor using inheritance
         out_buff[x] = new float[output_size](); // TODO
       }
     }else{
+      wait_for_input();
+      #if 0
       if (ca.C>CHANNEL_SPLIT){
         out_buff_num = ceil_int(ca.C,CHANNEL_SPLIT);
         out_buff = new float*[out_buff_num](); // TODO
@@ -110,6 +122,7 @@ struct fast_conv {  // can refactor using inheritance
           out_buff[x] = new float[output_size](); // TODO
         }
       }
+      #endif
     }
     reorder_kernel();
   }

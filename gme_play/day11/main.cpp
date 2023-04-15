@@ -6,10 +6,30 @@
 #ifdef ORTCONV
 #include "ort_conv.h"
 #endif
+#include <unistd.h>
 
 using namespace std;
 
 long l1_cache_size = sysconf(_SC_LEVEL1_DCACHE_SIZE);
+
+#include <sys/resource.h>
+#include <iostream>
+#include <iomanip>
+
+int print_peak_mem() {
+    struct rusage usage;
+    getrusage(RUSAGE_SELF, &usage);
+    std::cout << "Peak memory usage: " << usage.ru_maxrss << " KB" << std::endl;
+    return 0;
+}
+
+#define wait_for_input() {\
+  std::string userInput;\
+  std::cout << __LINE__ << " => continue? ";\
+  std::getline(std::cin, userInput); \
+  std::cout << "You entered: " << userInput << std::endl;\
+}
+
 
 /*
  * Based on day6 example, increase the input channel number to 16.
@@ -134,8 +154,8 @@ long long gme_conv(vector<float>& I,
   }
 
   auto t1 = std::chrono::high_resolution_clock::now();
-  long long t = std::chrono::duration_cast<std::chrono::nanoseconds>((t1 - start)).count();
-  std::cout << __FUNCTION__ << " | Compute Time: " << t << " ns" << std::endl;
+  long long t = std::chrono::duration_cast<std::chrono::microseconds>((t1 - start)).count();
+  std::cout << __FUNCTION__ << " | Compute Time: " << t << " us" << std::endl;
   return t;
 }
 
@@ -276,8 +296,8 @@ long long gme_conv_no_extraction(vector<float>& I,
     }
   }
   auto t1 = std::chrono::high_resolution_clock::now();
-  long long t = std::chrono::duration_cast<std::chrono::nanoseconds>((t1 - start)).count();
-  std::cout << __FUNCTION__ << " | Compute Time: " << t << " ns" << std::endl;
+  long long t = std::chrono::duration_cast<std::chrono::microseconds>((t1 - start)).count();
+  std::cout << __FUNCTION__ << " | Compute Time: " << t << " us" << std::endl;
   return t;
 }
 
@@ -311,10 +331,13 @@ long long run(int run_flag, int input_height, int input_width, int input_channel
   printf("output size: %ldB\n", output_height * output_width * filter_batch * sizeof(float));
 
   vector<float> I(input_channel * input_width * input_height,0.0), F(filter_batch * input_channel * kernel_width * kernel_height,0.0);
+  wait_for_input();
   get_input(I.data(), 1, input_channel, input_width, input_height, 0.1, 1);
+  wait_for_input();
   get_input(F.data(), filter_batch, input_channel, kernel_width, kernel_height, 0.1, 1, 0.2);
   printf("filter size: %d\n", filter_batch * input_channel * kernel_width * kernel_height);
   printf("input total size: %.2fKB\n", 1 * input_channel * input_width * input_height / (1024.));
+  wait_for_input();
 
   // if(run_flag & 0b100){
   if (0) {
@@ -333,6 +356,7 @@ long long run(int run_flag, int input_height, int input_width, int input_channel
     auto t = gme_conv_no_extraction(I, F, O, kernel_height, kernel_width, input_channel, filter_batch,
                                     input_height, input_width, output_height, output_width);
     print_output(O, output_height, output_width, filter_batch);
+    wait_for_input();
     ::memset(O, 0, output_height * output_width * sizeof(float) * filter_batch);
     printf("\n==============================================================================\n");
   }
@@ -354,6 +378,7 @@ long long run(int run_flag, int input_height, int input_width, int input_channel
 
   if (run_flag & 0b1) {
 #ifdef ORTCONV
+    wait_for_input();
     onnxruntime_conv_nchwc(1, 1, input_channel, input_height, input_width,
                            filter_batch, kernel_height, kernel_width,
                            0, 0, 0, 0,
@@ -372,6 +397,7 @@ long long run(int run_flag, int input_height, int input_width, int input_channel
 
   if (run_flag & 0b10000) {
 #ifdef ORTCONV
+    wait_for_input();
     onnxruntime_conv_nchw(1, 1, input_channel, input_height, input_width,
                           filter_batch, kernel_height, kernel_width,
                           0, 0, 0, 0,
@@ -431,5 +457,6 @@ int main(int argc, char** argv) {
     factor = stoi(argv[6]);
   }
   auto t = run(run_flag, input_height, input_width, input_channel, filter_batch, kernel_width, kernel_height, factor);
+  print_peak_mem();
   return 0;
 }

@@ -1,10 +1,11 @@
 set -x
 
 
-g++ -g main.cpp ort_conv.cpp ort_conv2.cpp -o main_debug.exe -O0 -I/home/henry/wendy/git.repo/onnxruntime/include/ \
--L/home/henry/wendy/git.repo/onnxruntime/cmake/cmake-build-debug/Debug \
--L/home/henry/wendy/git.repo/onnxruntime/cmake/cmake-build-debug/_deps/google_nsync-build/ \
- -lonnxruntime_mlas -lonnxruntime_common -lnsync_cpp -std=c++11 -mavx2 -march=native
+g++ -g main.cpp ort_conv.cpp ort_conv2.cpp -o main_debug.exe -O0 -I/home/opc/workspace/onnxruntime/include/ \
+-L/home/opc/workspace/onnxruntime/build/Linux/Release/ \
+-L/home/opc/workspace/onnxruntime/build/Linux/Release/_deps/google_nsync-build \
+    -lonnxruntime_mlas -lonnxruntime_common -lnsync_cpp -std=c++11 -mavx2 -march=native \
+    -fuse-linker-plugin -mtune=native -lpthread
 
 # DegreeOfParallelism
 
