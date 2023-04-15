@@ -24,10 +24,10 @@ int print_peak_mem() {
 }
 
 #define wait_for_input() {\
-  std::string userInput;\
+  /*std::string userInput;\
   std::cout << __LINE__ << " => continue? ";\
   std::getline(std::cin, userInput); \
-  std::cout << "You entered: " << userInput << std::endl;\
+  std::cout << "You entered: " << userInput << std::endl;*/\
 }
 
 

@@ -11,12 +11,14 @@
 
 const int VEC_LEN = 8;  // vectorization length
 
-#define wait_for_input() {\
+#define wait_for_input_() {\
   std::string userInput;\
   std::cout << __FUNCTION__ << " > "<< __LINE__ << " => continue? ";\
   std::getline(std::cin, userInput); \
   std::cout << "You entered: " << userInput << std::endl;\
 }
+
+#define wait_for_input() {}
 
 int ceil_int(int x, int y);
 void print_matrix(float* m, int h, int w);
