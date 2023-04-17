@@ -5,7 +5,7 @@
 #ifndef TUNABLE_ALGO_FAST_CONV_H
 #define TUNABLE_ALGO_FAST_CONV_H
 #include "immintrin.h"
-#include "threadpool.h"
+//#include "threadpool.h"
 #include <sein.hpp>
 #include <unistd.h>
 
@@ -71,7 +71,7 @@ struct fast_conv {  // can refactor using inheritance
   float* input_nhbcw8 = nullptr;
   float* input_nhcw = nullptr;
   float* input_nchc8w = nullptr;
-  bs::thread_pool pool;
+  //bs::thread_pool pool;
 
 
   int slice_number_in_batch_dim;
@@ -82,7 +82,7 @@ struct fast_conv {  // can refactor using inheritance
     return thread::hardware_concurrency();
   }
 
-  fast_conv(conv_attr ca_, float* input_, float* kernel_, float* output_, int channel_split=16, int thread_num_=false)
+  fast_conv(conv_attr ca_, float* input_, float* kernel_, float* output_, int channel_split=16, int thread_num_=0)
       :ca(ca_), input(input_), kernel(kernel_), output(output_), CHANNEL_SPLIT(channel_split), thread_num(thread_num_){
     assert(ca.C%8 == 0 or ca.C<=4);
     if(thread_num>0){
@@ -107,7 +107,7 @@ struct fast_conv {  // can refactor using inheritance
       output = (float*)_mm_malloc(sizeof(float) * output_size, 32);
       wait_for_input();
     }
-    if (thread_num>0){
+    if (0){
       out_buff_num = get_currency();
       printf("concurrency number: %d\n", get_currency());
       out_buff = new float*[out_buff_num](); // TODO

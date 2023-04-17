@@ -96,6 +96,7 @@ void fast_conv::reorder_input_NcHc8W(){
 }
 
 void fast_conv::run_full(){
+  cout << __FUNCTION__ << " | thread_num: " << thread_num << endl;
   if(thread_num>0 and ca.C>32){
       std::mutex iomutex;
       auto loop = [&](const int a, const int b){
@@ -105,7 +106,7 @@ void fast_conv::run_full(){
         auto output_ = out_buff[floor_int(a,CHANNEL_SPLIT)];
         run_nchw(output, a, min(a+CHANNEL_SPLIT, ca.C));
       };
-      pool.parallelize_loop(0, ca.C, loop, out_buff_num).wait();
+      //pool.parallelize_loop(0, ca.C, loop, out_buff_num).wait();
       auto start = high_resolution_clock::now();
       REP(i,0,out_buff_num){
         matrix_fuse(output, out_buff[i], output_size);
@@ -662,7 +663,7 @@ int main(int argc, char** argv) {
   int input_height = 10, input_width = 10, input_channel = 256, filter_batch = 4, kernel_width = 3, kernel_height = 3;
   input_channel = 256, input_height = 400, input_width = 296;
   int channel_split=16;
-  int thread_num;
+  int thread_num=0;
 
   if (argc >= 2) {
     if (strcmp(argv[1], "-h") == 0) {
