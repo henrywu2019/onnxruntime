@@ -1,4 +1,4 @@
-# Zero-Overhead High Performance Direct Convolution Without Runtime Packing and Reordering On CPUs
+# ZPZR: High Performance Direct Convolution Without Runtime Packing and Reordering On CPUs
 
 ## Abstract
 
@@ -20,6 +20,10 @@ OCR model has many receipts input where height is much longer than width.
 ## Zero-Overhead Direct Convolution
 
 This paper presents a simplified method for performing direct convolution on consumer-grade CPUs without requiring packing or reordering. The input data layout is NCHW, which conforms to the default in PyTorch and ONNX protocol. We describe the algorithm without CPU vector extension support, followed by the optimal register allocation algorithm that employs CPU Fused-Multiply-Add (FMA) instructions. Additionally, we present experimental results that demonstrate on-par or superior performance with less memory consumption.
+
+### Observations
+
+Traditionally, with NCHW data format, the direct convolution suffers from low performance due to the unfriendly memory access pattern ruled by how convolution is defined in CNN. We load data from kernel and do-product them with corresponding data acrossing multiple rows in input data and sum them to get one numeric value in the output. During the process, we actually re-load the same data many times which causes inefficiency. Our algorithm is more efficient because it reduces the register data reloading rate while maintaining a low CPU cache miss rate.
 
 ### ZPZR Direct Convolution without FMA
 
