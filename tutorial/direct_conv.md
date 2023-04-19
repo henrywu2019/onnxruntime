@@ -23,7 +23,7 @@ This paper presents a simplified method for performing direct convolution on con
 
 ### Observations
 
-Traditionally, with NCHW data format, the direct convolution suffers from low performance due to the unfriendly memory access pattern ruled by how convolution is defined in CNN. We load data from kernel and do-product them with corresponding data acrossing multiple rows in input data and sum them to get one numeric value in the output. During the process, we actually re-load the same data many times which causes inefficiency. Our algorithm is more efficient because it reduces the register data reloading rate while maintaining a low CPU cache miss rate.
+In the conventional NCHW data format, direct convolution encounters performance issues due to the unfavourable memory access pattern dictated by the CNN convolution definition. The process involves loading data from the kernel, performing a dot-product with corresponding data across multiple rows in the input data, and summing them to obtain a single numeric value in the output. This results in frequent reloading of the same data, leading to inefficiency. Our algorithm overcomes this issue by reducing the frequency of register data reloading while maintaining a low CPU cache miss rate, resulting in greater efficiency.
 
 ### ZPZR Direct Convolution without FMA
 
