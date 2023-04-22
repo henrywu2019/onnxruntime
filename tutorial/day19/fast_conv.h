@@ -82,7 +82,7 @@ struct fast_conv {  // can refactor using inheritance
     return thread::hardware_concurrency();
   }
 
-  fast_conv(conv_attr ca_, float* input_, float* kernel_, float* output_, int channel_split=16, int thread_num_=0)
+  fast_conv(conv_attr ca_, float* input_, float* kernel_, float* output_, int channel_split=16, int thread_num_=false)
       :ca(ca_), input(input_), kernel(kernel_), output(output_), CHANNEL_SPLIT(channel_split), thread_num(thread_num_){
     assert(ca.C%8 == 0 or ca.C<=4);
     if(thread_num>0){
@@ -134,9 +134,11 @@ struct fast_conv {  // can refactor using inheritance
   void reorder_input_NhcW();
   void reorder_input_NcHc8W();
   void run_nchw(float* output_, int cbase, int cstop);
+  void run_nchw2x2(float* output_, int cbase, int cstop);
   void run_nhcw(float* output_, int cbase, int cstop);
   void run_nchc8w(float* output_, int cbase, int cstop);
   void run_full();
+  void run_naive();
   void run_full_nchc8w();
   void run();
 
@@ -163,7 +165,7 @@ struct fast_conv {  // can refactor using inheritance
   }
 
 //#define DEBUG
-  inline int kernel_index(int k_, int c_, int r_, int l_) {
+  inline int kin(int k_, int c_, int r_, int l_) {
 #ifdef DEBUG
     static int count=0, prev=0;
     auto r = k_ * filter_batch_stride + c_ * filter_channel_stride + r_ * ca.L + l_;
@@ -177,7 +179,7 @@ struct fast_conv {  // can refactor using inheritance
   inline int kid(int k_, int c_, int r, int l, int k) {
     return k_ * ca.C * ca.R * ca.L * 4 + c_ * ca.R * ca.L * 4 + r * ca.L * 4 + l * 4 + k;
   }
-  inline int output_index(int k_, int oh_, int ow_){
+  inline int oid(int k_, int oh_, int ow_){
     return k_*output_channel_stride + oh_*ca.OW + ow_;
   }
 };

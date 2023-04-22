@@ -22,6 +22,7 @@ void print_m256(const __m256& v){
 }
 
 void fast_conv::reorder_kernel(int k_split){
+  if (ca.R==2) return;
   auto start = high_resolution_clock::now();
   fr = (float*)_mm_malloc(sizeof(float) * filter_size, 32); // TODO: maybe too small
   int ori_idx = 0, new_idx = 0;
@@ -115,10 +116,16 @@ void fast_conv::run_full(){
       cout << "matrix_fuse: " << t << " us" << endl;
       return;
   }else{
+    if (ca.R==2 and ca.L==2){
+      REP2(cbase,0,ca.C,CHANNEL_SPLIT){
+        run_nchw2x2(output, cbase, min(cbase+CHANNEL_SPLIT, ca.C));
+      }
+    }else{
       REP2(cbase,0,ca.C,CHANNEL_SPLIT){
         //run_nchw(out_buff[cbase/CHANNEL_SPLIT-1], cbase, min(cbase+CHANNEL_SPLIT, ca.C));
         run_nchw(output, cbase, min(cbase+CHANNEL_SPLIT, ca.C));
       }
+    }
   }
 }
 
@@ -218,10 +225,10 @@ void fast_conv::run_nchw(float* output_, int cbase, int cstop) {
         // when c_=cstop-1
         {
           // write y04, y07, y10, y13 to output_, print_m256(y04);
-          d=output_+output_index(k*4+0,h_-2,w_); _mm256_storeu_ps(d, _mm256_add_ps(y04, _mm256_loadu_ps(d))); _mm256_storeu_ps((float*)&y04,y05); _mm256_storeu_ps((float*)&y05,y06); y06 = _mm256_setzero_ps(); // k=kbase
-          d=output_+output_index(k*4+1,h_-2,w_); _mm256_storeu_ps(d, _mm256_add_ps(y07, _mm256_loadu_ps(d))); _mm256_storeu_ps((float*)&y07,y08); _mm256_storeu_ps((float*)&y08,y09); y09 = _mm256_setzero_ps(); // k=kbase+1
-          d=output_+output_index(k*4+2,h_-2,w_); _mm256_storeu_ps(d, _mm256_add_ps(y10, _mm256_loadu_ps(d))); _mm256_storeu_ps((float*)&y10,y11); _mm256_storeu_ps((float*)&y11,y12); y12 = _mm256_setzero_ps(); // k=kbase+2
-          d=output_+output_index(k*4+3,h_-2,w_); _mm256_storeu_ps(d, _mm256_add_ps(y13, _mm256_loadu_ps(d))); _mm256_storeu_ps((float*)&y13,y14); _mm256_storeu_ps((float*)&y14,y15); y15 = _mm256_setzero_ps(); // k=kbase+3
+          d=output_+oid(k*4+0,h_-2,w_); _mm256_storeu_ps(d, _mm256_add_ps(y04, _mm256_loadu_ps(d))); _mm256_storeu_ps((float*)&y04,y05); _mm256_storeu_ps((float*)&y05,y06); y06 = _mm256_setzero_ps(); // k=kbase
+          d=output_+oid(k*4+1,h_-2,w_); _mm256_storeu_ps(d, _mm256_add_ps(y07, _mm256_loadu_ps(d))); _mm256_storeu_ps((float*)&y07,y08); _mm256_storeu_ps((float*)&y08,y09); y09 = _mm256_setzero_ps(); // k=kbase+1
+          d=output_+oid(k*4+2,h_-2,w_); _mm256_storeu_ps(d, _mm256_add_ps(y10, _mm256_loadu_ps(d))); _mm256_storeu_ps((float*)&y10,y11); _mm256_storeu_ps((float*)&y11,y12); y12 = _mm256_setzero_ps(); // k=kbase+2
+          d=output_+oid(k*4+3,h_-2,w_); _mm256_storeu_ps(d, _mm256_add_ps(y13, _mm256_loadu_ps(d))); _mm256_storeu_ps((float*)&y13,y14); _mm256_storeu_ps((float*)&y14,y15); y15 = _mm256_setzero_ps(); // k=kbase+3
         }
       }
 
@@ -252,10 +259,10 @@ void fast_conv::run_nchw(float* output_, int cbase, int cstop) {
         {
           // write y04, y07, y10, y13 to output_
           //print_m256(y04);
-          d=output_+output_index(k*4+0,h_-2,w_); _mm256_storeu_ps(d, _mm256_add_ps(y04, _mm256_loadu_ps(d))); _mm256_storeu_ps((float*)&y04,y05); y05 = _mm256_setzero_ps();
-          d=output_+output_index(k*4+1,h_-2,w_); _mm256_storeu_ps(d, _mm256_add_ps(y07, _mm256_loadu_ps(d))); _mm256_storeu_ps((float*)&y07,y08); y08 = _mm256_setzero_ps();
-          d=output_+output_index(k*4+2,h_-2,w_); _mm256_storeu_ps(d, _mm256_add_ps(y10, _mm256_loadu_ps(d))); _mm256_storeu_ps((float*)&y10,y11); y11 = _mm256_setzero_ps();
-          d=output_+output_index(k*4+3,h_-2,w_); _mm256_storeu_ps(d, _mm256_add_ps(y13, _mm256_loadu_ps(d))); _mm256_storeu_ps((float*)&y13,y14); y14 = _mm256_setzero_ps();
+          d=output_+oid(k*4+0,h_-2,w_); _mm256_storeu_ps(d, _mm256_add_ps(y04, _mm256_loadu_ps(d))); _mm256_storeu_ps((float*)&y04,y05); y05 = _mm256_setzero_ps();
+          d=output_+oid(k*4+1,h_-2,w_); _mm256_storeu_ps(d, _mm256_add_ps(y07, _mm256_loadu_ps(d))); _mm256_storeu_ps((float*)&y07,y08); y08 = _mm256_setzero_ps();
+          d=output_+oid(k*4+2,h_-2,w_); _mm256_storeu_ps(d, _mm256_add_ps(y10, _mm256_loadu_ps(d))); _mm256_storeu_ps((float*)&y10,y11); y11 = _mm256_setzero_ps();
+          d=output_+oid(k*4+3,h_-2,w_); _mm256_storeu_ps(d, _mm256_add_ps(y13, _mm256_loadu_ps(d))); _mm256_storeu_ps((float*)&y13,y14); y14 = _mm256_setzero_ps();
         }
       }
 
@@ -285,10 +292,10 @@ void fast_conv::run_nchw(float* output_, int cbase, int cstop) {
         // when c_=cstop-1
         {
           //print_m256(y04);
-          d=output_+output_index(k*4+0,h_-2,w_); _mm256_storeu_ps(d, _mm256_add_ps(y04, _mm256_loadu_ps(d)));
-          d=output_+output_index(k*4+1,h_-2,w_); _mm256_storeu_ps(d, _mm256_add_ps(y07, _mm256_loadu_ps(d)));
-          d=output_+output_index(k*4+2,h_-2,w_); _mm256_storeu_ps(d, _mm256_add_ps(y10, _mm256_loadu_ps(d)));
-          d=output_+output_index(k*4+3,h_-2,w_); _mm256_storeu_ps(d, _mm256_add_ps(y13, _mm256_loadu_ps(d)));
+          d=output_+oid(k*4+0,h_-2,w_); _mm256_storeu_ps(d, _mm256_add_ps(y04, _mm256_loadu_ps(d)));
+          d=output_+oid(k*4+1,h_-2,w_); _mm256_storeu_ps(d, _mm256_add_ps(y07, _mm256_loadu_ps(d)));
+          d=output_+oid(k*4+2,h_-2,w_); _mm256_storeu_ps(d, _mm256_add_ps(y10, _mm256_loadu_ps(d)));
+          d=output_+oid(k*4+3,h_-2,w_); _mm256_storeu_ps(d, _mm256_add_ps(y13, _mm256_loadu_ps(d)));
           y04 = _mm256_setzero_ps();
           y07 = _mm256_setzero_ps();
           y10 = _mm256_setzero_ps();
@@ -299,6 +306,127 @@ void fast_conv::run_nchw(float* output_, int cbase, int cstop) {
     //printf("write to output_\n");
   }
 }
+
+
+void fast_conv::run_nchw2x2(float* output_, int cbase, int cstop) {
+  __m256 y00{}, y01{};
+  __m256 y02{}, y03{}, y04{}, y05{}, y06{}, y07{}, y08{}, y09{}, y10{}, y11{}, y12{}, y13{}, y14{}, y15{};
+  float* d= nullptr;
+  REP2(k,0,ca.K,7)
+  {
+    REP2(w_,0,ca.OW,8){
+      // TC: O(9*CHANNEL_SPLIT*H=288H)
+      {
+        const int h_=0;
+        REP(c_,cbase,cstop){
+          int i_offset= input_index_nchw(c_, h_, w_);
+          y00 = _mm256_loadu_ps(input + i_offset++);
+          y01 = _mm256_set1_ps(kernel[kin(k+0,c_,0,0)]); y02 = _mm256_fmadd_ps(y00, y01, y02);
+          y01 = _mm256_set1_ps(kernel[kin(k+1,c_,0,0)]); y04 = _mm256_fmadd_ps(y00, y01, y04);
+          y01 = _mm256_set1_ps(kernel[kin(k+2,c_,0,0)]); y06 = _mm256_fmadd_ps(y00, y01, y06);
+          y01 = _mm256_set1_ps(kernel[kin(k+3,c_,0,0)]); y08 = _mm256_fmadd_ps(y00, y01, y08);
+          y01 = _mm256_set1_ps(kernel[kin(k+4,c_,0,0)]); y10 = _mm256_fmadd_ps(y00, y01, y10);
+          y01 = _mm256_set1_ps(kernel[kin(k+5,c_,0,0)]); y12 = _mm256_fmadd_ps(y00, y01, y12);
+          y01 = _mm256_set1_ps(kernel[kin(k+6,c_,0,0)]); y14 = _mm256_fmadd_ps(y00, y01, y14);
+
+          y00 = _mm256_loadu_ps(input + i_offset++);
+          y01 = _mm256_set1_ps(kernel[kin(k+0,c_,0,1)]); y02 = _mm256_fmadd_ps(y00, y01, y02);
+          y01 = _mm256_set1_ps(kernel[kin(k+1,c_,0,1)]); y04 = _mm256_fmadd_ps(y00, y01, y04);
+          y01 = _mm256_set1_ps(kernel[kin(k+2,c_,0,1)]); y06 = _mm256_fmadd_ps(y00, y01, y06);
+          y01 = _mm256_set1_ps(kernel[kin(k+3,c_,0,1)]); y08 = _mm256_fmadd_ps(y00, y01, y08);
+          y01 = _mm256_set1_ps(kernel[kin(k+4,c_,0,1)]); y10 = _mm256_fmadd_ps(y00, y01, y10);
+          y01 = _mm256_set1_ps(kernel[kin(k+5,c_,0,1)]); y12 = _mm256_fmadd_ps(y00, y01, y12);
+          y01 = _mm256_set1_ps(kernel[kin(k+6,c_,0,1)]); y14 = _mm256_fmadd_ps(y00, y01, y14);
+
+
+        }
+      }
+
+      REP(h_,1,ca.H-1){
+        REP(c_,cbase,cstop){
+          int i_offset= input_index_nchw(c_, h_, w_);
+          y00 = _mm256_loadu_ps(input + i_offset++);
+
+          y01 = _mm256_set1_ps(kernel[kin(k+0,c_,0,0)]); y03 = _mm256_fmadd_ps(y00, y01, y03); y01 = _mm256_set1_ps(kernel[kin(k+0,c_,1,0)]); y02 = _mm256_fmadd_ps(y00, y01, y02);
+          y01 = _mm256_set1_ps(kernel[kin(k+1,c_,0,0)]); y05 = _mm256_fmadd_ps(y00, y01, y05); y01 = _mm256_set1_ps(kernel[kin(k+1,c_,1,0)]); y04 = _mm256_fmadd_ps(y00, y01, y04);
+          y01 = _mm256_set1_ps(kernel[kin(k+2,c_,0,0)]); y07 = _mm256_fmadd_ps(y00, y01, y07); y01 = _mm256_set1_ps(kernel[kin(k+2,c_,1,0)]); y06 = _mm256_fmadd_ps(y00, y01, y06);
+          y01 = _mm256_set1_ps(kernel[kin(k+3,c_,0,0)]); y09 = _mm256_fmadd_ps(y00, y01, y09); y01 = _mm256_set1_ps(kernel[kin(k+3,c_,1,0)]); y08 = _mm256_fmadd_ps(y00, y01, y08);
+          y01 = _mm256_set1_ps(kernel[kin(k+4,c_,0,0)]); y11 = _mm256_fmadd_ps(y00, y01, y09); y01 = _mm256_set1_ps(kernel[kin(k+4,c_,1,0)]); y10 = _mm256_fmadd_ps(y00, y01, y10);
+          y01 = _mm256_set1_ps(kernel[kin(k+5,c_,0,0)]); y13 = _mm256_fmadd_ps(y00, y01, y09); y01 = _mm256_set1_ps(kernel[kin(k+5,c_,1,0)]); y12 = _mm256_fmadd_ps(y00, y01, y12);
+          y01 = _mm256_set1_ps(kernel[kin(k+6,c_,0,0)]); y15 = _mm256_fmadd_ps(y00, y01, y09); y01 = _mm256_set1_ps(kernel[kin(k+6,c_,1,0)]); y14 = _mm256_fmadd_ps(y00, y01, y14);
+
+          y00 = _mm256_loadu_ps(input + i_offset++);
+          y01 = _mm256_set1_ps(kernel[kin(k+0,c_,0,1)]); y03 = _mm256_fmadd_ps(y00, y01, y03); y01 = _mm256_set1_ps(kernel[kin(k+0,c_,1,1)]); y02 = _mm256_fmadd_ps(y00, y01, y02);
+          y01 = _mm256_set1_ps(kernel[kin(k+1,c_,0,1)]); y05 = _mm256_fmadd_ps(y00, y01, y05); y01 = _mm256_set1_ps(kernel[kin(k+1,c_,1,1)]); y04 = _mm256_fmadd_ps(y00, y01, y04);
+          y01 = _mm256_set1_ps(kernel[kin(k+2,c_,0,1)]); y07 = _mm256_fmadd_ps(y00, y01, y07); y01 = _mm256_set1_ps(kernel[kin(k+2,c_,1,1)]); y06 = _mm256_fmadd_ps(y00, y01, y06);
+          y01 = _mm256_set1_ps(kernel[kin(k+3,c_,0,1)]); y09 = _mm256_fmadd_ps(y00, y01, y09); y01 = _mm256_set1_ps(kernel[kin(k+3,c_,1,1)]); y08 = _mm256_fmadd_ps(y00, y01, y08);
+          y01 = _mm256_set1_ps(kernel[kin(k+4,c_,0,1)]); y11 = _mm256_fmadd_ps(y00, y01, y11); y01 = _mm256_set1_ps(kernel[kin(k+4,c_,1,1)]); y10 = _mm256_fmadd_ps(y00, y01, y10);
+          y01 = _mm256_set1_ps(kernel[kin(k+5,c_,0,1)]); y13 = _mm256_fmadd_ps(y00, y01, y13); y01 = _mm256_set1_ps(kernel[kin(k+5,c_,1,1)]); y12 = _mm256_fmadd_ps(y00, y01, y12);
+          y01 = _mm256_set1_ps(kernel[kin(k+6,c_,0,1)]); y15 = _mm256_fmadd_ps(y00, y01, y15); y01 = _mm256_set1_ps(kernel[kin(k+6,c_,1,1)]); y14 = _mm256_fmadd_ps(y00, y01, y14);
+        }
+
+        // when c_=cstop-1
+        {
+          // write y02, y04, y06, y08...14 to output_, print_m256(y04);
+          int tmp=oid(k+0,h_-1,w_);
+          d=output_+tmp; _mm256_storeu_ps(d, _mm256_add_ps(y02, _mm256_loadu_ps(d))); _mm256_storeu_ps((float*)&y02,y03); y03 = _mm256_setzero_ps();
+          d=output_+oid(k+1,h_-1,w_); _mm256_storeu_ps(d, _mm256_add_ps(y04, _mm256_loadu_ps(d))); _mm256_storeu_ps((float*)&y04,y05); y05 = _mm256_setzero_ps();
+          d=output_+oid(k+2,h_-1,w_); _mm256_storeu_ps(d, _mm256_add_ps(y06, _mm256_loadu_ps(d))); _mm256_storeu_ps((float*)&y06,y07); y07 = _mm256_setzero_ps();
+          d=output_+oid(k+3,h_-1,w_); _mm256_storeu_ps(d, _mm256_add_ps(y08, _mm256_loadu_ps(d))); _mm256_storeu_ps((float*)&y08,y09); y09 = _mm256_setzero_ps();
+          d=output_+oid(k+4,h_-1,w_); _mm256_storeu_ps(d, _mm256_add_ps(y10, _mm256_loadu_ps(d))); _mm256_storeu_ps((float*)&y10,y11); y11 = _mm256_setzero_ps();
+          d=output_+oid(k+5,h_-1,w_); _mm256_storeu_ps(d, _mm256_add_ps(y12, _mm256_loadu_ps(d))); _mm256_storeu_ps((float*)&y12,y13); y13 = _mm256_setzero_ps();
+          d=output_+oid(k+6,h_-1,w_); _mm256_storeu_ps(d, _mm256_add_ps(y14, _mm256_loadu_ps(d))); _mm256_storeu_ps((float*)&y14,y15); y15 = _mm256_setzero_ps();
+        }
+      }
+
+      {
+        const int h_=ca.H-1;
+        REP(c_,cbase,cstop){
+          int i_offset= input_index_nchw(c_, h_, w_);
+          y00 = _mm256_loadu_ps(input + i_offset++);
+          y01 = _mm256_set1_ps(kernel[kin(k+0,c_,1,0)]); y02 = _mm256_fmadd_ps(y00, y01, y02);
+          y01 = _mm256_set1_ps(kernel[kin(k+1,c_,1,0)]); y04 = _mm256_fmadd_ps(y00, y01, y04);
+          y01 = _mm256_set1_ps(kernel[kin(k+2,c_,1,0)]); y06 = _mm256_fmadd_ps(y00, y01, y06);
+          y01 = _mm256_set1_ps(kernel[kin(k+3,c_,1,0)]); y08 = _mm256_fmadd_ps(y00, y01, y08);
+          y01 = _mm256_set1_ps(kernel[kin(k+4,c_,1,0)]); y10 = _mm256_fmadd_ps(y00, y01, y10);
+          y01 = _mm256_set1_ps(kernel[kin(k+5,c_,1,0)]); y12 = _mm256_fmadd_ps(y00, y01, y12);
+          y01 = _mm256_set1_ps(kernel[kin(k+6,c_,1,0)]); y14 = _mm256_fmadd_ps(y00, y01, y14);
+
+          y00 = _mm256_loadu_ps(input + i_offset++);
+          y01 = _mm256_set1_ps(kernel[kin(k+0,c_,1,1)]); y02 = _mm256_fmadd_ps(y00, y01, y02);
+          y01 = _mm256_set1_ps(kernel[kin(k+1,c_,1,1)]); y04 = _mm256_fmadd_ps(y00, y01, y04);
+          y01 = _mm256_set1_ps(kernel[kin(k+2,c_,1,1)]); y06 = _mm256_fmadd_ps(y00, y01, y06);
+          y01 = _mm256_set1_ps(kernel[kin(k+3,c_,1,1)]); y08 = _mm256_fmadd_ps(y00, y01, y08);
+          y01 = _mm256_set1_ps(kernel[kin(k+4,c_,1,1)]); y10 = _mm256_fmadd_ps(y00, y01, y10);
+          y01 = _mm256_set1_ps(kernel[kin(k+5,c_,1,1)]); y12 = _mm256_fmadd_ps(y00, y01, y12);
+          y01 = _mm256_set1_ps(kernel[kin(k+6,c_,1,1)]); y14 = _mm256_fmadd_ps(y00, y01, y14);
+
+        }
+
+        // when c_=cstop-1
+        {
+          //print_m256(y04);
+          d=output_+oid(k+0,h_-1,w_); _mm256_storeu_ps(d, _mm256_add_ps(y02, _mm256_loadu_ps(d)));
+          d=output_+oid(k+1,h_-1,w_); _mm256_storeu_ps(d, _mm256_add_ps(y04, _mm256_loadu_ps(d)));
+          d=output_+oid(k+2,h_-1,w_); _mm256_storeu_ps(d, _mm256_add_ps(y06, _mm256_loadu_ps(d)));
+          d=output_+oid(k+3,h_-1,w_); _mm256_storeu_ps(d, _mm256_add_ps(y08, _mm256_loadu_ps(d)));
+          d=output_+oid(k+4,h_-1,w_); _mm256_storeu_ps(d, _mm256_add_ps(y10, _mm256_loadu_ps(d)));
+          d=output_+oid(k+5,h_-1,w_); _mm256_storeu_ps(d, _mm256_add_ps(y12, _mm256_loadu_ps(d)));
+          d=output_+oid(k+6,h_-1,w_); _mm256_storeu_ps(d, _mm256_add_ps(y14, _mm256_loadu_ps(d)));
+          y02 = _mm256_setzero_ps();
+          y04 = _mm256_setzero_ps();
+          y06 = _mm256_setzero_ps();
+          y08 = _mm256_setzero_ps();
+          y10 = _mm256_setzero_ps();
+          y12 = _mm256_setzero_ps();
+          y14 = _mm256_setzero_ps();
+        }
+      }
+    }
+    //printf("write to output_\n");
+  }
+}
+
 
 void fast_conv::run_nhcw(float* output_, int cbase, int cstop) {
       __m256 y00{}, y01{}, y02{}, y03{};
@@ -379,10 +507,10 @@ void fast_conv::run_nhcw(float* output_, int cbase, int cstop) {
         // when c_=cstop-1
         {
           // write y04, y07, y10, y13 to output_, print_m256(y04);
-          _mm256_storeu_ps(output_+output_index(k*4+0,h_-2,w_), y04); _mm256_storeu_ps((float*)&y04,y05); _mm256_storeu_ps((float*)&y05,y06); y06 = _mm256_setzero_ps(); // k=kbase
-          _mm256_storeu_ps(output_+output_index(k*4+1,h_-2,w_), y07); _mm256_storeu_ps((float*)&y07,y08); _mm256_storeu_ps((float*)&y08,y09); y09 = _mm256_setzero_ps(); // k=kbase+1
-          _mm256_storeu_ps(output_+output_index(k*4+2,h_-2,w_), y10); _mm256_storeu_ps((float*)&y10,y11); _mm256_storeu_ps((float*)&y11,y12); y12 = _mm256_setzero_ps(); // k=kbase+2
-          _mm256_storeu_ps(output_+output_index(k*4+3,h_-2,w_), y13); _mm256_storeu_ps((float*)&y13,y14); _mm256_storeu_ps((float*)&y14,y15); y15 = _mm256_setzero_ps(); // k=kbase+3
+          _mm256_storeu_ps(output_+oid(k*4+0,h_-2,w_), y04); _mm256_storeu_ps((float*)&y04,y05); _mm256_storeu_ps((float*)&y05,y06); y06 = _mm256_setzero_ps(); // k=kbase
+          _mm256_storeu_ps(output_+oid(k*4+1,h_-2,w_), y07); _mm256_storeu_ps((float*)&y07,y08); _mm256_storeu_ps((float*)&y08,y09); y09 = _mm256_setzero_ps(); // k=kbase+1
+          _mm256_storeu_ps(output_+oid(k*4+2,h_-2,w_), y10); _mm256_storeu_ps((float*)&y10,y11); _mm256_storeu_ps((float*)&y11,y12); y12 = _mm256_setzero_ps(); // k=kbase+2
+          _mm256_storeu_ps(output_+oid(k*4+3,h_-2,w_), y13); _mm256_storeu_ps((float*)&y13,y14); _mm256_storeu_ps((float*)&y14,y15); y15 = _mm256_setzero_ps(); // k=kbase+3
         }
       }
 
@@ -413,10 +541,10 @@ void fast_conv::run_nhcw(float* output_, int cbase, int cstop) {
         {
           // write y04, y07, y10, y13 to output_
           //print_m256(y04);
-          _mm256_storeu_ps(output_+output_index(k*4+0,h_-2,w_), y04); _mm256_storeu_ps((float*)&y04,y05); y05 = _mm256_setzero_ps();
-          _mm256_storeu_ps(output_+output_index(k*4+1,h_-2,w_), y07); _mm256_storeu_ps((float*)&y07,y08); y08 = _mm256_setzero_ps();
-          _mm256_storeu_ps(output_+output_index(k*4+2,h_-2,w_), y10); _mm256_storeu_ps((float*)&y10,y11); y11 = _mm256_setzero_ps();
-          _mm256_storeu_ps(output_+output_index(k*4+3,h_-2,w_), y13); _mm256_storeu_ps((float*)&y13,y14); y14 = _mm256_setzero_ps();
+          _mm256_storeu_ps(output_+oid(k*4+0,h_-2,w_), y04); _mm256_storeu_ps((float*)&y04,y05); y05 = _mm256_setzero_ps();
+          _mm256_storeu_ps(output_+oid(k*4+1,h_-2,w_), y07); _mm256_storeu_ps((float*)&y07,y08); y08 = _mm256_setzero_ps();
+          _mm256_storeu_ps(output_+oid(k*4+2,h_-2,w_), y10); _mm256_storeu_ps((float*)&y10,y11); y11 = _mm256_setzero_ps();
+          _mm256_storeu_ps(output_+oid(k*4+3,h_-2,w_), y13); _mm256_storeu_ps((float*)&y13,y14); y14 = _mm256_setzero_ps();
         }
       }
 
@@ -446,10 +574,10 @@ void fast_conv::run_nhcw(float* output_, int cbase, int cstop) {
         // when c_=cstop-1
         {
           //print_m256(y04);
-          _mm256_storeu_ps(output_+output_index(k*4+0,h_-2,w_), y04);
-          _mm256_storeu_ps(output_+output_index(k*4+1,h_-2,w_), y07);
-          _mm256_storeu_ps(output_+output_index(k*4+2,h_-2,w_), y10);
-          _mm256_storeu_ps(output_+output_index(k*4+3,h_-2,w_), y13);
+          _mm256_storeu_ps(output_+oid(k*4+0,h_-2,w_), y04);
+          _mm256_storeu_ps(output_+oid(k*4+1,h_-2,w_), y07);
+          _mm256_storeu_ps(output_+oid(k*4+2,h_-2,w_), y10);
+          _mm256_storeu_ps(output_+oid(k*4+3,h_-2,w_), y13);
           y04 = _mm256_setzero_ps();
           y07 = _mm256_setzero_ps();
           y10 = _mm256_setzero_ps();
@@ -540,10 +668,10 @@ void fast_conv::run_nchc8w(float* output_, int cbase, int cstop){
         // when c_=cstop-1
         {
           // write y04, y07, y10, y13 to output_, print_m256(y04);
-          _mm256_storeu_ps(output_+output_index(k*4+0,h_-2,w_), y04); _mm256_storeu_ps((float*)&y04,y05); _mm256_storeu_ps((float*)&y05,y06); y06 = _mm256_setzero_ps(); // k=kbase
-          _mm256_storeu_ps(output_+output_index(k*4+1,h_-2,w_), y07); _mm256_storeu_ps((float*)&y07,y08); _mm256_storeu_ps((float*)&y08,y09); y09 = _mm256_setzero_ps(); // k=kbase+1
-          _mm256_storeu_ps(output_+output_index(k*4+2,h_-2,w_), y10); _mm256_storeu_ps((float*)&y10,y11); _mm256_storeu_ps((float*)&y11,y12); y12 = _mm256_setzero_ps(); // k=kbase+2
-          _mm256_storeu_ps(output_+output_index(k*4+3,h_-2,w_), y13); _mm256_storeu_ps((float*)&y13,y14); _mm256_storeu_ps((float*)&y14,y15); y15 = _mm256_setzero_ps(); // k=kbase+3
+          _mm256_storeu_ps(output_+oid(k*4+0,h_-2,w_), y04); _mm256_storeu_ps((float*)&y04,y05); _mm256_storeu_ps((float*)&y05,y06); y06 = _mm256_setzero_ps(); // k=kbase
+          _mm256_storeu_ps(output_+oid(k*4+1,h_-2,w_), y07); _mm256_storeu_ps((float*)&y07,y08); _mm256_storeu_ps((float*)&y08,y09); y09 = _mm256_setzero_ps(); // k=kbase+1
+          _mm256_storeu_ps(output_+oid(k*4+2,h_-2,w_), y10); _mm256_storeu_ps((float*)&y10,y11); _mm256_storeu_ps((float*)&y11,y12); y12 = _mm256_setzero_ps(); // k=kbase+2
+          _mm256_storeu_ps(output_+oid(k*4+3,h_-2,w_), y13); _mm256_storeu_ps((float*)&y13,y14); _mm256_storeu_ps((float*)&y14,y15); y15 = _mm256_setzero_ps(); // k=kbase+3
         }
       }
 
@@ -574,10 +702,10 @@ void fast_conv::run_nchc8w(float* output_, int cbase, int cstop){
         {
           // write y04, y07, y10, y13 to output_
           //print_m256(y04);
-          _mm256_storeu_ps(output_+output_index(k*4+0,h_-2,w_), y04); _mm256_storeu_ps((float*)&y04,y05); y05 = _mm256_setzero_ps();
-          _mm256_storeu_ps(output_+output_index(k*4+1,h_-2,w_), y07); _mm256_storeu_ps((float*)&y07,y08); y08 = _mm256_setzero_ps();
-          _mm256_storeu_ps(output_+output_index(k*4+2,h_-2,w_), y10); _mm256_storeu_ps((float*)&y10,y11); y11 = _mm256_setzero_ps();
-          _mm256_storeu_ps(output_+output_index(k*4+3,h_-2,w_), y13); _mm256_storeu_ps((float*)&y13,y14); y14 = _mm256_setzero_ps();
+          _mm256_storeu_ps(output_+oid(k*4+0,h_-2,w_), y04); _mm256_storeu_ps((float*)&y04,y05); y05 = _mm256_setzero_ps();
+          _mm256_storeu_ps(output_+oid(k*4+1,h_-2,w_), y07); _mm256_storeu_ps((float*)&y07,y08); y08 = _mm256_setzero_ps();
+          _mm256_storeu_ps(output_+oid(k*4+2,h_-2,w_), y10); _mm256_storeu_ps((float*)&y10,y11); y11 = _mm256_setzero_ps();
+          _mm256_storeu_ps(output_+oid(k*4+3,h_-2,w_), y13); _mm256_storeu_ps((float*)&y13,y14); y14 = _mm256_setzero_ps();
         }
       }
 
@@ -607,10 +735,10 @@ void fast_conv::run_nchc8w(float* output_, int cbase, int cstop){
         // when c_=cstop-1
         {
           //print_m256(y04);
-          _mm256_storeu_ps(output_+output_index(k*4+0,h_-2,w_), y04);
-          _mm256_storeu_ps(output_+output_index(k*4+1,h_-2,w_), y07);
-          _mm256_storeu_ps(output_+output_index(k*4+2,h_-2,w_), y10);
-          _mm256_storeu_ps(output_+output_index(k*4+3,h_-2,w_), y13);
+          _mm256_storeu_ps(output_+oid(k*4+0,h_-2,w_), y04);
+          _mm256_storeu_ps(output_+oid(k*4+1,h_-2,w_), y07);
+          _mm256_storeu_ps(output_+oid(k*4+2,h_-2,w_), y10);
+          _mm256_storeu_ps(output_+oid(k*4+3,h_-2,w_), y13);
           y04 = _mm256_setzero_ps();
           y07 = _mm256_setzero_ps();
           y10 = _mm256_setzero_ps();
@@ -620,6 +748,24 @@ void fast_conv::run_nchc8w(float* output_, int cbase, int cstop){
 }
 //printf("write to output_\n");
 }
+}
+
+
+void fast_conv::run_naive(){
+  REP(k,0,ca.K){
+    REP(h,0,ca.OH){
+      REP(w,0,ca.OW){
+        int i=oid(k,h,w);
+        REP(c,0,ca.C){
+          REP(r,0,ca.R){
+            REP(l,0,ca.L){
+              output[i] += input[input_index(c,h+r,w+l)] * kernel[kin(k,c,r,l)];
+            }
+          }
+        }
+      }
+    }
+  }
 }
 
 void get_input(float* l, int n, int c, int w, int h, float channel_delta = 0.1, float cell_delta = 1, float batch_delta=0.2) {
@@ -660,7 +806,7 @@ int print_peak_mem() {
 
 int main(int argc, char** argv) {
   srand(0xdeadbeef);
-  int input_height = 10, input_width = 10, input_channel = 256, filter_batch = 4, kernel_width = 3, kernel_height = 3;
+  int input_height = 10, input_width = 10, input_channel = 256, filter_batch = 4, kernel_width = 2, kernel_height = 2;
   input_channel = 256, input_height = 400, input_width = 296;
   int channel_split=16;
   int thread_num=0;
@@ -716,10 +862,18 @@ int main(int argc, char** argv) {
 
   fast_conv cw(ca, I, F, O, channel_split, thread_num);
   auto start = high_resolution_clock::now();
-  cw.run_full();
+
+  if (run_flag==2) {
+    printf("Fuheng's algo\n");
+    cw.run_full();
+  } else if(run_flag==1) {
+    printf("naive algo\n");
+    cw.run_naive();
+  }
   long long t = duration_cast<microseconds>((high_resolution_clock::now() - start)).count();
   cout << "\n\n==============" << endl;
-  cout << __FUNCTION__ << ": input_channel-" << input_channel << ",input_height-" << input_height << ",input_width-" << input_width  << ",filter_batch-" << filter_batch << ",channel_split-" << cw.CHANNEL_SPLIT << ",time-" << t << "us" << endl;
+  cout << __FUNCTION__ << ": input_channel-" << input_channel << ",input_height-" << input_height << ",input_width-" << input_width
+    << ",filter_batch-" << filter_batch << ",channel_split-" << cw.CHANNEL_SPLIT << ",time-" << t << "us" << endl;
   cw.print();
   _mm_free(I), _mm_free(F), _mm_free(O);
   print_peak_mem();

@@ -227,7 +227,8 @@ class block {
   int iw;
 
  public:
-  block(int ih_, int ow_, int iw_) : len(ow_), ih(ih_), iw(iw_) {
+  int ksize=3;
+  block(int ih_, int ow_, int iw_, int ksize_) : len(ow_), ih(ih_), iw(iw_), ksize(ksize_) {
     pa = new float*[ih];
     F=O=nullptr;
   }
@@ -236,7 +237,7 @@ class block {
     for (auto i = 0; i < ih; i++) pa[i]++;
   }
 
-  void run() {
+  void run3x3() {
     for (int k = 0; k < 3; k++) {
       // i == 0
       for (int j = 0; j < len; j++)
@@ -273,6 +274,31 @@ class block {
     }
   }
 
+  void run2x2() {
+    for (int k = 0; k < 2; k++) {
+      float* p = pa;
+      // i == 0
+      for (int j = 0; j < len; j++)
+        O[j] += *(pa[0] + j) * F[k];
+      // i == [1 ~ ih-2]
+      for (int i = 1; i < ih - 1; i++) {
+        for (int j = 0; j < len; j++) {
+          auto z1 = *(pa[i] + j);
+          auto idx = i * len + j;
+          O[idx - len] += z1 * F[k + 2];
+          O[idx] += z1 * F[k];
+        }
+      }
+      // i == ih-1
+      for (int j = 0; j < len; j++) {
+        auto z1 = *(pa[ih - 1] + j);
+        auto idx = (ih - 1) * len + j;
+        O[idx - 1 * len] += z1 * F[k + 2];
+      }
+      advance();
+    }
+  }
+
   void reset(float* next_head, float* next_filter, float* next_O) {
     F = next_filter;
     for (auto i = 0; i < ih; i++)
@@ -289,11 +315,15 @@ long long gme_conv_no_extraction(vector<float>& I,
                                  int Ci,
                                  int Co, int input_h, int input_w, int output_h, int output_w) {  // O(Ci*3*3*Co*(Oh*Ow))
   auto start = std::chrono::high_resolution_clock::now();
-  block blk(input_h, output_w, input_w);
+  block blk(input_h, output_w, input_w, Kw);
   for (int co = 0; co < Co; co++) {
     for (int channel = 0; channel < Ci; channel++) {
       blk.reset(I.data() + channel * input_h * input_w, F.data() + channel * Kh * Kw + co * Kw * Kh * Ci, Output + co * output_h * output_w);
-      blk.run();
+      if (blk.ksize==3)
+        blk.run3x3();
+      else{
+        blk.run2x2();
+      }
     }
   }
   auto t1 = std::chrono::high_resolution_clock::now();
@@ -456,6 +486,9 @@ int main(int argc, char** argv) {
   int factor = 8;
   if (argc >= 7) {
     factor = stoi(argv[6]);
+  }
+  if (argc >= 8) {
+    kernel_height = kernel_width = stoi(argv[7]);
   }
   auto t = run(run_flag, input_height, input_width, input_channel, filter_batch, kernel_width, kernel_height, factor);
   print_peak_mem();

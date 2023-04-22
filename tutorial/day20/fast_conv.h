@@ -72,9 +72,11 @@ struct fast_conv {  // can refactor using inheritance
     return thread_num;
     return thread::hardware_concurrency();
   }
+  int ksize=2;
 
-  fast_conv(conv_attr ca_, float* input_, float* kernel_, float* output_, int channel_split=16, int thread_num_=false)
+  fast_conv(conv_attr ca_, float* input_, float* kernel_, float* output_, int channel_split=16, int thread_num_=false, int ksize_=2)
       :ca(ca_), input(input_), kernel(kernel_), output(output_), CHANNEL_SPLIT(channel_split), thread_num(thread_num_){
+    ksize =ksize_;
     assert(ca.C%8 == 0 or ca.C<=4);
     if(thread_num>0){
       CHANNEL_SPLIT = ceil_int(ca.C, get_currency());
