@@ -276,7 +276,7 @@ class block {
 
   void run2x2() {
     for (int k = 0; k < 2; k++) {
-      float* p = pa;
+      float* p = pa[0];
       // i == 0
       for (int j = 0; j < len; j++)
         O[j] += *(pa[0] + j) * F[k];
@@ -316,9 +316,11 @@ long long gme_conv_no_extraction(vector<float>& I,
                                  int Co, int input_h, int input_w, int output_h, int output_w) {  // O(Ci*3*3*Co*(Oh*Ow))
   auto start = std::chrono::high_resolution_clock::now();
   block blk(input_h, output_w, input_w, Kw);
-  for (int co = 0; co < Co; co++) {
-    for (int channel = 0; channel < Ci; channel++) {
-      blk.reset(I.data() + channel * input_h * input_w, F.data() + channel * Kh * Kw + co * Kw * Kh * Ci, Output + co * output_h * output_w);
+  for (int channel = 0; channel < Ci; channel++) {
+    for (int co = 0; co < Co; co++) {
+      blk.reset(I.data() + channel * input_h * input_w,
+                F.data() + channel * Kh * Kw + co * Kw * Kh * Ci,
+                Output + co * output_h * output_w);
       if (blk.ksize==3)
         blk.run3x3();
       else{
