@@ -219,7 +219,7 @@ long long gme_conv_ori(vector<float>& I,
 }
 
 class block {
-  float** pa;
+  //float** pa;
   float* F;
   float* O;
   int len;
@@ -228,29 +228,33 @@ class block {
 
  public:
   int ksize=3;
+  float* p=nullptr;
   block(int ih_, int ow_, int iw_, int ksize_) : len(ow_), ih(ih_), iw(iw_), ksize(ksize_) {
-    pa = new float*[ih];
+    //pa = new float*[ih];
     F=O=nullptr;
   }
-  ~block() { delete[] pa; }
+  ~block() {
+    //delete[] pa;
+  }
   void advance() {
-    for (auto i = 0; i < ih; i++) pa[i]++;
+    //for (auto i = 0; i < ih; i++) pa[i]++;
+    p++;
   }
 
   void run3x3() {
     for (int k = 0; k < 3; k++) {
       // i == 0
       for (int j = 0; j < len; j++)
-        O[j] += *(pa[0] + j) * F[k];
+        O[j] += *(p + j) * F[k];
       // i == 1
       for (int j = 0; j < len; j++) {
-        auto z1 = *(pa[1] + j);
+        auto z1 = *(p + iw + j);
         O[j] += z1 * F[k + 3];
         O[len + j] += z1 * F[k];
       }
       for (int i = 2; i < ih - 2; i++) {
         for (int j = 0; j < len; j++) {
-          auto z1 = *(pa[i] + j);
+          auto z1 = *(p+i*iw + j);
           auto idx = i * len + j;
           O[idx - 2 * len] += z1 * F[k + 6];
           O[idx - len] += z1 * F[k + 3];
@@ -259,14 +263,14 @@ class block {
       }
       // i==ih-2
       for (int j = 0; j < len; j++) {
-        auto z1 = *(pa[ih - 2] + j);
+        auto z1 = *(p + (ih - 2)*iw + j);
         auto idx = (ih - 2) * len + j;
         O[idx - 2 * len] += z1 * F[k + 6];
         O[idx - len] += z1 * F[k + 3];
       }
       // i == ih-1
       for (int j = 0; j < len; j++) {
-        auto z1 = *(pa[ih - 1] + j);
+        auto z1 = *(p + (ih - 1)*iw + j);
         auto idx = (ih - 1) * len + j;
         O[idx - 2 * len] += z1 * F[k + 6];
       }
@@ -276,14 +280,15 @@ class block {
 
   void run2x2() {
     for (int k = 0; k < 2; k++) {
-      float* p = pa[0];
+      //float* p = pa[0];
       // i == 0
       for (int j = 0; j < len; j++)
-        O[j] += *(pa[0] + j) * F[k];
+        O[j] += *(p + j) * F[k];
       // i == [1 ~ ih-2]
       for (int i = 1; i < ih - 1; i++) {
         for (int j = 0; j < len; j++) {
-          auto z1 = *(pa[i] + j);
+          //assert(pa[i]==p+iw*i);
+          auto z1 = *(p +i*iw + j);
           auto idx = i * len + j;
           O[idx - len] += z1 * F[k + 2];
           O[idx] += z1 * F[k];
@@ -291,7 +296,8 @@ class block {
       }
       // i == ih-1
       for (int j = 0; j < len; j++) {
-        auto z1 = *(pa[ih - 1] + j);
+        //assert(pa[ih-1]==p+iw*(ih-1));
+        auto z1 = *(p + iw*(ih-1) + j);
         auto idx = (ih - 1) * len + j;
         O[idx - 1 * len] += z1 * F[k + 2];
       }
@@ -301,8 +307,9 @@ class block {
 
   void reset(float* next_head, float* next_filter, float* next_O) {
     F = next_filter;
-    for (auto i = 0; i < ih; i++)
-      pa[i] = next_head + i * iw;
+    p = next_head;
+    //for (auto i = 0; i < ih; i++)
+    //  pa[i] = next_head + i * iw;
     O = next_O;
   }
 };
