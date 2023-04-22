@@ -2,7 +2,7 @@
 
 ## Abstract
 
-Convolution is one of the most computationally intensive operations that must be performed for machine-learning model inference. One traditional approach to compute convolutions is known as the Im2Col + BLAS method, which incurs extra memory overhead. Another approach is to reorder the input and then do direction convolution with another reordering as a postprocessing. This approach requires runtime input and output data reordering, so increases peak memory usage and introduces extra complexities into the neural network. This paper demonstrates a new direct convolution method without runtime packing and reordering with optimal register allocation strategy which dramatically reduces memory and latency for inference on consumer grade CPUs.
+Convolution is one of the most computationally intensive operations that must be performed for deep-learning model inference. One traditional approach to compute convolutions is known as the `Im2Col + BLAS` method, which incurs extra memory overhead. Another approach, known as `direct convolution`, requires to reorder the input and then do vectorized multiply-add operation followed by another reordering as a postprocessing step. This approach needs runtime input and output data reordering, so increases peak memory usage and introduces extra complexities into the neural network. This paper demonstrates new direct convolution methods without runtime packing and reordering in various conditions. When fused-multiply-add(FMA) is not available, this paper propose a generic efficient algorithm to do convolution for all cases we tested, where we get much better results than SOTA. When FMA instruction set is available, this paper propose a new algoritm which dramatically reduces memory and latency. In our experiments, the memory is reduced by 50% and latency is better or on par with SOTA in some production use cases.
 
 ## Introduction
 
@@ -14,12 +14,46 @@ There are many ways to do convolution, but GEMM and direct convolution are the m
 
 ## Background
 
+### Notations and Terminology
+
+The input data layout is NCHW, which conforms to the default in PyTorch and ONNX protocol. We assume the input data format is NCHW in this paper if it is not explicilty specified.
+
+![](notations.png)
+
+### Naive Convolution Algorithm
+
+
+```
+REP(k,0,K){
+  REP(h,0,OH){
+    REP(w,0,OW){
+      int i=output_index(k,h,w);
+      REP(c,0,C){
+        REP(r,0,R){
+          REP(l,0,L){
+            output[i] += input[input_index(c,h+r,w+l)] * kernel[kernel_index(k,c,r,l)];
+          }
+        }
+      }
+    }
+  }
+}
+```
+
 OCR model has many receipts input where height is much longer than width.
+
+### Memory Efficient Algorithm
+
+Many memory efficient algorithms have been proposed to reduce the convolution computation overhead. MEC(Cho&Brand, 2017) improves im2col memory efficiency but is based on GEMM + BLAS so it is often suboptimal in computation. More importantly, it still requires considerable memory overhead.
+
+### Direct Convolution With Reordering
+
+A high performance direct convolution algorithm(Zhang 2018) is proposed for CPUs supporting vector registers and FMA instruction. This algorithm has been widely used by industry's mainstream inference engines including Amazon NeoCPU(Liu 2019), Microsoft ONNX Runtime. One drawback is it requires runtime input data reordering, which incurs `O(C*H*W)` extra memory usage. This algorithm introduces several hyperparameters including input block size(B), kernel chunk size(U), output block size(D), which makes the implmentation very complex. An optimization scheme search algorithm (Liu 2019) is proposed to tune and find the best hyperparamter for a model. Because the computation nodes are chained, the input data layout change often impacts the entire neural network structure so that layout transformation elimination has to be considered. The implementation difficlty is exponentially increased with all the things considered. A super simple algorithm SMM-Conv (Ofir&Artiz, 2023) is proposed as a direct convolution algorithm using sliding windows similar to EMC but without GEMM. However, the algorithm requires extraction of sub-matrices which still requires extra `O(H*W)` memory. Another drawback is the latency increases dramatically due to both the sub-matrix extraction and inefficient usage of CPU registers.
 
 
 ## Zero-Overhead Direct Convolution
 
-This paper presents a simplified method for performing direct convolution on consumer-grade CPUs without requiring packing or reordering. The input data layout is NCHW, which conforms to the default in PyTorch and ONNX protocol. We describe the algorithm without CPU vector extension support, followed by the optimal register allocation algorithm that employs CPU Fused-Multiply-Add (FMA) instructions. Additionally, we present experimental results that demonstrate on-par or superior performance with less memory consumption.
+This paper presents two real zero-oeverhead methods for performing direct convolution on CPUs without requiring packing or reordering. We describe the algorithm without CPU vector extension support, followed by the optimal register allocation algorithm that employs CPU Fused-Multiply-Add (FMA) instructions. Additionally, we present experimental results that demonstrate on-par or superior performance with less memory consumption.
 
 ### Observations
 
@@ -84,3 +118,5 @@ REP(){
     }
 }
 ```
+
+![](../day19/zpzr_vs_sota.png)

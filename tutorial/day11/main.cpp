@@ -236,23 +236,17 @@ class block {
   ~block() {
     //delete[] pa;
   }
-  void advance() {
-    //for (auto i = 0; i < ih; i++) pa[i]++;
-    p++;
-  }
 
   void run3x3() {
     for (int k = 0; k < 3; k++) {
-      // i == 0
-      for (int j = 0; j < len; j++)
+      for (int j = 0; j < len; j++) // i == 0
         O[j] += *(p + j) * F[k];
-      // i == 1
-      for (int j = 0; j < len; j++) {
+      for (int j = 0; j < len; j++) { // i == 1
         auto z1 = *(p + iw + j);
         O[j] += z1 * F[k + 3];
         O[len + j] += z1 * F[k];
       }
-      for (int i = 2; i < ih - 2; i++) {
+      for (int i = 2; i < ih - 2; i++) { // i:[2 ~ ih-3]
         for (int j = 0; j < len; j++) {
           auto z1 = *(p+i*iw + j);
           auto idx = i * len + j;
@@ -261,47 +255,39 @@ class block {
           O[idx] += z1 * F[k];
         }
       }
-      // i==ih-2
-      for (int j = 0; j < len; j++) {
+      for (int j = 0; j < len; j++) { // i == ih-2
         auto z1 = *(p + (ih - 2)*iw + j);
         auto idx = (ih - 2) * len + j;
         O[idx - 2 * len] += z1 * F[k + 6];
         O[idx - len] += z1 * F[k + 3];
       }
-      // i == ih-1
-      for (int j = 0; j < len; j++) {
+      for (int j = 0; j < len; j++) { // i == ih-1
         auto z1 = *(p + (ih - 1)*iw + j);
         auto idx = (ih - 1) * len + j;
         O[idx - 2 * len] += z1 * F[k + 6];
       }
-      advance();
+      p++;
     }
   }
 
-  void run2x2() {
+  void zpzr_algo_2x2() {
     for (int k = 0; k < 2; k++) {
-      //float* p = pa[0];
-      // i == 0
       for (int j = 0; j < len; j++)
         O[j] += *(p + j) * F[k];
-      // i == [1 ~ ih-2]
       for (int i = 1; i < ih - 1; i++) {
         for (int j = 0; j < len; j++) {
-          //assert(pa[i]==p+iw*i);
           auto z1 = *(p +i*iw + j);
           auto idx = i * len + j;
           O[idx - len] += z1 * F[k + 2];
           O[idx] += z1 * F[k];
         }
       }
-      // i == ih-1
       for (int j = 0; j < len; j++) {
-        //assert(pa[ih-1]==p+iw*(ih-1));
         auto z1 = *(p + iw*(ih-1) + j);
         auto idx = (ih - 1) * len + j;
         O[idx - 1 * len] += z1 * F[k + 2];
       }
-      advance();
+      p++;
     }
   }
 
@@ -331,7 +317,7 @@ long long gme_conv_no_extraction(vector<float>& I,
       if (blk.ksize==3)
         blk.run3x3();
       else{
-        blk.run2x2();
+        blk.zpzr_algo_2x2();
       }
     }
   }
