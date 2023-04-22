@@ -37,7 +37,7 @@ void onnxruntime_conv_nchw(size_t BatchCount,
                            const float* Bias,
                            float* Output);
 
-void onnxruntime_conv_nchwc(
+int onnxruntime_conv_nchwc(
     size_t BatchCount,
     size_t GroupCount,
     size_t InputChannels,

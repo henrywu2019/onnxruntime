@@ -11,6 +11,16 @@ void matrix_fuse(float* dest, float* src, int sz){
   }
 }
 
+void append_file(const string& s){
+    std::ofstream outfile("result.csv", std::ios_base::app);
+    if (!outfile.is_open()) {
+        std::cout << "Failed to open file\n";
+        return;
+    }
+    outfile << s;
+    outfile.close();
+}
+
 #define MACRO1(i,z) {y01 = _mm256_set1_ps(fr[kid(i,c_,0,0)]);y##z = _mm256_fmadd_ps(y00, y01, y##z);}
 #define MACRO2(i,z) {y01 = _mm256_set1_ps(fr[kid(i,c_,1,0)]);y##z = _mm256_fmadd_ps(y00, y01, y##z);}
 #define MACRO3(i,z) {y01 = _mm256_set1_ps(fr[kid(i,c_,2,0)]);y##z = _mm256_fmadd_ps(y00, y01, y##z);}
@@ -801,7 +811,7 @@ int print_peak_mem() {
     struct rusage usage;
     getrusage(RUSAGE_SELF, &usage);
     std::cout << "Peak memory usage: " << usage.ru_maxrss << " KB" << std::endl;
-    return 0;
+    return usage.ru_maxrss;
 }
 
 int main(int argc, char** argv) {
@@ -841,6 +851,9 @@ int main(int argc, char** argv) {
   if (argc >= 9) {
     thread_num = stoi(argv[8]);
   }
+  if (argc >= 10) {
+    kernel_width = kernel_height = stoi(argv[9]);
+  }
 
   const int output_height = input_height - kernel_height + 1, output_width = input_width - kernel_width + 1;
   conv_attr ca(1, input_channel, input_height, input_width, filter_batch, kernel_height, kernel_width);
@@ -873,10 +886,18 @@ int main(int argc, char** argv) {
   long long t = duration_cast<microseconds>((high_resolution_clock::now() - start)).count();
   cout << "\n\n==============" << endl;
   cout << __FUNCTION__ << ": input_channel-" << input_channel << ",input_height-" << input_height << ",input_width-" << input_width
-    << ",filter_batch-" << filter_batch << ",channel_split-" << cw.CHANNEL_SPLIT << ",time-" << t << "us" << endl;
+    << ",filter_batch-" << filter_batch << ",channel_split-" << cw.CHANNEL_SPLIT << ",time-" << t << "us"
+    << ",k=" << kernel_width
+    << ",flag-" << run_flag << endl;
+
   cw.print();
   _mm_free(I), _mm_free(F), _mm_free(O);
-  print_peak_mem();
+  auto peak = print_peak_mem();
+  stringstream result;
+  result<< input_channel << "," << input_height << "," << input_width
+    << "," << filter_batch << "," << cw.CHANNEL_SPLIT << "," << t << "," << kernel_width
+    << "," << run_flag << "," << peak << endl;
+  append_file(result.str());
   return 0;
 }
 

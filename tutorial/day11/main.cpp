@@ -20,7 +20,7 @@ int print_peak_mem() {
     struct rusage usage;
     getrusage(RUSAGE_SELF, &usage);
     std::cout << "Peak memory usage: " << usage.ru_maxrss << " KB" << std::endl;
-    return 0;
+    return usage.ru_maxrss;
 }
 
 #define wait_for_input() {\
@@ -379,6 +379,8 @@ long long run(int run_flag, int input_height, int input_width, int input_channel
   printf("input total size: %.2fKB\n", 1 * input_channel * input_width * input_height / (1024.));
   wait_for_input();
 
+  int time_us=0;
+
   // if(run_flag & 0b100){
   if (0) {
     float* sliced_mat_o = (float*)_mm_malloc(sizeof(float) * output_height * output_width, 32);
@@ -393,7 +395,7 @@ long long run(int run_flag, int input_height, int input_width, int input_channel
   }
 
   if (run_flag & 0b1000) {
-    auto t = gme_conv_no_extraction(I, F, O, kernel_height, kernel_width, input_channel, filter_batch,
+    time_us = gme_conv_no_extraction(I, F, O, kernel_height, kernel_width, input_channel, filter_batch,
                                     input_height, input_width, output_height, output_width);
     print_output(O, output_height, output_width, filter_batch);
     wait_for_input();
@@ -419,7 +421,7 @@ long long run(int run_flag, int input_height, int input_width, int input_channel
   if (run_flag & 0b1) {
 #ifdef ORTCONV
     wait_for_input();
-    onnxruntime_conv_nchwc(1, 1, input_channel, input_height, input_width,
+    time_us = onnxruntime_conv_nchwc(1, 1, input_channel, input_height, input_width,
                            filter_batch, kernel_height, kernel_width,
                            0, 0, 0, 0,
                            1, 1,
@@ -451,7 +453,17 @@ long long run(int run_flag, int input_height, int input_width, int input_channel
   }
 
   delete[] O;
-  return 0;
+  return time_us;
+}
+
+void append_file(const string& s){
+    std::ofstream outfile("result.csv", std::ios_base::app);
+    if (!outfile.is_open()) {
+        std::cout << "Failed to open file\n";
+        return;
+    }
+    outfile << s;
+    outfile.close();
 }
 
 /*
@@ -500,6 +512,12 @@ int main(int argc, char** argv) {
     kernel_height = kernel_width = stoi(argv[7]);
   }
   auto t = run(run_flag, input_height, input_width, input_channel, filter_batch, kernel_width, kernel_height, factor);
-  print_peak_mem();
+  auto peak = print_peak_mem();
+
+  stringstream result;
+  result<< input_channel << "," << input_height << "," << input_width
+    << "," << filter_batch << "," << "0" << "," << t << "," << kernel_width
+    << "," << run_flag << "," << peak << endl;
+  append_file(result.str());
   return 0;
 }

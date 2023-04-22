@@ -21,7 +21,7 @@ void ReorderInputNchw(const int64_t* input_shape, const float* S, float* D) {
 
 
 
-void onnxruntime_conv_nchwc(
+int onnxruntime_conv_nchwc(
     size_t BatchCount,
     size_t GroupCount,
     size_t InputChannels,
@@ -162,5 +162,6 @@ void onnxruntime_conv_nchwc(
   MlasReorderOutputNchw(OutputShape, NchwcOutput, Output, nullptr);
   t1 = std::chrono::high_resolution_clock::now();
   std::cout << __FUNCTION__ << " | Compute Time: " << std::chrono::duration_cast<std::chrono::microseconds>((t1 - start)).count() << " us" << std::endl;
+  return std::chrono::duration_cast<std::chrono::microseconds>((t1 - start)).count();
 
 }
