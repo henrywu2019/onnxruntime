@@ -63,7 +63,7 @@ int main(int argc, char** argv) {
     run_flag = stoi(argv[5]);
   }
   if (argc >= 7) {
-    kernel_height = kernel_width = stoi(argv[7]);
+    kernel_height = kernel_width = stoi(argv[6]);
   }
   assert(run_flag==8);
   auto t = run(run_flag, input_height, input_width, input_channel, filter_batch, kernel_width, kernel_height);

@@ -24,7 +24,7 @@ int main(int argc, char** argv) {
     run_flag = stoi(argv[5]);
   }
   if (argc >= 7) {
-    kernel_width = kernel_height = stoi(argv[9]);
+    kernel_width = kernel_height = stoi(argv[6]);
   }
   if (argc >= 8) {
     channel_split = stoi(argv[7]);
