@@ -22,6 +22,7 @@ The input data layout is NCHW, which conforms to the default in PyTorch and ONNX
 
 ### Naive Convolution Algorithm
 
+The naive convolution algorithm is generally applicable to all the use cases as follows:
 
 ```
 REP(k,0,K){
@@ -40,11 +41,13 @@ REP(k,0,K){
 }
 ```
 
+This is a straightforward algorithm because it is how convolution is defined in DNN. The drawback of this algorithm is its inefficiency in CPU cache and register usage.
+
 OCR model has many receipts input where height is much longer than width.
 
 ### Memory Efficient Algorithm
 
-Many memory efficient algorithms have been proposed to reduce the convolution computation overhead. MEC(Cho&Brand, 2017) improves im2col memory efficiency but is based on GEMM + BLAS so it is often suboptimal in computation. More importantly, it still requires considerable memory overhead.
+Many memory efficient algorithms have been proposed to reduce the convolution computation overhead. MEC(Cho&Brand, 2017) improves im2col memory efficiency but is based on GEMM + BLAS so it is often suboptimal in computation. Additionally, it still causes considerable memory overhead.
 
 ### Direct Convolution With Reordering
 
