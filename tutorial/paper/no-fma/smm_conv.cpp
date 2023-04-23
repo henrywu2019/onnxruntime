@@ -80,6 +80,10 @@ long long run(int run_flag, int input_height, int input_width, int input_channel
 
 int main(int argc, char** argv) {
   int input_width = 34, input_height = 800, input_channel = 256, filter_batch = 64, kernel_width = 3, kernel_height = 3, run_flag = 7;
+  if (argc >= 2 && strcmp(argv[1], "-h") == 0) {
+    std::cout << argv[0] << " filter_batch=32 input_channel=256 input_height=800 input_width=34 run_flag=2 kernel_width=3" << std::endl;
+    return 0;
+  }
   if (argc >= 2) {
     filter_batch = stoi(argv[1]);
   }
@@ -95,8 +99,8 @@ int main(int argc, char** argv) {
   if (argc >= 6) {
     run_flag = stoi(argv[5]);
   }
-  if (argc >= 8) {
-    kernel_height = kernel_width = stoi(argv[7]);
+  if (argc >= 7) {
+    kernel_height = kernel_width = stoi(argv[6]);
   }
   assert(run_flag==7);
   auto t = run(run_flag, input_height, input_width, input_channel, filter_batch, kernel_width, kernel_height);
