@@ -1,10 +1,12 @@
 #include "ort_conv.h"
 
-const int BlockSize = 8;  // for AVX2, YMM register is 8*32 = 256bits.
+int64_t BlockSize = 1;  // for AVX2, YMM register is 8*32 = 256bits.
 vector<float> BufferNchwcFilter, BufferNchwcBias, BufferNchwcInput, BufferNchwcOutput;
 
 void ReorderInputNchw(const int64_t* input_shape, const float* S, float* D) {
   const int64_t nchwc_block_size = static_cast<int64_t>(MlasNchwcGetBlockSize());
+  printf("nchwc_block_size:%d\n", nchwc_block_size);
+  BlockSize = nchwc_block_size;
   int64_t batch_count = input_shape[0];
   int64_t channel_count = input_shape[1];
   int64_t nchwc_channel_count = (channel_count + nchwc_block_size - 1) & ~(nchwc_block_size - 1);
