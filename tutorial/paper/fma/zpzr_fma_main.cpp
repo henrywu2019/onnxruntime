@@ -29,7 +29,7 @@ int main(int argc, char** argv) {
   if (argc >= 8) {
     channel_split = stoi(argv[7]);
   }
-
+  assert(run_flag==2 or run_flag==0);
   const int output_height = input_height - kernel_height + 1, output_width = input_width - kernel_width + 1;
   conv_attr ca(1, input_channel, input_height, input_width, filter_batch, kernel_height, kernel_width);
 

@@ -65,7 +65,7 @@ int main(int argc, char** argv) {
   if (argc >= 7) {
     kernel_height = kernel_width = stoi(argv[6]);
   }
-  assert(run_flag==8);
+  assert(run_flag==1);
   auto t = run(run_flag, input_height, input_width, input_channel, filter_batch, kernel_width, kernel_height);
   auto peak = print_peak_mem();
 
