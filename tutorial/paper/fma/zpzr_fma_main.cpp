@@ -54,7 +54,7 @@ int main(int argc, char** argv) {
   if (run_flag==2) {
     printf("Fuheng's Algo\n");
     cw.run_full();
-  } else if(run_flag==1) {
+  } else if(run_flag==0) {
     printf("naive algo\n");
     cw.run_naive();
   }
