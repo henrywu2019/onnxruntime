@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 plt.style.use('ggplot')
 #plt.title("Memory and Latency (ZPZR vs. SOTA)")
 # Load data from file
-df = pd.read_csv("result.oke.csv")
-df = df[df['K'] <= 512]
+df = pd.read_csv("result.csv")
+df = df[df['K'] <= 100]
 
 # Create subplots with a shared y-axis
 fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10), sharey=True)
@@ -28,9 +28,12 @@ K_f1 = df.loc[df['f'] == 1, 'K']
 t_f3 = df.loc[(df['f'] == 2) & (df['S']==12), 't']
 K_f3 = df.loc[(df['f'] == 2) & (df['S']==12), 'K']
 
+t_f4 = df.loc[df['f'] == 7, 't']
+K_f4 = df.loc[df['f'] == 7, 'K']
+
 ax2.plot(K_f1, t_f1, "v-", color="green", label="Latency SOTA", alpha=0.6)
-#ax2.plot(K_f2, t_f2, "o-", color="red", label="f=2 S=32")
 ax2.plot(K_f3, t_f3, "o-", color="red", label="Latency ZPZR", alpha=0.6)
+ax2.plot(K_f4, t_f4, "o-", color="blue", label="Latency SMM-Conv", alpha=0.6)
 ax2.set_xlabel("Kernel Batch Size(Out_Channel)")
 ax2.set_ylabel("Latency(microsecond)")
 #ax2.set_title("Latency vs. Out_Channel (Ci=256,H=800,W=34,Kernel=3x3)")
@@ -39,4 +42,4 @@ ax2.legend()
 
 plt.legend()
 
-plt.savefig("zpzr_vs_sota.oke.e4.png")
+plt.savefig("zpzr_vs_sota.e3.png")
