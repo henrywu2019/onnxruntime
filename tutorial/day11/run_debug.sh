@@ -1,7 +1,7 @@
 set -x
 
 
-g++ -g main.cpp ort_conv.cpp ort_conv2.cpp -o main_debug.exe -O0 -I/home/opc/workspace/onnxruntime/include/ \
+g++ -g main_v2.cpp ort_conv.cpp ort_conv2.cpp -o main_debug.exe -O0 -I/home/opc/workspace/onnxruntime/include/ \
 -L/home/opc/workspace/onnxruntime/build/Linux/Debug/ \
 -L/home/opc/workspace/onnxruntime/build/Linux/Debug/_deps/google_nsync-build \
     -lonnxruntime_mlas -lonnxruntime_common -lnsync_cpp -std=c++20 -mavx2 -march=native \
