@@ -7,4 +7,4 @@ else
     exit
 fi
 
-g++ zpzr_fma_main.cpp common.cpp zpzr_conv.cpp -O3 -o zpzr_fma_main_release.exe -lpthread -std=c++11 $INSTRUCTION_FLAG -march=native
+g++ zpzr_fma_main.cpp common.cpp zpzr_conv.cpp -O3 -o conv_zpzr_main_release.exe -lpthread -std=c++11 $INSTRUCTION_FLAG -march=native
