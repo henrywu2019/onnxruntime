@@ -15,34 +15,34 @@ long long smm_conv_algo(float* I,
     int Kw,
     int Ci,
     int Co, int input_h, int input_w, int output_h, int output_w) {
-      auto start = chrono::high_resolution_clock::now();
-      int64_t idx = 0;
-      for (int channel = 0; channel < Ci; channel++) {
-        for (int i = 0; i < Kw; i++) {
-          extract_submatrix(I, sliced_mat, i, input_h, input_w, {output_h, output_w}, channel);
-          int64_t area = output_h * output_w;
-          if (i == 0 and channel == 0)
-            printf("area:%ld,output_h:%d,output_w:%d,size:%ld Byte\n", area, output_h, output_w, (area * sizeof(float)));
-          for (int k = 0; k < Kh; k++) {
-            auto shifted_start = sliced_mat + output_w * k;
-            for (int64_t m = 0; m < Co; m++) {
-              idx = k * Kw + i + channel * Kw * Kh + m * Kw * Kh * Ci;
-              float scalar = F[idx];
-              for (int t = 0; t < area; t++) {
-                auto z = *(shifted_start + t);
-                idx = t + m * area;
-                Output[idx] += scalar * z;
-              }
-            }
+  auto start = chrono::high_resolution_clock::now();
+  int64_t idx = 0;
+  for (int channel = 0; channel < Ci; channel++) {
+    for (int i = 0; i < Kw; i++) {
+      extract_submatrix(I, sliced_mat, i, input_h, input_w, {output_h, output_w}, channel);
+      int64_t area = output_h * output_w;
+      if (i == 0 and channel == 0)
+        printf("area:%ld,output_h:%d,output_w:%d,size:%ld Byte\n", area, output_h, output_w, (area * sizeof(float)));
+      for (int k = 0; k < Kh; k++) {
+        auto shifted_start = sliced_mat + output_w * k;
+        for (int64_t m = 0; m < Co; m++) {
+          idx = k * Kw + i + channel * Kw * Kh + m * Kw * Kh * Ci;
+          float scalar = F[idx];
+          for (int t = 0; t < area; t++) {
+            auto z = *(shifted_start + t);
+            idx = t + m * area;
+            Output[idx] += scalar * z;
           }
         }
       }
-      printf("idx: %ld\n", idx);
-      auto t1 = chrono::high_resolution_clock::now();
-      long long t = chrono::duration_cast<chrono::microseconds>((t1 - start)).count();
-      cout << __FUNCTION__ << " | Compute Time: " << t << " us" << endl;
-      return t;
     }
+  }
+  printf("idx: %ld\n", idx);
+  auto t1 = chrono::high_resolution_clock::now();
+  long long t = chrono::duration_cast<chrono::microseconds>((t1 - start)).count();
+  cout << __FUNCTION__ << " | Compute Time: " << t << " us" << endl;
+  return t;
+}
 
 
 
