@@ -80,6 +80,7 @@ struct tunable_conv {  // can refactor using inheritance
   void run();
   void run_ort();
   void run_8_8();
+  void run_zoper_v2();
   void run_32_32();
   void run_32_16();
   void run_32_8();
@@ -88,7 +89,7 @@ struct tunable_conv {  // can refactor using inheritance
   //void set_x(int x){tunable_x=x;}
   void print() {
     //print_matrix(output,ca.OH, ca.OW);
-    print_output(output_nchw,ca.OH, ca.OW,ca.K);
+    print_output(output, ca.OH, ca.OW, ca.K);
   }
   /*inline int input_index_new(int N, int C_, int H, int w, int c){
     return N*ca.input_batch_stride + C_*ca.input_block_stride + H*ca.W*tunable_x + w*tunable_x + c;

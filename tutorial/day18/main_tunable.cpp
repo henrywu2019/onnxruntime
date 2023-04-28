@@ -15,7 +15,7 @@ int main(int argc, char** argv) {
     }
     filter_batch = stoi(argv[1]);
   }
-  int tunable_x = 8, tunable_y = 8, run_flag = 9;
+  int tunable_x = 8, tunable_y = 8, run_flag = 4;
   (argc >= 3) and (input_channel = stoi(argv[2]));
   (argc >= 4) and (input_height = stoi(argv[3]));
   (argc >= 5) and (input_width = stoi(argv[4]));
@@ -41,6 +41,14 @@ int main(int argc, char** argv) {
     cw.reorder_filter();
     cw.run_tunable();
     cw.restore_output();
+    cw.print();
+  }else if(run_flag==4){
+    auto_profiler ap("zoper v2");
+    tunable_conv cw(ca, I, F, O, tunable_x, tunable_y);
+    //cw.reorder_input();
+    cw.reorder_filter();
+    cw.run_tunable();
+    //cw.restore_output();
     cw.print();
   }else if(run_flag&1){
     auto_profiler ap("ort_conv");

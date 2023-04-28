@@ -18,6 +18,7 @@ struct conv_attr {
   }
 };
 
+const int U=8;
 
 struct fast_conv {  // can refactor using inheritance
   conv_attr ca;
@@ -62,7 +63,7 @@ struct fast_conv {  // can refactor using inheritance
 
   fast_conv(conv_attr ca_, float* input_, float* kernel_, float* output_, int channel_split=16, int thread_num_=false)
       :ca(ca_), input(input_), kernel(kernel_), output(output_), CHANNEL_SPLIT(channel_split), thread_num(thread_num_){
-    assert(ca.C%8 == 0 or ca.C<=4);
+    assert(ca.C%U == 0 or ca.C<=U);
     if(thread_num>0){
       CHANNEL_SPLIT = ceil_int(ca.C, get_currency());
     }
@@ -76,9 +77,9 @@ struct fast_conv {  // can refactor using inheritance
 
     filter_channel_stride = ca.R * ca.L;
     filter_batch_stride = ca.C * filter_channel_stride;
-    filter_chunk_stride = filter_batch_stride*4;
+    filter_chunk_stride = filter_batch_stride*U;
     filter_size = ca.K * filter_batch_stride;
-    slice_number_in_batch_dim = ceil_int(ca.K, 4);
+    slice_number_in_batch_dim = ceil_int(ca.K, U);
 
     if (output == nullptr){
       output = (float*)_mm_malloc(sizeof(float) * output_size, 32);
@@ -101,14 +102,15 @@ struct fast_conv {  // can refactor using inheritance
       }
       #endif
     }
-    reorder_kernel();
+    reorder_kernel(U);
   }
 
-  void reorder_kernel(int k_split=4);
+  void reorder_kernel(int k_split=U);
   void reorder_input_NHbcw8();
   void reorder_input_NhcW();
   void reorder_input_NcHc8W();
   void run_nchw(float* output_, int cbase, int cstop);
+  void run_nchw_v2(float* output_, int cbase, int cstop);
   void run_nchw2x2(float* output_, int cbase, int cstop);
   void run_nhcw(float* output_, int cbase, int cstop);
   void run_nchc8w(float* output_, int cbase, int cstop);
@@ -136,7 +138,7 @@ struct fast_conv {  // can refactor using inheritance
   }
 
   inline int input_index_nchc8w(int c, int h_, int c_, int w_){
-    return c*ca.H*ca.W*8 + h_*ca.W*8 + c_*ca.W + w_;
+    return c*ca.H*ca.W*U + h_*ca.W*U + c_*ca.W + w_;
   }
 
 //#define DEBUG
@@ -152,7 +154,7 @@ struct fast_conv {  // can refactor using inheritance
 #endif
   }
   inline int kid(int k_, int c_, int r, int l, int k) {
-    return k_ * ca.C * ca.R * ca.L * 4 + c_ * ca.R * ca.L * 4 + r * ca.L * 4 + l * 4 + k;
+    return k_ * ca.C * ca.R * ca.L * 8 + c_ * ca.R * ca.L * 8 + r * ca.L * 8 + l * 8 + k;
   }
   inline int oid(int k_, int oh_, int ow_){
     return k_*output_channel_stride + oh_*ca.OW + ow_;

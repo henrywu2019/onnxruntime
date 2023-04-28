@@ -110,6 +110,8 @@ void tunable_conv::reorder_filter() {
 }
 
 void tunable_conv::run_tunable() {
+  run_zoper_v2();
+  return;
   if (tunable_y == 8) {
     if (tunable_x==8){
       run_8_8();
@@ -122,6 +124,73 @@ void tunable_conv::run_tunable() {
   } else if(tunable_y == 64){
     run_64_64();
   }
+}
+
+void tunable_conv::run_zoper_v2() {
+  int reg_idx = 0;
+  long long called = 0;
+  auto start = high_resolution_clock::now();
+
+//#ifdef ALGO_KERNL_AS_OUTER_LOOP
+  // not consider reg_n=4 in batch dim
+  auto pr = new __m256[reg_n]();
+  REP(i, 0, hunk_number_in_batch_dim) {  // N(K_)
+    REP(k, 0, ca.OH) {
+      REP(j, 0, slice_number_in_channel_dim) {  // C_
+        REP(l, 0, ca.OW) {
+          /*REP(t, 0, reg_n){
+            pr[t] = _mm256_xor_ps(pr[t], pr[t]);
+          }*/
+          __m256 y0{}, y1{};
+          __m256 y2{}, y3{}, y4{}, y5{};
+          REP(m, 0, tunable_x) {  // channel dim
+            REP(n, 0, ca.R) {
+              REP(o, 0, ca.L) {
+                int i_offset = input_index_nchw(0, j*8+m, k + n, l + o, ca, tunable_x);
+                y0 = _mm256_set1_ps(input[i_offset]);
+                //REP(p, 0, reg_n) {
+                  int f_offset = filter_index_new((i * reg_n), j, n, o, m, 0);
+                  y1 = _mm256_load_ps(f + f_offset), y2 = _mm256_fmadd_ps(y0, y1, y2);
+
+                  f_offset = filter_index_new((i * reg_n + 1), j, n, o, m, 0);
+                  y1 = _mm256_load_ps(f + f_offset), y3 = _mm256_fmadd_ps(y0, y1, y3);
+
+                  f_offset = filter_index_new((i * reg_n + 2), j, n, o, m, 0);
+                  y1 = _mm256_load_ps(f + f_offset), y4 = _mm256_fmadd_ps(y0, y1, y4);
+
+                  f_offset = filter_index_new((i * reg_n + 3), j, n, o, m, 0);
+                  y1 = _mm256_load_ps(f + f_offset), y5 = _mm256_fmadd_ps(y0, y1, y5);
+                //}
+              }
+            }
+          }
+          //REP(q, 0, reg_n) {
+            // assume tunable_x == tunable_y
+            int o_offset = output_index_nchw(0, i*VEC_LEN*reg_n+0, k, l, ca); //actually it is output
+            auto tmp = _mm256_loadu_ps(output + o_offset);
+            y2 = _mm256_add_ps(y2, tmp), _mm256_storeu_ps(output + o_offset, y2);
+
+            o_offset = output_index_nchw(0, i*VEC_LEN*reg_n+1, k, l, ca); //actually it is output
+            tmp = _mm256_loadu_ps(output + o_offset);
+            y3 = _mm256_add_ps(y3, tmp), _mm256_storeu_ps(output + o_offset, y3);
+
+            o_offset = output_index_nchw(0, i*VEC_LEN*reg_n+2, k, l, ca); //actually it is output
+            tmp = _mm256_loadu_ps(output + o_offset);
+            y4 = _mm256_add_ps(y4, tmp), _mm256_storeu_ps(output + o_offset, y4);
+
+            o_offset = output_index_nchw(0, i*VEC_LEN*reg_n+3, k, l, ca); //actually it is output
+            tmp = _mm256_loadu_ps(output + o_offset);
+            y5 = _mm256_add_ps(y5, tmp), _mm256_storeu_ps(output + o_offset, y5);
+          //}
+        }
+      }
+    }
+  }
+  delete[] pr;
+//#endif
+  printf("called: %lld\n", called);
+  long long t = duration_cast<microseconds>((high_resolution_clock::now() - start)).count();
+  cout << __FUNCTION__ << " | algo run Time: " << t << " us" << endl;
 }
 
 void tunable_conv::run() {
@@ -262,13 +331,10 @@ void tunable_conv::run_32_32() {
   cout << __FUNCTION__ << " | algo run Time: " << t << " us" << endl;
 }
 
-
-
-
 // x=32
 void tunable_conv::run_32_8() {
   auto start = high_resolution_clock::now();
-  
+
   // not consider reg_n=4 in batch dim
   __m256 y12{}, y13{}, y14{}, y15{};
   int i_offset, f_offset;
@@ -315,15 +381,15 @@ void tunable_conv::run_32_8() {
           oo = o_offset, _mm256_store_ps(output + oo, y00);
           oo += VEC_LEN, _mm256_store_ps(output + oo, y04);
           oo += VEC_LEN, _mm256_store_ps(output + oo, y08);
-          
+
           oo = o_offset + output_block_stride, _mm256_store_ps(output + oo, y01);
           oo += VEC_LEN, _mm256_store_ps(output + oo, y05);
           oo += VEC_LEN, _mm256_store_ps(output + oo, y09);
-          
+
           oo = o_offset + output_block_stride*2, _mm256_store_ps(output + oo, y02);
           oo += VEC_LEN, _mm256_store_ps(output + oo, y06);
           oo += VEC_LEN, _mm256_store_ps(output + oo, y10);
-          
+
           oo = o_offset + output_block_stride*3, _mm256_store_ps(output + oo, y03);
           oo += VEC_LEN, _mm256_store_ps(output + oo, y07);
           oo += VEC_LEN, _mm256_store_ps(output + oo, y11);

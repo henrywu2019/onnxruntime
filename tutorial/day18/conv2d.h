@@ -56,6 +56,10 @@ inline int input_index_nchw(int N, int C, int H, int W, const conv_attr& ca, int
   return N*ca.input_batch_stride + C*ca.input_channel_stride + H*ca.W + W;
 }
 
+inline int output_index_nchw(int N, int C, int H, int W, const conv_attr& ca){
+  return C*ca.OH*ca.OW + H*ca.OW + W;
+}
+
 inline int input_index_new(int N, int C_, int H, int w, int c, const conv_attr& ca, int c_split){
   return N*ca.input_batch_stride + C_*ca.input_block_stride + H*ca.W*c_split + w*c_split + c;
 }

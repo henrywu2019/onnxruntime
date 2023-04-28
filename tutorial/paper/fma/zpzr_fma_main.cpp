@@ -3,7 +3,7 @@
 
 
 int main(int argc, char** argv) {
-  int input_height = 10, input_width = 10, input_channel = 256, filter_batch = 4, kernel_width = 2, kernel_height = 2, run_flag = 16, channel_split=16;
+  int input_height = 10, input_width = 10, input_channel = 256, filter_batch = 64, kernel_width = 3, kernel_height = 3, run_flag = 2, channel_split=16;
   if (argc >= 2 && strcmp(argv[1], "-h") == 0) {
     std::cout << argv[0] << " filter_batch=32 input_channel=256 input_height=800 input_width=34 run_flag=2 kernel_width=3 channel_split=16" << std::endl;
     return 0;
