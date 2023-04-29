@@ -2,6 +2,7 @@
 #include <sein.hpp>
 #include "ort_conv.h"
 #include "gamma_common.h"
+#include <immintrin.h>  // include Intel Intrinsics header
 #define SIMPLE_INDEX
 #define ALGO_INPUT_AS_OUTER_LOOP
 #define ALGO_KERNL_AS_OUTER_LOOP
@@ -81,12 +82,12 @@ void tunable_conv::reorder_filter() {
   auto start = high_resolution_clock::now();
   f = (float*)_mm_malloc(sizeof(float) * ca.filter_size, 32);
   int ori_idx = 0, new_idx = 0;
-  REP(i, 0, slice_number_in_batch_dim) {      // K'
-    REP(j, 0, slice_number_in_channel_dim) {  // C'
-      REP(k, 0, ca.R) {                       // R
-        REP(l, 0, ca.L) {                     // L
-          REP(m, 0, tunable_x) {              // c_
-            REP(n, 0, VEC_LEN) {              // k_
+  REP(j, 0, slice_number_in_channel_dim) {  // C'
+    REP(i, 0, slice_number_in_batch_dim) {  // K'
+      REP(m, 0, tunable_x) {                // c_
+        REP(k, 0, ca.R) {                   // R
+          REP(l, 0, ca.L) {                 // L
+            REP(n, 0, VEC_LEN) {            // k_
               ori_idx = (i * VEC_LEN + n) * ca.filter_batch_stride + (m + j * tunable_x) * ca.filter_channel_stride + k * ca.L + l;
 #ifdef SIMPLE_INDEX
               f[new_idx++] = kernel[ori_idx];
@@ -125,68 +126,108 @@ void tunable_conv::run_tunable() {
     run_64_64();
   }
 }
-
+union floatpun { int i; float f; } fp;
 void tunable_conv::run_zoper_v2() {
   int reg_idx = 0;
   long long called = 0;
+  int f_offset = 0;
   auto start = high_resolution_clock::now();
 
-//#ifdef ALGO_KERNL_AS_OUTER_LOOP
-  // not consider reg_n=4 in batch dim
-  auto pr = new __m256[reg_n]();
-  REP(i, 0, hunk_number_in_batch_dim) {  // N(K_)
-    REP(k, 0, ca.OH) {
-      REP(j, 0, slice_number_in_channel_dim) {  // C_
-        REP(l, 0, ca.OW) {
-          /*REP(t, 0, reg_n){
-            pr[t] = _mm256_xor_ps(pr[t], pr[t]);
-          }*/
-          __m256 y0{}, y1{};
-          __m256 y2{}, y3{}, y4{}, y5{};
-          REP(m, 0, tunable_x) {  // channel dim
-            REP(n, 0, ca.R) {
-              REP(o, 0, ca.L) {
-                int i_offset = input_index_nchw(0, j*8+m, k + n, l + o, ca, tunable_x);
-                y0 = _mm256_set1_ps(input[i_offset]);
-                //REP(p, 0, reg_n) {
-                  int f_offset = filter_index_new((i * reg_n), j, n, o, m, 0);
-                  y1 = _mm256_load_ps(f + f_offset), y2 = _mm256_fmadd_ps(y0, y1, y2);
+  __m256 y00{}, y01{}, y02{}, y03{};
+  __m128 x03{};
+  int o_offset=0;
 
-                  f_offset = filter_index_new((i * reg_n + 1), j, n, o, m, 0);
-                  y1 = _mm256_load_ps(f + f_offset), y3 = _mm256_fmadd_ps(y0, y1, y3);
+  printf("hunk_number_in_batch_dim:%d, slice_number_in_channel_dim:%d\n", hunk_number_in_batch_dim, slice_number_in_channel_dim);
+  REP(c_, 0, slice_number_in_channel_dim) {      // C_
+    REP(k_, 0, hunk_number_in_batch_dim) {       // K_
+      REP(h, 0, ca.OH) {                         // H
+        REP2(w, 0, ca.OW-2, 3) {                 // W
+          __m256 y04{}, y05{}, y06{}, y07{}, y08{}, y09{}, y10{}, y11{}, y12{}, y13{}, y14{}, y15{}; // 8*12
+          REP(c, 0, 8) {                         // c - channel dim
+            REP(r, 0, ca.R) {                    // R
+              REP(l, 0, ca.L) {                  // L
+                // 10% better than load three times!
+                int i_offset = input_index_nchw(0, c_*8+c, h + r, w + l, ca, 8);
+                x03 = _mm_loadu_ps(input+i_offset); // XMM3
+                fp.i = _mm_extract_ps(x03, 0);
+                y00 = _mm256_set1_ps(fp.f);
+                fp.i = _mm_extract_ps(x03, 1);
+                y01 = _mm256_set1_ps(fp.f);
+                fp.i = _mm_extract_ps(x03, 2);
+                y02 = _mm256_set1_ps(fp.f);
+/*#if 0
+                if ((l&1) == 0){
+                  int i_offset = input_index_nchw(0, c_*8+c, h + r, w + l, ca, 8);
+                  x03 = _mm_loadu_ps(input+i_offset);
+                  fp.i = _mm_extract_ps(x03, 0);
+                  y00 = _mm256_set1_ps(fp.f);
+                  fp.i = _mm_extract_ps(x03, 1);
+                  y01 = _mm256_set1_ps(fp.f);
+                  fp.i = _mm_extract_ps(x03, 2);
+                  y02 = _mm256_set1_ps(fp.f);
+                }else{
+                  fp.i = _mm_extract_ps(x03, 1);
+                  y00 = _mm256_set1_ps(fp.f);
+                  fp.i = _mm_extract_ps(x03, 2);
+                  y01 = _mm256_set1_ps(fp.f);
+                  fp.i = _mm_extract_ps(x03, 3);
+                  y02 = _mm256_set1_ps(fp.f);
+                }
+#endif
+#if 0
+                y00 = _mm256_set1_ps(input[i_offset]);
+                y01 = _mm256_set1_ps(input[i_offset+1]);
+                y02 = _mm256_set1_ps(input[i_offset+2]);
+#endif*/
+                f_offset = ckcrlk(c_, k_, c, r, l, 0);
+                y03 = _mm256_load_ps(f + f_offset);
 
-                  f_offset = filter_index_new((i * reg_n + 2), j, n, o, m, 0);
-                  y1 = _mm256_load_ps(f + f_offset), y4 = _mm256_fmadd_ps(y0, y1, y4);
+                y04 = _mm256_fmadd_ps(y00, y03, y04);
+                y05 = _mm256_fmadd_ps(y01, y03, y05);
+                y06 = _mm256_fmadd_ps(y02, y03, y06);
 
-                  f_offset = filter_index_new((i * reg_n + 3), j, n, o, m, 0);
-                  y1 = _mm256_load_ps(f + f_offset), y5 = _mm256_fmadd_ps(y0, y1, y5);
-                //}
+                f_offset = ckcrlk(c_, k_+1, c, r, l, 0);
+                y03 = _mm256_load_ps(f + f_offset);
+
+                y07 = _mm256_fmadd_ps(y00, y03, y07);
+                y08 = _mm256_fmadd_ps(y01, y03, y08);
+                y09 = _mm256_fmadd_ps(y02, y03, y09);
+
+                f_offset = ckcrlk(c_, k_+2, c, r, l, 0);
+                y03 = _mm256_load_ps(f + f_offset);
+
+                y10 = _mm256_fmadd_ps(y00, y03, y10);
+                y11 = _mm256_fmadd_ps(y01, y03, y11);
+                y12 = _mm256_fmadd_ps(y02, y03, y12);
+
+                f_offset = ckcrlk(c_, k_+3, c, r, l, 0);
+                y03 = _mm256_load_ps(f + f_offset);
+
+                y13 = _mm256_fmadd_ps(y00, y03, y13);
+                y14 = _mm256_fmadd_ps(y01, y03, y14);
+                y15 = _mm256_fmadd_ps(y02, y03, y15);
               }
             }
           }
-          //REP(q, 0, reg_n) {
-            // assume tunable_x == tunable_y
-            int o_offset = output_index_nchw(0, i*VEC_LEN*reg_n+0, k, l, ca); //actually it is output
-            auto tmp = _mm256_loadu_ps(output + o_offset);
-            y2 = _mm256_add_ps(y2, tmp), _mm256_storeu_ps(output + o_offset, y2);
-
-            o_offset = output_index_nchw(0, i*VEC_LEN*reg_n+1, k, l, ca); //actually it is output
-            tmp = _mm256_loadu_ps(output + o_offset);
-            y3 = _mm256_add_ps(y3, tmp), _mm256_storeu_ps(output + o_offset, y3);
-
-            o_offset = output_index_nchw(0, i*VEC_LEN*reg_n+2, k, l, ca); //actually it is output
-            tmp = _mm256_loadu_ps(output + o_offset);
-            y4 = _mm256_add_ps(y4, tmp), _mm256_storeu_ps(output + o_offset, y4);
-
-            o_offset = output_index_nchw(0, i*VEC_LEN*reg_n+3, k, l, ca); //actually it is output
-            tmp = _mm256_loadu_ps(output + o_offset);
-            y5 = _mm256_add_ps(y5, tmp), _mm256_storeu_ps(output + o_offset, y5);
-          //}
+          // write y4-15 to output
+          o_offset = khwk96(k_, h, w, 0);
+          y04 = _mm256_add_ps(y04, _mm256_loadu_ps(output + o_offset)), _mm256_storeu_ps(output + o_offset, y04), o_offset += 8;
+          y05 = _mm256_add_ps(y05, _mm256_loadu_ps(output + o_offset)), _mm256_storeu_ps(output + o_offset, y05), o_offset += 8;
+          y06 = _mm256_add_ps(y06, _mm256_loadu_ps(output + o_offset)), _mm256_storeu_ps(output + o_offset, y06), o_offset += 8;
+          y07 = _mm256_add_ps(y07, _mm256_loadu_ps(output + o_offset)), _mm256_storeu_ps(output + o_offset, y07), o_offset += 8;
+          y08 = _mm256_add_ps(y08, _mm256_loadu_ps(output + o_offset)), _mm256_storeu_ps(output + o_offset, y08), o_offset += 8;
+          y09 = _mm256_add_ps(y09, _mm256_loadu_ps(output + o_offset)), _mm256_storeu_ps(output + o_offset, y09), o_offset += 8;
+          y10 = _mm256_add_ps(y10, _mm256_loadu_ps(output + o_offset)), _mm256_storeu_ps(output + o_offset, y10), o_offset += 8;
+          y11 = _mm256_add_ps(y11, _mm256_loadu_ps(output + o_offset)), _mm256_storeu_ps(output + o_offset, y11), o_offset += 8;
+          y12 = _mm256_add_ps(y12, _mm256_loadu_ps(output + o_offset)), _mm256_storeu_ps(output + o_offset, y12), o_offset += 8;
+          y13 = _mm256_add_ps(y13, _mm256_loadu_ps(output + o_offset)), _mm256_storeu_ps(output + o_offset, y13), o_offset += 8;
+          y14 = _mm256_add_ps(y14, _mm256_loadu_ps(output + o_offset)), _mm256_storeu_ps(output + o_offset, y14), o_offset += 8;
+          y15 = _mm256_add_ps(y15, _mm256_loadu_ps(output + o_offset)), _mm256_storeu_ps(output + o_offset, y15), o_offset += 8;
+          printf("of:%d\n", o_offset);
         }
       }
     }
   }
-  delete[] pr;
 //#endif
   printf("called: %lld\n", called);
   long long t = duration_cast<microseconds>((high_resolution_clock::now() - start)).count();

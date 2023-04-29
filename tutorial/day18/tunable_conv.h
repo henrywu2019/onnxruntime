@@ -100,6 +100,13 @@ struct tunable_conv {  // can refactor using inheritance
   inline int filter_index_new(int K_, int C_, int R, int l, int c, int k) {
     return K_ * filter_chunk_stride + C_ * filter_block_stride + R * ca.L * tunable_x * VEC_LEN + l * tunable_x * VEC_LEN + c * VEC_LEN + k;
   }
+  inline int ckcrlk(int C_, int K_, int c, int r, int l, int k) {
+    return C_ * (ca.K/8) * 8 * ca.filter_channel_stride * VEC_LEN + K_ * 8 * ca.filter_channel_stride * VEC_LEN + c * ca.filter_channel_stride * VEC_LEN + r * ca.L * VEC_LEN + l * VEC_LEN + k;
+  }
+
+  inline int khwk96(int k, int h, int w, int k96) {
+    return k * ca.OH * ca.OW * 32 + h * ca.OW * 32 + w * 32 + k96;
+  }
 
 };
 /* Why tunable_y equals to reg_n * VEC_LEN?
