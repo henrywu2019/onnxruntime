@@ -108,6 +108,10 @@ struct tunable_conv {  // can refactor using inheritance
     return k * ca.OH * ca.OW * 32 + h * ca.OW * 32 + w * 32 + k96;
   }
 
+  inline int oid(int k, int h, int w, int k_, int w_) {
+    return k * ca.OH * ca.OW * 32 + h * ca.OW * 32 + w * 32;
+  }
+
 };
 /* Why tunable_y equals to reg_n * VEC_LEN?
  * Because reg_n * VEC_LEN is the length of calculated results in channel dimension in the output, it is more convenient to make them equal.
