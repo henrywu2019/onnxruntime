@@ -18,7 +18,7 @@ struct conv_attr {
   }
 };
 
-const int U=8;
+const int U=4;
 
 struct fast_conv {  // can refactor using inheritance
   conv_attr ca;
@@ -138,7 +138,7 @@ struct fast_conv {  // can refactor using inheritance
   }
 
   inline int input_index_nchc8w(int c, int h_, int c_, int w_){
-    return c*ca.H*ca.W*U + h_*ca.W*U + c_*ca.W + w_;
+    return c*ca.H*ca.W*8 + h_*ca.W*8 + c_*ca.W + w_;
   }
 
 //#define DEBUG
@@ -154,7 +154,7 @@ struct fast_conv {  // can refactor using inheritance
 #endif
   }
   inline int kid(int k_, int c_, int r, int l, int k) {
-    return k_ * ca.C * ca.R * ca.L * 8 + c_ * ca.R * ca.L * 8 + r * ca.L * 8 + l * 8 + k;
+    return k_ * ca.C * ca.R * ca.L * 4 + c_ * ca.R * ca.L * 4 + r * ca.L * 4 + l * 4 + k;
   }
   inline int oid(int k_, int oh_, int ow_){
     return k_*output_channel_stride + oh_*ca.OW + ow_;

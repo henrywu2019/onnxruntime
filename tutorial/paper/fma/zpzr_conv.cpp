@@ -126,7 +126,7 @@ void fast_conv::run_full(){
       }
     }else{
       REP2(cbase,0,ca.C,CHANNEL_SPLIT){
-        run_nchw_v2(output, cbase, min(cbase+CHANNEL_SPLIT, ca.C));
+        run_nchw(output, cbase, min(cbase+CHANNEL_SPLIT, ca.C));
       }
     }
   }
