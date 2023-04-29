@@ -36,7 +36,7 @@ int main(int argc, char** argv) {
 
   if (run_flag==9){
     auto_profiler ap("gme_conv");
-    tunable_conv cw(ca, I, F, O, tunable_x, tunable_y);
+    tunable_conv cw(ca, I, F, O, tunable_x, tunable_y, run_flag);
     cw.reorder_input();
     cw.reorder_filter();
     cw.run_tunable();
@@ -44,11 +44,11 @@ int main(int argc, char** argv) {
     cw.print();
   }else if(run_flag==4){
     auto_profiler ap("zoper v2");
-    tunable_conv cw(ca, I, F, O, tunable_x, tunable_y);
+    tunable_conv cw(ca, I, F, O, tunable_x, tunable_y, run_flag);
     //cw.reorder_input();
     cw.reorder_filter();
     cw.run_tunable();
-    //cw.restore_output();
+    cw.restore_output();
     cw.print();
   }else if(run_flag&1){
     auto_profiler ap("ort_conv");

@@ -111,19 +111,21 @@ void tunable_conv::reorder_filter() {
 }
 
 void tunable_conv::run_tunable() {
-  run_zoper_v2();
-  return;
-  if (tunable_y == 8) {
-    if (tunable_x==8){
-      run_8_8();
-    }else
-      run_32_8();
-  } else if(tunable_y == 16){
-    run_32_16();
-  } else if (tunable_y == 32) {
-    run_32_32();
-  } else if(tunable_y == 64){
-    run_64_64();
+  if (run_flag == 4){
+    run_zoper_v2();
+  } else if(run_flag == 9){
+    if (tunable_y == 8) {
+      if (tunable_x==8){
+        run_8_8();
+      }else
+        run_32_8();
+    } else if(tunable_y == 16){
+      run_32_16();
+    } else if (tunable_y == 32) {
+      run_32_32();
+    } else if(tunable_y == 64){
+      run_64_64();
+    }
   }
 }
 union floatpun { int i; float f; } fp;
@@ -141,7 +143,7 @@ void tunable_conv::run_zoper_v2() {
   REP(c_, 0, slice_number_in_channel_dim) {      // C_
     REP(k_, 0, hunk_number_in_batch_dim) {       // K_
       REP(h, 0, ca.OH) {                         // H
-        REP2(w, 0, ca.OW-2, 3) {                 // W
+        REP2(w, 0, ca.OW, 3) {                 // W
           __m256 y04{}, y05{}, y06{}, y07{}, y08{}, y09{}, y10{}, y11{}, y12{}, y13{}, y14{}, y15{}; // 8*12
           REP(c, 0, 8) {                         // c - channel dim
             REP(r, 0, ca.R) {                    // R
@@ -163,21 +165,21 @@ void tunable_conv::run_zoper_v2() {
                 y05 = _mm256_fmadd_ps(y01, y03, y05);
                 y06 = _mm256_fmadd_ps(y02, y03, y06);
 
-                f_offset = ckcrlk(c_, k_+1, c, r, l, 0);
+                f_offset = ckcrlk(c_, k_, c, r, l, 8);
                 y03 = _mm256_load_ps(f + f_offset);
 
                 y07 = _mm256_fmadd_ps(y00, y03, y07);
                 y08 = _mm256_fmadd_ps(y01, y03, y08);
                 y09 = _mm256_fmadd_ps(y02, y03, y09);
 
-                f_offset = ckcrlk(c_, k_+2, c, r, l, 0);
+                f_offset = ckcrlk(c_, k_, c, r, l, 16);
                 y03 = _mm256_load_ps(f + f_offset);
 
                 y10 = _mm256_fmadd_ps(y00, y03, y10);
                 y11 = _mm256_fmadd_ps(y01, y03, y11);
                 y12 = _mm256_fmadd_ps(y02, y03, y12);
 
-                f_offset = ckcrlk(c_, k_+3, c, r, l, 0);
+                f_offset = ckcrlk(c_, k_, c, r, l, 24);
                 y03 = _mm256_load_ps(f + f_offset);
 
                 y13 = _mm256_fmadd_ps(y00, y03, y13);
@@ -187,16 +189,22 @@ void tunable_conv::run_zoper_v2() {
             }
           }
           // write y4-15 to output
-          oo = o_offset = khwk96(k_, h, w, 0);  // output_index_nchwc(k_, h, w, 0);
+          oo = o_offset = output_index_nchwc(k_, h, w, 0);
           y04 = _mm256_add_ps(y04, _mm256_loadu_ps(output + oo)), oo += 8;
           y05 = _mm256_add_ps(y05, _mm256_loadu_ps(output + oo)), oo += 8;
           y06 = _mm256_add_ps(y06, _mm256_loadu_ps(output + oo)), oo += 8;
+
+          oo = o_offset + output_block_stride;
           y07 = _mm256_add_ps(y07, _mm256_loadu_ps(output + oo)), oo += 8;
           y08 = _mm256_add_ps(y08, _mm256_loadu_ps(output + oo)), oo += 8;
           y09 = _mm256_add_ps(y09, _mm256_loadu_ps(output + oo)), oo += 8;
+
+          oo = o_offset + output_block_stride*2;
           y10 = _mm256_add_ps(y10, _mm256_loadu_ps(output + oo)), oo += 8;
           y11 = _mm256_add_ps(y11, _mm256_loadu_ps(output + oo)), oo += 8;
           y12 = _mm256_add_ps(y12, _mm256_loadu_ps(output + oo)), oo += 8;
+
+          oo = o_offset + output_block_stride*3;
           y13 = _mm256_add_ps(y13, _mm256_loadu_ps(output + oo)), oo += 8;
           y14 = _mm256_add_ps(y14, _mm256_loadu_ps(output + oo)), oo += 8;
           y15 = _mm256_add_ps(y15, _mm256_loadu_ps(output + oo)), oo += 8;
@@ -205,12 +213,18 @@ void tunable_conv::run_zoper_v2() {
           _mm256_storeu_ps(output + oo, y04), oo += 8;
           _mm256_storeu_ps(output + oo, y05), oo += 8;
           _mm256_storeu_ps(output + oo, y06), oo += 8;
+
+          oo = o_offset + output_block_stride;
           _mm256_storeu_ps(output + oo, y07), oo += 8;
           _mm256_storeu_ps(output + oo, y08), oo += 8;
           _mm256_storeu_ps(output + oo, y09), oo += 8;
+
+          oo = o_offset + output_block_stride*2;
           _mm256_storeu_ps(output + oo, y10), oo += 8;
           _mm256_storeu_ps(output + oo, y11), oo += 8;
           _mm256_storeu_ps(output + oo, y12), oo += 8;
+
+          oo = o_offset + output_block_stride*3;
           _mm256_storeu_ps(output + oo, y13), oo += 8;
           _mm256_storeu_ps(output + oo, y14), oo += 8;
           _mm256_storeu_ps(output + oo, y15), oo += 8;
@@ -220,7 +234,7 @@ void tunable_conv::run_zoper_v2() {
   }
   printf("of:%d\n", o_offset);
 //#endif
-  printf("called: %lld\n", called);
+  //printf("called: %lld\n", called);
   long long t = duration_cast<microseconds>((high_resolution_clock::now() - start)).count();
   cout << __FUNCTION__ << " | algo run Time: " << t << " us" << endl;
 }

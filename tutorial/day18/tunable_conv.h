@@ -12,6 +12,7 @@ void print_matrix(float* m, int h, int w);
 void print_output(float* Output, int h, int w, int output_channel, bool all = false);
 
 struct tunable_conv {  // can refactor using inheritance
+  int run_flag;
   conv_attr ca;
   // core attr
   int tunable_x = VEC_LEN*4; // 32, must be multiple of VEC_LEN
@@ -42,8 +43,9 @@ struct tunable_conv {  // can refactor using inheritance
   vector<float> input_nchwc;
   float *core=nullptr, *f; // reordered input and kernel
 
-  tunable_conv(conv_attr ca_, float* input_, float* kernel_, float* output_, int tunable_x_=64, int tunable_y_=64)
+  tunable_conv(conv_attr ca_, float* input_, float* kernel_, float* output_, int tunable_x_=64, int tunable_y_=64, int rf=0)
       :ca(ca_), input(input_), kernel(kernel_), output(output_) {
+    run_flag = rf;
     reset(tunable_x_, tunable_y_);
   }
 
