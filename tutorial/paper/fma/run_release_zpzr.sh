@@ -8,3 +8,4 @@ else
 fi
 
 g++ zpzr_fma_main.cpp common.cpp zpzr_conv.cpp -O3 -o conv_zpzr_main_release.exe -lpthread -std=c++11 $INSTRUCTION_FLAG -march=native
+g++ zpzr_fma_main.cpp common.cpp zpzr_conv.cpp -O0 -g -o conv_zpzr_main_debug.exe -lpthread -std=c++11 $INSTRUCTION_FLAG -march=native

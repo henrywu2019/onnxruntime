@@ -145,6 +145,7 @@ void fast_conv::run_full_nchc8w(){
   cout << "matrix_fuse: " << t << " us" << endl;
 }
 
+union floatpun { int i; float f; } fp;
 void fast_conv::run_nchw(float* output_, int cbase, int cstop) {
   __m256 y00{}, y01{}, y02{}, y03{};
   __m256 y04{}, y05{}, y06{}, y07{}, y08{}, y09{}, y10{}, y11{}, y12{}, y13{}, y14{}, y15{}; // 8*12
