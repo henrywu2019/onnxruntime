@@ -78,6 +78,7 @@ struct tunable_conv {  // can refactor using inheritance
   void reorder_input();
   void restore_output();
   void reorder_filter();
+  void reorder_filter_sota();
   void run_tunable();
   void run();
   void run_ort();

@@ -110,6 +110,38 @@ void tunable_conv::reorder_filter() {
   cout << __FUNCTION__ << ": " << t << " us" << endl;
 }
 
+void tunable_conv::reorder_filter_sota() {
+  auto start = high_resolution_clock::now();
+  f = (float*)_mm_malloc(sizeof(float) * ca.filter_size, 32);
+  int ori_idx = 0, new_idx = 0;
+  REP(i, 0, slice_number_in_batch_dim) {      // K'
+    REP(j, 0, slice_number_in_channel_dim) {  // C'
+      REP(k, 0, ca.R) {                       // R
+        REP(l, 0, ca.L) {                     // L
+          REP(m, 0, tunable_x) {              // c_
+            REP(n, 0, VEC_LEN) {              // k_
+              ori_idx = (i * VEC_LEN + n) * ca.filter_batch_stride + (m + j * tunable_x) * ca.filter_channel_stride + k * ca.L + l;
+#ifdef SIMPLE_INDEX
+              f[new_idx++] = kernel[ori_idx];
+#else
+              new_idx = i * filter_chunk_stride + j * filter_block_stride + k * ca.L * tunable_x * VEC_LEN + l * tunable_x * VEC_LEN + m * VEC_LEN + n;
+              f[new_idx] = kernel[ori_idx];
+#endif
+            }
+          }
+        }
+      }
+    }
+  }
+#ifdef SIMPLE_INDEX
+  assert(new_idx == ca.filter_size);
+#else
+  assert(new_idx + 1 == filter_size);
+#endif
+  auto t = duration_cast<microseconds>((high_resolution_clock::now() - start)).count();
+  cout << __FUNCTION__ << ": " << t << " us" << endl;
+}
+
 void tunable_conv::run_tunable() {
   if (run_flag == 4){
     run_zoper_v2();

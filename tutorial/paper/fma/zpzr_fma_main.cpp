@@ -52,7 +52,7 @@ int main(int argc, char** argv) {
   auto start = high_resolution_clock::now();
 
   if (run_flag==2) {
-    printf("Fuheng's Algo\n");
+    printf("Fuheng Zoper Algo\n");
     cw.run_full();
   } else if(run_flag==0) {
     printf("naive algo\n");
