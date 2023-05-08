@@ -833,6 +833,7 @@ if (onnxruntime_DEBUG_NODE_INPUTS_OUTPUTS)
   target_compile_definitions(onnxruntime_test_all PRIVATE DEBUG_NODE_INPUTS_OUTPUTS)
 endif()
 
+target_link_libraries(onnxruntime_test_all PRIVATE -lsqlite3)
 if (onnxruntime_ENABLE_LANGUAGE_INTEROP_OPS)
   target_link_libraries(onnxruntime_test_all PRIVATE onnxruntime_language_interop onnxruntime_pyop)
 endif()
