@@ -370,7 +370,8 @@ void NchwcTransformerImpl::TransformConv(Node& node) {
       return;
     }
   } else {
-    if (static_cast<size_t>(input_channels) < nchwc_block_size) {
+    //if (static_cast<size_t>(input_channels) < nchwc_block_size) {
+    if (1) {
       // Use NCHW input buffer directly.
       reorder_filter_OIHWBo = true;
       do_reorder_input = false;
