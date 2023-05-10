@@ -481,6 +481,8 @@ Return Value:
     }
 }
 
+static int count_img2col=0;
+static int count_sgemm=0;
 void
 MlasConvOperation(
     const MLAS_CONV_PARAMETERS* Parameters,
@@ -585,6 +587,7 @@ Return Value:
             if (Parameters->Dimensions == 2) {
                 MlasConvIm2Col(Parameters, Input, ColumnBuffer, k, CountK,
                     SegmentStartN + n, CountN);
+                count_img2col++;
             } else {
                 MlasConvVol2Col(Parameters, Input, ColumnBuffer, k, CountK,
                     SegmentStartN + n, CountN);
@@ -593,6 +596,7 @@ Return Value:
             MlasSgemmOperation(CblasNoTrans, CblasNoTrans, FilterCount, CountN,
                 CountK, 1.0f, Filter + k, K, ColumnBuffer, CountN, beta,
                 SegmentOutput, OutputSize);
+            count_sgemm++;
 
             beta = 1.0f;
         }
@@ -1017,6 +1021,7 @@ Return Value:
             Output += OutputGroupSize;
         }
     }
+    printf("called: img2col=%d,sgemm=%d\n", count_img2col, count_sgemm);
 }
 #if defined(_MSC_VER) && !defined(__clang__)
 #pragma warning(push)

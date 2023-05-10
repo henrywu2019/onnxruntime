@@ -39,5 +39,6 @@
     "cpplint.filters": [
         "-build/include_subdir",
         "-runtime/references"
-    ]
+    ],
+    "cmake.sourceDirectory": "/home/henry/onnxruntime/cmake"
 }
