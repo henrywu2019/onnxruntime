@@ -1021,7 +1021,7 @@ Return Value:
             Output += OutputGroupSize;
         }
     }
-    printf("called: img2col=%d,sgemm=%d\n", count_img2col, count_sgemm);
+    //printf("called: img2col=%d,sgemm=%d\n", count_img2col, count_sgemm);
 }
 #if defined(_MSC_VER) && !defined(__clang__)
 #pragma warning(push)
