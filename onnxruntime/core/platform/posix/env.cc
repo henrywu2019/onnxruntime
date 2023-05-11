@@ -285,7 +285,7 @@ class PosixEnv : public Env {
 
   // we are guessing the number of phys cores based on a popular HT case (2 logical proc per core)
   static int DefaultNumCores() {
-    return std::min(2, static_cast<int>(std::thread::hardware_concurrency() / 2));
+    return 8;
   }
 
   // Return the number of physical cores
