@@ -370,17 +370,8 @@ void NchwcTransformerImpl::TransformConv(Node& node) {
       return;
     }
   } else {
-    //if (static_cast<size_t>(input_channels) < nchwc_block_size) {
-    if (1) {
-      // Use NCHW input buffer directly.
-      reorder_filter_OIHWBo = true;
-      do_reorder_input = false;
-    } else {
-      if ((input_channels % channel_alignment) != 0) {
-        return;
-      }
-      filter_input_channels = (input_channels + nchwc_block_size - 1) & ~(nchwc_block_size - 1);
-    }
+    reorder_filter_OIHWBo = true;
+    do_reorder_input = false;
   }
 
   // Also require that the optional bias tensor be static.
