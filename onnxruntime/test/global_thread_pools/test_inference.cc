@@ -22,7 +22,7 @@ struct Input {
 };
 
 extern std::unique_ptr<Ort::Env> ort_env;
-static constexpr PATH_TYPE MODEL_URI = TSTR("testdata/squeezenet/model.onnx");
+static constexpr PATH_TYPE MODEL_URI = TSTR("/home/henry/git.repo/zoper/build/zoper_test_model.onnx");
 class CApiTestGlobalThreadPoolsWithProvider : public testing::Test, public ::testing::WithParamInterface<int> {
 };
 
@@ -115,7 +115,7 @@ static void GetInputsAndExpectedOutputs(std::vector<Input>& inputs,
                                         std::string& output_name) {
   inputs.resize(1);
   Input& input = inputs.back();
-  input.name = "data_0";
+  input.name = "input";
   input.dims = {1, 3, 224, 224};
   size_t input_tensor_size = 224 * 224 * 3;
   input.values.resize(input_tensor_size);
@@ -129,7 +129,7 @@ static void GetInputsAndExpectedOutputs(std::vector<Input>& inputs,
   // doesn't affect the core op functionality
   expected_values_y = {0.000045f, 0.003846f, 0.000125f, 0.001180f, 0.001317f};
 
-  output_name = "softmaxout_1";
+  output_name = "output";
 }
 
 // All tests below use global threadpools

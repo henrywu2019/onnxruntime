@@ -1314,7 +1314,7 @@ Applies to session load, initialization, etc. Default is 0.)pbdoc")
       .def_property(
           "graph_optimization_level",
           [](const PySessionOptions* options) -> GraphOptimizationLevel {
-            GraphOptimizationLevel retval = ORT_ENABLE_ALL;
+            GraphOptimizationLevel retval = ORT_ENABLE_BASIC;
             switch (options->value.graph_optimization_level) {
               case onnxruntime::TransformerLevel::Default:
                 retval = ORT_DISABLE_ALL;
@@ -1329,7 +1329,7 @@ Applies to session load, initialization, etc. Default is 0.)pbdoc")
                 retval = ORT_ENABLE_ALL;
                 break;
               default:
-                retval = ORT_ENABLE_ALL;
+                retval = ORT_ENABLE_BASIC;
                 LOGS_DEFAULT(WARNING) << "Got invalid graph optimization level; defaulting to ORT_ENABLE_ALL";
                 break;
             }

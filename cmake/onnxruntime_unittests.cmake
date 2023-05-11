@@ -4,6 +4,9 @@ if (${CMAKE_SYSTEM_NAME} STREQUAL "iOS")
   find_package(XCTest REQUIRED)
 endif()
 
+link_directories(/home/henry/onnxruntime/build/Linux/Debug)
+set(onnxruntime_BUILD_SHARED_LIB 1)
+
 set(TEST_SRC_DIR ${ONNXRUNTIME_ROOT}/test)
 set(TEST_INC_DIR ${ONNXRUNTIME_ROOT})
 if (onnxruntime_ENABLE_TRAINING)
@@ -833,6 +836,7 @@ if (onnxruntime_DEBUG_NODE_INPUTS_OUTPUTS)
   target_compile_definitions(onnxruntime_test_all PRIVATE DEBUG_NODE_INPUTS_OUTPUTS)
 endif()
 
+target_link_libraries(onnxruntime_test_all PRIVATE -lsqlite3)
 if (onnxruntime_ENABLE_LANGUAGE_INTEROP_OPS)
   target_link_libraries(onnxruntime_test_all PRIVATE onnxruntime_language_interop onnxruntime_pyop)
 endif()
