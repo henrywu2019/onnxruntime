@@ -682,12 +682,11 @@ struct MLAS_NCHWC_CONV_NCHWC_ALGORITHM : MLAS_NCHWC_GROUPED_CONV_ALGORITHM
         MLAS_CONV_FLOAT_KERNEL* Kernel = MlasConvNchwcFloatKernelArm64Neon;
         if (Kernel == nullptr) {
             printf("kernel is null.\n");
+            Kernel = MlasConvNchwcFloatKernel;
         }
 #else
         MLAS_CONV_FLOAT_KERNEL* Kernel = MlasConvNchwcFloatKernel;
 #endif
-        if (Kernel == nullptr)
-            Kernel = MlasConvNchwcFloatKernel;
 
         while (WorkRemaining > 0) {
 
