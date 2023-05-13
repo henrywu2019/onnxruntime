@@ -63,6 +63,11 @@ static void RunSession(OrtAllocator& allocator, Ort::Session& session_object,
 template <typename T, typename OutT>
 static Ort::Session GetSessionObj(Ort::Env& env, T model_uri, int provider_type) {
   Ort::SessionOptions session_options;
+  session_options.EnableProfiling("gem_profile");
+  session_options.SetInterOpNumThreads(1);
+  session_options.SetIntraOpNumThreads(1);
+  session_options.SetLogSeverityLevel(0);
+  session_options.SetOptimizedModelFilePath("/tmp/gme.ort");
   session_options.DisablePerSessionThreads();
 
   if (provider_type == 1) {
