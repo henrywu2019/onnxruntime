@@ -724,6 +724,7 @@ extern "C" {
 #else
     MLAS_CONV_FLOAT_KERNEL MlasConvNchwFloatKernel;
     MLAS_CONV_FLOAT_KERNEL MlasConvNchwcFloatKernel;
+    MLAS_CONV_FLOAT_KERNEL MlasConvNchwcFloatKernelArm64Neon;  // TODO
     MLAS_CONV_DEPTHWISE_FLOAT_KERNEL MlasConvDepthwiseFloatKernel;
     MLAS_CONV_POINTWISE_FLOAT_KERNEL MlasConvPointwiseFloatKernel;
     MLAS_POOL_FLOAT_KERNEL MlasPoolMaximumFloatKernel;
@@ -928,6 +929,7 @@ struct MLAS_PLATFORM {
     const MLAS_GEMM_QUANT_DISPATCH* GemmU8U8Dispatch;
 #elif defined(MLAS_TARGET_ARM64)
     const MLAS_GEMM_QUANT_DISPATCH* GemmU8X8Dispatch;
+    MLAS_CONV_FLOAT_KERNEL* ConvNchwcFloatKernel{nullptr};
 #endif
     const MLAS_SYMM_QGEMM_DISPATCH* SymmQgemmDispatch{nullptr};
 

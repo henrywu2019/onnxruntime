@@ -55,7 +55,7 @@ MLASCPUIDInfo::MLASCPUIDInfo()
 #if defined(BUILD_MLAS_NO_ONNXRUNTIME)
 MLASCPUIDInfo::MLASCPUIDInfo()
 {
-    has_arm_neon_dot_ = ((getauxval(AT_HWCAP) & HWCAP_ASIMDDP) != 0); 
+    has_arm_neon_dot_ = ((getauxval(AT_HWCAP) & HWCAP_ASIMDDP) != 0);
 
     // raw hack! Need CPUIDInfo implementation for more precise detection
     has_fp16_ = has_arm_neon_dot_;
@@ -438,6 +438,7 @@ Return Value:
     this->SymmQgemmDispatch = &MlasSymmQgemmS8DispatchNeon;
     this->ConvSymU8S8Dispatch = &MlasConvSymU8DispatchNeon;
     this->ConvSymS8S8Dispatch = &MlasConvSymS8DispatchNeon;
+    //this->ConvNchwcFloatKernel = &MlasConvNchwcFloatKernelNeon;
 
     //
     // Check if the processor supports ASIMD dot product instructions.

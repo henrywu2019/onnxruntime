@@ -103,6 +103,8 @@ Return Value:
 {
 #if defined(MLAS_TARGET_AMD64)
     return GetMlasPlatform().NchwcBlockSize;
+#elif defined(MLAS_TARGET_ARM64)
+    return 4;
 #else
     return 1;
 #endif
@@ -676,9 +678,16 @@ struct MLAS_NCHWC_CONV_NCHWC_ALGORITHM : MLAS_NCHWC_GROUPED_CONV_ALGORITHM
 
 #if defined(MLAS_TARGET_AMD64)
         MLAS_CONV_FLOAT_KERNEL* Kernel = GetMlasPlatform().ConvNchwcFloatKernel;
+#elif defined(MLAS_TARGET_ARM64)
+        MLAS_CONV_FLOAT_KERNEL* Kernel = MlasConvNchwcFloatKernelArm64Neon;
+        if (Kernel == nullptr) {
+            printf("kernel is null.\n");
+        }
 #else
         MLAS_CONV_FLOAT_KERNEL* Kernel = MlasConvNchwcFloatKernel;
 #endif
+        if (Kernel == nullptr)
+            Kernel = MlasConvNchwcFloatKernel;
 
         while (WorkRemaining > 0) {
 
@@ -1893,4 +1902,49 @@ MlasPoolAverageIncludePadFloatKernel(
     MLAS_UNREFERENCED_PARAMETER(OutputCountRightPad);
 }
 
+void
+MLASCALL
+MlasConvNchwcFloatKernelArm64Neon(
+    const float* Input,
+    const float* Filter,
+    float* Output,
+    size_t StrideWidth,
+    size_t DilationWidth,
+    size_t FilterCount,
+    size_t InputStride,
+    size_t FilterStride,
+    size_t OutputStride,
+    size_t KernelHeight,
+    size_t KernelWidth,
+    const float* InputBase,
+    size_t InputWidth,
+    size_t DilatedInputWidth,
+    size_t OutputCountLeftPad,
+    size_t OutputCount,
+    size_t OutputCountRightPad,
+    const float* Bias,
+    unsigned Flags
+    )
+{
+    printf("henry is here\n");
+    MLAS_UNREFERENCED_PARAMETER(Input);
+    MLAS_UNREFERENCED_PARAMETER(Filter);
+    MLAS_UNREFERENCED_PARAMETER(Output);
+    MLAS_UNREFERENCED_PARAMETER(StrideWidth);
+    MLAS_UNREFERENCED_PARAMETER(DilationWidth);
+    MLAS_UNREFERENCED_PARAMETER(FilterCount);
+    MLAS_UNREFERENCED_PARAMETER(InputStride);
+    MLAS_UNREFERENCED_PARAMETER(FilterStride);
+    MLAS_UNREFERENCED_PARAMETER(OutputStride);
+    MLAS_UNREFERENCED_PARAMETER(KernelHeight);
+    MLAS_UNREFERENCED_PARAMETER(KernelWidth);
+    MLAS_UNREFERENCED_PARAMETER(InputBase);
+    MLAS_UNREFERENCED_PARAMETER(InputWidth);
+    MLAS_UNREFERENCED_PARAMETER(DilatedInputWidth);
+    MLAS_UNREFERENCED_PARAMETER(OutputCountLeftPad);
+    MLAS_UNREFERENCED_PARAMETER(OutputCount);
+    MLAS_UNREFERENCED_PARAMETER(OutputCountRightPad);
+    MLAS_UNREFERENCED_PARAMETER(Bias);
+    MLAS_UNREFERENCED_PARAMETER(Flags);
+}
 #endif
